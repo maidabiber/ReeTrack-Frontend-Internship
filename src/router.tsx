@@ -4,6 +4,8 @@ import { ALL_NAV_ITEMS } from './config/navigation'
 import PlaceholderPage from './pages/PlaceholderPage'
 import TimerPage from './pages/TimerPage'
 import MembersPage from './pages/MembersPage'
+import OnboardingPage from './pages/OnboardingPage'
+import SignInPage from './pages/SignInPage'
 
 // Screens that have a real implementation; everything else falls back to a
 // PlaceholderPage until its own screen is built.
@@ -19,6 +21,9 @@ const navRoutes = ALL_NAV_ITEMS.filter((item) => item.path !== '/').map((item) =
 }))
 
 export const router = createBrowserRouter([
+  // Public, full-page auth screens (rendered outside the app shell).
+  { path: '/onboarding', element: <OnboardingPage /> },
+  { path: '/signin', element: <SignInPage /> },
   {
     path: '/',
     element: <AppLayout />,

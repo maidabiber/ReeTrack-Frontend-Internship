@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { NAV_SECTIONS } from '../../config/navigation'
 import { Icon } from '../ui/Icon'
@@ -10,9 +11,15 @@ const WORKSPACE = { name: 'Fernhollow Co.', initials: 'FH' }
 
 export function Sidebar() {
   const { role, signOut } = useAuth()
+  const navigate = useNavigate()
   const isAdmin = role === 'Admin'
 
   const sections = NAV_SECTIONS.filter((section) => !section.adminOnly || isAdmin)
+
+  const handleSignOut = () => {
+    signOut()
+    navigate('/signin')
+  }
 
   return (
     <aside className="sticky top-0 flex h-screen w-[200px] flex-shrink-0 flex-col overflow-y-auto bg-navy-deep px-3.5 py-5">
@@ -50,7 +57,7 @@ export function Sidebar() {
 
       <button
         type="button"
-        onClick={signOut}
+        onClick={handleSignOut}
         className="flex flex-shrink-0 items-center gap-[9px] rounded-[9px] px-2.5 py-2 font-display text-[13px] font-semibold text-white/50 hover:bg-white/[0.08] hover:text-cream"
       >
         <Icon name="sign-out" className="h-4 w-4 flex-shrink-0" />
