@@ -20,9 +20,17 @@ export type IconName =
   | 'stop'
   | 'plus'
   | 'calendar'
+  | 'search'
+  | 'mail'
+  | 'shield'
+  | 'check-badge'
+  | 'settings'
+  | 'resend'
+  | 'ban'
+  | 'more'
 
 // Feather-style line icons (24x24, stroke-based) lifted from the mockups.
-const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop'>, ReactNode> = {
+const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNode> = {
   overview: (
     <>
       <rect x="3" y="3" width="7" height="9" />
@@ -119,16 +127,55 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop'>, ReactNode> = {
       <line x1="3" y1="10" x2="21" y2="10" />
     </>
   ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M2 6l10 7 10-7" />
+    </>
+  ),
+  shield: <path d="M12 2l8 4v6c0 5-3.4 8.7-8 10-4.6-1.3-8-5-8-10V6l8-4z" />,
+  'check-badge': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 12l2 2 4-4" />
+    </>
+  ),
+  settings: (
+    <>
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </>
+  ),
+  resend: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />,
+  ban: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+    </>
+  ),
 }
 
 // Solid (fill-based) icons.
-const FILLED_ICONS: Record<'play' | 'stop', ReactNode> = {
+const FILLED_ICONS: Record<'play' | 'stop' | 'more', ReactNode> = {
   play: <path d="M8 5v14l11-7z" />,
   stop: <rect x="6" y="6" width="12" height="12" />,
+  more: (
+    <>
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </>
+  ),
 }
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
-  if (name === 'play' || name === 'stop') {
+  if (name === 'play' || name === 'stop' || name === 'more') {
     return (
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
         {FILLED_ICONS[name]}
