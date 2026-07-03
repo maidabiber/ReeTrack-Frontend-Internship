@@ -1,0 +1,153 @@
+import type { ReactNode, SVGProps } from 'react'
+
+export type IconName =
+  | 'overview'
+  | 'timer'
+  | 'reports'
+  | 'approvals'
+  | 'projects'
+  | 'clients'
+  | 'members'
+  | 'billable'
+  | 'invoices'
+  | 'tags'
+  | 'goals'
+  | 'integrations'
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'sign-out'
+  | 'play'
+  | 'stop'
+  | 'plus'
+  | 'calendar'
+
+// Feather-style line icons (24x24, stroke-based) lifted from the mockups.
+const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop'>, ReactNode> = {
+  overview: (
+    <>
+      <rect x="3" y="3" width="7" height="9" />
+      <rect x="14" y="3" width="7" height="5" />
+      <rect x="14" y="12" width="7" height="9" />
+      <rect x="3" y="16" width="7" height="5" />
+    </>
+  ),
+  timer: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </>
+  ),
+  reports: (
+    <>
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </>
+  ),
+  approvals: (
+    <>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </>
+  ),
+  projects: <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-8l-2-2H5a2 2 0 0 0-2 2z" />,
+  clients: (
+    <>
+      <path d="M20 7h-9M14 17H5" />
+      <circle cx="17" cy="17" r="3" />
+      <circle cx="7" cy="7" r="3" />
+    </>
+  ),
+  members: (
+    <>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  billable: (
+    <>
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </>
+  ),
+  invoices: (
+    <>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </>
+  ),
+  tags: (
+    <>
+      <path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
+    </>
+  ),
+  goals: (
+    <>
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+      <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+    </>
+  ),
+  integrations: (
+    <>
+      <path d="M4 4l4.5 4.5M20 4l-4.5 4.5M4 20l4.5-4.5M20 20l-4.5-4.5" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+    </>
+  ),
+  'chevron-down': <polyline points="6 9 12 15 18 9" />,
+  'chevron-right': <polyline points="9 18 15 12 9 6" />,
+  'sign-out': (
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </>
+  ),
+  plus: (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </>
+  ),
+}
+
+// Solid (fill-based) icons.
+const FILLED_ICONS: Record<'play' | 'stop', ReactNode> = {
+  play: <path d="M8 5v14l11-7z" />,
+  stop: <rect x="6" y="6" width="12" height="12" />,
+}
+
+export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
+  if (name === 'play' || name === 'stop') {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+        {FILLED_ICONS[name]}
+      </svg>
+    )
+  }
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      {STROKE_ICONS[name]}
+    </svg>
+  )
+}

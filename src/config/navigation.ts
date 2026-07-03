@@ -2,14 +2,17 @@
  * Single source of truth for the app's primary navigation.
  *
  * Both the router (route registration) and the Sidebar consume this so every
- * nav destination is guaranteed to have a matching route. The "Admin" section
- * is role-gated and only rendered for Admin users.
+ * nav destination is guaranteed to have a matching route. The section grouping
+ * mirrors the mockups: "Time" is visible to everyone, while "Insights" and
+ * "Admin" are role-gated and only rendered for Admin users.
  */
+import type { IconName } from '../components/ui/Icon'
 
 export interface NavItem {
   label: string
   /** Absolute route path. The Timer landing screen is the index route ("/"). */
   path: string
+  icon: IconName
 }
 
 export interface NavSection {
@@ -23,25 +26,30 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Time',
     adminOnly: false,
     items: [
-      { label: 'Overview', path: '/overview' },
-      { label: 'Timer', path: '/' },
-      { label: 'Insights', path: '/insights' },
-      { label: 'Reports', path: '/reports' },
-      { label: 'Approvals', path: '/approvals' },
+      { label: 'Overview', path: '/overview', icon: 'overview' },
+      { label: 'Timer', path: '/', icon: 'timer' },
+    ],
+  },
+  {
+    title: 'Insights',
+    adminOnly: true,
+    items: [
+      { label: 'Reports', path: '/reports', icon: 'reports' },
+      { label: 'Approvals', path: '/approvals', icon: 'approvals' },
     ],
   },
   {
     title: 'Admin',
     adminOnly: true,
     items: [
-      { label: 'Projects', path: '/projects' },
-      { label: 'Clients', path: '/clients' },
-      { label: 'Members', path: '/members' },
-      { label: 'Billable rates', path: '/billable-rates' },
-      { label: 'Invoices', path: '/invoices' },
-      { label: 'Tags', path: '/tags' },
-      { label: 'Goals', path: '/goals' },
-      { label: 'Integrations', path: '/integrations' },
+      { label: 'Projects', path: '/projects', icon: 'projects' },
+      { label: 'Clients', path: '/clients', icon: 'clients' },
+      { label: 'Members', path: '/members', icon: 'members' },
+      { label: 'Billable rates', path: '/billable-rates', icon: 'billable' },
+      { label: 'Invoices', path: '/invoices', icon: 'invoices' },
+      { label: 'Tags', path: '/tags', icon: 'tags' },
+      { label: 'Goals', path: '/goals', icon: 'goals' },
+      { label: 'Integrations', path: '/integrations', icon: 'integrations' },
     ],
   },
 ]
