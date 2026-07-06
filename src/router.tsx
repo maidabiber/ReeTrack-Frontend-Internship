@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { AuthGate } from './components/auth/AuthGate'
+import { PublicAuthPage } from './components/auth/PublicAuthPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ALL_NAV_ITEMS } from './config/navigation'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -21,12 +23,29 @@ const navRoutes = ALL_NAV_ITEMS.filter((item) => item.path !== '/').map((item) =
 }))
 
 export const router = createBrowserRouter([
-  // Public, full-page auth screens (rendered outside the app shell).
-  { path: '/onboarding', element: <OnboardingPage /> },
-  { path: '/signin', element: <SignInPage /> },
+  {
+    path: '/onboarding',
+    element: (
+      <PublicAuthPage>
+        <OnboardingPage />
+      </PublicAuthPage>
+    ),
+  },
+  {
+    path: '/signin',
+    element: (
+      <PublicAuthPage>
+        <SignInPage />
+      </PublicAuthPage>
+    ),
+  },
   {
     path: '/',
-    element: <AppLayout />,
+    element: (
+      <AuthGate>
+        <AppLayout />
+      </AuthGate>
+    ),
     children: [{ index: true, element: <TimerPage /> }, ...navRoutes],
   },
 ])

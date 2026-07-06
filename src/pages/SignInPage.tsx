@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton'
 import { BrandMark } from '../components/ui/BrandMark'
 import { GoogleIcon } from '../components/ui/GoogleIcon'
 import { Fineprint } from '../components/ui/Fineprint'
-import { startGoogleSignIn } from '../api/auth'
-
-type Status = 'idle' | 'loading' | 'error'
 
 // Placeholder invite context; comes from the invitation link/token once the
 // backend invitation flow exists.
@@ -14,10 +13,11 @@ const INVITER_NAME = 'Priya Shah'
 /**
  * Invited-user sign-in. An invitee lands here from their email link and signs in
  * with the Google account tied to the invite. Standalone screen, outside the
- * app shell. Google SSO is stubbed until the backend is ready.
+ * app shell.
  */
 export default function SignInPage() {
-  const [status, setStatus] = useState<Status>('idle')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const initials = INVITER_NAME.split(' ')
     .filter(Boolean)
@@ -25,13 +25,18 @@ export default function SignInPage() {
     .map((word) => word[0]?.toUpperCase() ?? '')
     .join('')
 
-  const handleGoogle = () => {
-    if (status === 'loading') return
-    setStatus('loading')
-    // Real Google SSO returns here; on success we'd redirect into the app, and
-    // on an invite mismatch set 'error'. For now just return to idle.
-    void startGoogleSignIn().then(() => setStatus('idle'))
-  }
+  useEffect(() => {
+    const authError = searchParams.get('authError')
+    if (!authError) return
+
+    setErrorMessage(authError)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const showInviteMismatch =
+    errorMessage !== null &&
+    (errorMessage.toLowerCase().includes('invite') ||
+      errorMessage.toLowerCase().includes('access denied'))
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-cream text-navy">
@@ -64,26 +69,15 @@ export default function SignInPage() {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={status === 'loading'}
-          className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-navy bg-white px-6 py-[15px] font-display text-[15.5px] font-semibold text-navy hover:bg-cream-card disabled:cursor-default disabled:opacity-60"
+        <GoogleSignInButton
+          returnUrl="/signin"
+          className="flex w-full cursor-pointer items-center justify-center rounded-full border-2 border-navy bg-white px-6 py-[15px] font-display text-[15.5px] font-semibold text-navy hover:bg-cream-card"
         >
-          {status === 'loading' ? (
-            <>
-              <span className="h-[18px] w-[18px] animate-spin rounded-full border-[2.5px] border-navy/20 border-t-navy" />
-              <span>Signing in…</span>
-            </>
-          ) : (
-            <>
-              <GoogleIcon className="h-5 w-5 flex-shrink-0" />
-              <span>Continue with Google</span>
-            </>
-          )}
-        </button>
+          <GoogleIcon className="h-5 w-5 flex-shrink-0" />
+          <span>Continue with Google</span>
+        </GoogleSignInButton>
 
-        {status === 'error' && (
+        {errorMessage && (
           <div className="mt-5 flex w-full items-start gap-2.5 rounded-[14px] bg-red-tint px-4 py-3.5 text-left text-[13.5px] leading-[1.5] text-red">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="mt-px h-[18px] w-[18px] flex-shrink-0">
               <circle cx="12" cy="12" r="9" />
@@ -91,8 +85,14 @@ export default function SignInPage() {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span>
-              That Google account doesn't match your invite. Ask {INVITER_NAME} to resend it, or sign in
-              with the invited email.
+              {showInviteMismatch ? (
+                <>
+                  That Google account doesn't match your invite. Ask {INVITER_NAME} to resend it, or sign in
+                  with the invited email.
+                </>
+              ) : (
+                errorMessage
+              )}
             </span>
           </div>
         )}

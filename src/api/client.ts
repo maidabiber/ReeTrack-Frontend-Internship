@@ -5,6 +5,8 @@
  * which vite.config.ts proxies to the backend during local development).
  */
 
+import { clearSession } from '../lib/authSession'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 export class ApiError extends Error {
@@ -29,6 +31,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
+    credentials: 'include',
     headers: {
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
@@ -40,6 +43,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload = await parseBody(response)
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearSession()
+    }
+
     throw new ApiError(response.status, response.statusText, payload)
   }
 

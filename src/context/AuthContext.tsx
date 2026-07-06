@@ -1,33 +1,48 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Role, User } from '../types/user'
+import type { AuthSession } from '../types/auth'
+import { clearSession, saveSession } from '../lib/authSession'
+import { getCurrentUser, signOut as apiSignOut } from '../api/auth'
 import { AuthContext } from './auth'
 
-/**
- * Placeholder signed-in user. Backend Google auth is owned by another task, so
- * until it ships the app runs as this mock Admin. Replace `MOCK_USER` and the
- * `setRole` toggle with the real session once auth is wired up.
- */
-const MOCK_USER: User = {
-  id: 'mock-admin',
-  email: 'reese.sharma@fernhollow.co',
-  displayName: 'Reese Sharma',
-  avatarUrl: null,
-  role: 'Admin',
-  status: 'Active',
-  rate: 65,
-  emailVerified: true,
-  lastLoginAtUtc: null,
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(MOCK_USER)
+  const [user, setUser] = useState<AuthSession['user'] | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
 
-  const setRole = useCallback((role: Role) => {
-    setUser((current) => (current ? { ...current, role } : current))
+  useEffect(() => {
+    let cancelled = false
+
+    getCurrentUser()
+      .then((session) => {
+        if (cancelled) return
+        saveSession(session)
+        setUser(session.user)
+      })
+      .catch(() => {
+        if (cancelled) return
+        clearSession()
+        setUser(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsInitializing(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const signIn = useCallback((session: AuthSession) => {
+    saveSession(session)
+    setUser(session.user)
   }, [])
 
   const signOut = useCallback(() => {
+    apiSignOut().catch(() => {
+      // Best-effort: clear the cookie server-side. If it fails, the local
+      // session is still cleared and the expired cookie will be rejected.
+    })
+    clearSession()
     setUser(null)
   }, [])
 
@@ -36,10 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       role: user?.role ?? null,
       isAuthenticated: user !== null,
-      setRole,
+      isInitializing,
+      signIn,
       signOut,
     }),
-    [user, setRole, signOut],
+    [user, isInitializing, signIn, signOut],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

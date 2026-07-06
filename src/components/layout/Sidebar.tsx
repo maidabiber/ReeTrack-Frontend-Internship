@@ -3,7 +3,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { NAV_SECTIONS } from '../../config/navigation'
 import { Icon } from '../ui/Icon'
 import { NavItem } from './NavItem'
-import { DevRoleToggle } from './DevRoleToggle'
 
 // Single-tenant workspace; there is only ever one. Hard-coded for now, will
 // come from the backend once workspace data is available.
@@ -52,8 +51,6 @@ export function Sidebar() {
           </nav>
         </div>
       ))}
-
-      <DevRoleToggle />
 
       <button
         type="button"

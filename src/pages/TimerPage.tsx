@@ -36,7 +36,7 @@ function TrackerBar() {
 
       <div className="mx-0.5 h-[22px] w-px flex-shrink-0 bg-navy/10" />
 
-      <div className="flex flex-shrink-0 rounded-full bg-cream-card p-[3px]">
+      <div className="flex flex-shrink-0 rounded-full bg-surface-muted p-[3px]">
         <button type="button" className="rounded-full bg-navy px-3.5 py-[7px] font-display text-xs font-semibold text-cream">
           Timer
         </button>
@@ -65,7 +65,7 @@ function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; t
     <button
       type="button"
       title={title}
-      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] text-navy/55 hover:bg-cream-card hover:text-navy"
+      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] text-navy/55 hover:bg-surface-muted hover:text-navy"
     >
       <Icon name={name} className="h-4 w-4" />
     </button>
@@ -95,7 +95,7 @@ function Toolbar() {
 
       <div className="flex-1" />
 
-      <div className="flex rounded-full bg-cream-card p-[3px]">
+      <div className="flex rounded-full bg-surface-muted p-[3px]">
         <button type="button" className="rounded-full bg-navy px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-cream">
           List view
         </button>

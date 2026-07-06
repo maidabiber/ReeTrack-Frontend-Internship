@@ -281,7 +281,7 @@ function FilterDropdown({
                 event.stopPropagation()
                 onSelect(option.value)
               }}
-              className={`flex w-full items-center rounded-md px-2.5 py-[7px] text-left text-[12.5px] hover:bg-cream-card ${
+              className={`flex w-full items-center rounded-md px-2.5 py-[7px] text-left text-[12.5px] hover:bg-surface-muted ${
                 value === option.value ? 'font-bold text-navy' : 'font-medium'
               }`}
             >
@@ -329,9 +329,9 @@ function MemberRow({
     .join('')
 
   return (
-    <div className={`${GRID} hover:bg-cream-card`}>
+    <div className={`${GRID} hover:bg-surface-muted`}>
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-cream-card font-display text-[10.5px] font-bold text-navy">
+        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-muted font-display text-[10.5px] font-bold text-navy">
           {initials}
         </span>
         <span className="truncate text-[13px] font-semibold">{member.displayName}</span>
@@ -343,7 +343,7 @@ function MemberRow({
       <Pill label={STATUS_DISPLAY[member.status]} dotClassName={STATUS_DOT[member.status]} />
 
       <div
-        className="-mx-1.5 -my-[3px] cursor-pointer rounded-md px-1.5 py-[3px] hover:bg-cream-card"
+        className="-mx-1.5 -my-[3px] cursor-pointer rounded-md px-1.5 py-[3px] hover:bg-surface-muted"
         onClick={(event) => {
           event.stopPropagation()
           if (!isEditingRate) onStartEditRate()
@@ -374,7 +374,7 @@ function MemberRow({
           type="button"
           onClick={onToggleMenu}
           aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-cream-card hover:text-navy"
+          className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-surface-muted hover:text-navy"
         >
           <Icon name="more" className="h-[15px] w-[15px]" />
         </button>
@@ -415,7 +415,7 @@ function RowMenuItem({
         event.stopPropagation()
         onClick()
       }}
-      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium hover:bg-cream-card ${
+      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium hover:bg-surface-muted ${
         danger ? 'text-red' : 'text-navy'
       }`}
     >

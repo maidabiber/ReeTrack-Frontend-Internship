@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton'
 import { BrandMark } from '../components/ui/BrandMark'
 import { GoogleIcon } from '../components/ui/GoogleIcon'
 import { Fineprint } from '../components/ui/Fineprint'
-import { startGoogleSignIn } from '../api/auth'
 
 /**
  * First-run onboarding shown when the workspace has no users yet: step 1
@@ -55,7 +56,17 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
 }
 
 function AdminStep() {
-  // Note: the Back button from the mockup is intentionally omitted here.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const authError = searchParams.get('authError')
+    if (!authError) return
+
+    setErrorMessage(authError)
+    setSearchParams({}, { replace: true })
+  }, [searchParams, setSearchParams])
+
   return (
     <>
       <StepBadge label="Step 2 of 2" />
@@ -76,14 +87,26 @@ function AdminStep() {
             You're the first person here. This account will manage billing, users and settings for your
             company on ReeTrack.
           </p>
-          <button
-            type="button"
-            onClick={() => void startGoogleSignIn()}
-            className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-navy bg-white px-6 py-[15px] font-display text-[15.5px] font-semibold text-navy hover:bg-cream-card"
+
+          <GoogleSignInButton
+            returnUrl="/onboarding"
+            className="flex w-full cursor-pointer items-center justify-center rounded-full border-2 border-navy bg-white px-6 py-[15px] font-display text-[15.5px] font-semibold text-navy hover:bg-cream-card"
           >
             <GoogleIcon className="h-5 w-5 flex-shrink-0" />
             Sign up with Google
-          </button>
+          </GoogleSignInButton>
+
+          {errorMessage && (
+            <div className="mt-5 flex w-full items-start gap-2.5 rounded-[14px] bg-red-tint px-4 py-3.5 text-left text-[13.5px] leading-[1.5] text-red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="mt-px h-[18px] w-[18px] flex-shrink-0">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="8" x2="12" y2="13" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           <Fineprint />
         </div>
       </div>

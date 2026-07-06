@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { AuthSession } from '../types/auth'
 import type { Role, User } from '../types/user'
 
 export interface AuthContextValue {
@@ -7,11 +8,9 @@ export interface AuthContextValue {
   /** Convenience accessor for the current user's role. */
   role: Role | null
   isAuthenticated: boolean
-  /**
-   * Dev-only: switch the mock user's role so the role-based navigation can be
-   * exercised without backend auth. Removed once real auth lands.
-   */
-  setRole: (role: Role) => void
+  /** True while the cookie-backed session is being validated on boot. */
+  isInitializing: boolean
+  signIn: (session: AuthSession) => void
   signOut: () => void
 }
 

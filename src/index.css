@@ -10,6 +10,7 @@
 @theme {
   --color-cream: #fbf6ec;
   --color-cream-card: #f1ead9;
+  --color-surface-muted: #f3f5f9;
   --color-navy: #1f2b4d;
   --color-navy-deep: #141d33;
   --color-orange: #ff6b4a;
@@ -39,7 +40,7 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: var(--color-cream);
+  background: #ffffff;
   color: var(--color-navy);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
