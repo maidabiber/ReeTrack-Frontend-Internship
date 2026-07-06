@@ -4,34 +4,69 @@ import { GoogleSignInButton } from '../components/auth/GoogleSignInButton'
 import { BrandMark } from '../components/ui/BrandMark'
 import { GoogleIcon } from '../components/ui/GoogleIcon'
 import { Fineprint } from '../components/ui/Fineprint'
+import { previewInvitation, type InvitationPreview } from '../api/members'
 
-// Placeholder invite context; comes from the invitation link/token once the
-// backend invitation flow exists.
-const WORKSPACE_NAME = 'Fernhollow Co.'
-const INVITER_NAME = 'Priya Shah'
+type PreviewState = 'none' | 'loading' | 'loaded' | 'invalid'
 
 /**
- * Invited-user sign-in. An invitee lands here from their email link and signs in
- * with the Google account tied to the invite. Standalone screen, outside the
- * app shell.
+ * Invited-user sign-in. An invitee lands here from their email link
+ * (/signin?token=...) and signs in with the Google account tied to the invite.
+ * The token resolves to invite context via GET /api/invitations/preview.
+ * Standalone screen, outside the app shell.
  */
 export default function SignInPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // The backend redirects here with ?authError=... on a failed sign-in;
+  // capture it once on mount, then strip it from the URL below.
+  const [errorMessage] = useState<string | null>(() => searchParams.get('authError'))
+  const [preview, setPreview] = useState<InvitationPreview | null>(null)
+  const [previewState, setPreviewState] = useState<PreviewState>(() =>
+    searchParams.get('token') ? 'loading' : 'none',
+  )
 
-  const initials = INVITER_NAME.split(' ')
+  const token = searchParams.get('token')
+
+  useEffect(() => {
+    if (!searchParams.get('authError')) return
+
+    // Clear only authError; the invite token must survive so the invite
+    // context stays visible after a failed sign-in attempt.
+    const next = new URLSearchParams(searchParams)
+    next.delete('authError')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
+    if (!token) return
+
+    let cancelled = false
+
+    previewInvitation(token)
+      .then((loaded) => {
+        if (cancelled) return
+        setPreview(loaded)
+        setPreviewState('loaded')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPreview(null)
+        setPreviewState('invalid')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const inviterName = preview?.inviterName ?? null
+  const appName = preview?.appName ?? 'ReeTrack'
+
+  const initials = (inviterName ?? '')
+    .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? '')
     .join('')
-
-  useEffect(() => {
-    const authError = searchParams.get('authError')
-    if (!authError) return
-
-    setErrorMessage(authError)
-    setSearchParams({}, { replace: true })
-  }, [searchParams, setSearchParams])
 
   const showInviteMismatch =
     errorMessage !== null &&
@@ -53,21 +88,43 @@ export default function SignInPage() {
           </svg>
         </div>
 
-        <h1 className="mb-3 font-display text-[28px] leading-[1.25] font-bold">Sign in to ReeTrack</h1>
+        <h1 className="mb-3 font-display text-[28px] leading-[1.25] font-bold">Sign in to {appName}</h1>
         <p className="mb-7 text-[15px] leading-[1.6] text-navy/70">
-          {WORKSPACE_NAME} invited you to track time together. Sign in with the Google account tied to
-          your invite to get started.
+          {previewState === 'loaded' ? (
+            <>
+              You've been invited to track time together. Sign in with the Google account tied to
+              your invite to get started.
+            </>
+          ) : (
+            <>Sign in with the Google account your workspace admin invited.</>
+          )}
         </p>
 
-        <div className="mb-7 flex w-full items-center gap-2.5 rounded-[14px] bg-cream-card px-4 py-3">
-          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple font-display text-[13px] font-bold text-cream">
-            {initials}
-          </span>
-          <span className="text-left text-[13.5px] leading-[1.45]">
-            Invited by <b className="font-bold">{INVITER_NAME}</b> to join{' '}
-            <b className="font-bold">{WORKSPACE_NAME}</b>
-          </span>
-        </div>
+        {previewState === 'loading' && (
+          <div className="mb-7 flex w-full items-center justify-center rounded-[14px] bg-cream-card px-4 py-3">
+            <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
+          </div>
+        )}
+
+        {previewState === 'loaded' && preview && (
+          <div className="mb-7 flex w-full items-center gap-2.5 rounded-[14px] bg-cream-card px-4 py-3">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple font-display text-[13px] font-bold text-cream">
+              {initials}
+            </span>
+            <span className="text-left text-[13.5px] leading-[1.45]">
+              <b className="font-bold">{preview.inviterName}</b> invited{' '}
+              <b className="font-bold">{preview.invitedEmail}</b> to join as a{' '}
+              <b className="font-bold">{preview.role}</b>
+            </span>
+          </div>
+        )}
+
+        {previewState === 'invalid' && (
+          <div className="mb-7 w-full rounded-[14px] bg-cream-card px-4 py-3 text-left text-[13.5px] leading-[1.5] text-navy/75">
+            This invite link is invalid or has expired. Ask your workspace admin to send a new
+            one — or, if you've already been invited, just sign in below.
+          </div>
+        )}
 
         <GoogleSignInButton
           returnUrl="/signin"
@@ -87,8 +144,14 @@ export default function SignInPage() {
             <span>
               {showInviteMismatch ? (
                 <>
-                  That Google account doesn't match your invite. Ask {INVITER_NAME} to resend it, or sign in
-                  with the invited email.
+                  That Google account doesn't match your invite. Sign in with the invited email
+                  {inviterName ? (
+                    <>
+                      , or ask <b className="font-bold">{inviterName}</b> to resend it.
+                    </>
+                  ) : (
+                    <>, or ask your workspace admin to resend it.</>
+                  )}
                 </>
               ) : (
                 errorMessage

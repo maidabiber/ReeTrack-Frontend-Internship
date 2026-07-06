@@ -57,13 +57,11 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
 
 function AdminStep() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // Capture the backend's ?authError=... once on mount, then strip it from the URL.
+  const [errorMessage] = useState<string | null>(() => searchParams.get('authError'))
 
   useEffect(() => {
-    const authError = searchParams.get('authError')
-    if (!authError) return
-
-    setErrorMessage(authError)
+    if (!searchParams.get('authError')) return
     setSearchParams({}, { replace: true })
   }, [searchParams, setSearchParams])
 

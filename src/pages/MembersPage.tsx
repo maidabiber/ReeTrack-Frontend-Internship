@@ -1,9 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
-import { SEED_MEMBERS } from '../api/users'
-import type { Role, User, UserStatus } from '../types/user'
+import {
+  inviteMember,
+  listMembers,
+  memberApiErrorMessage,
+  resendInvite,
+  type Member,
+} from '../api/members'
+import type { Role, UserStatus } from '../types/user'
 
 type RoleFilter = 'all' | Role
 type StatusFilter = 'all' | UserStatus
@@ -30,25 +36,48 @@ const GRID = 'grid grid-cols-[2fr_2.2fr_0.9fr_0.9fr_0.7fr_32px] items-center gap
 
 /**
  * RT-271 — Members / user management screen. Lists everyone with access to the
- * workspace, with role/status filters, search, inline rate editing, per-row
- * actions and an invite modal. Data is seeded locally until the backend user
- * endpoints exist (see api/users.ts).
+ * workspace via GET /api/members, with role/status filters and search. Invites
+ * go through POST /api/invitations; pending invites can be resent. Role change,
+ * deactivation and rates wait on their backend endpoints (RT-67/RT-70/RT-61).
  */
 export default function MembersPage() {
-  const [members, setMembers] = useState<User[]>(SEED_MEMBERS)
+  const [members, setMembers] = useState<Member[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null)
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null)
-  const [editingRateId, setEditingRateId] = useState<string | null>(null)
-  const [rateDraft, setRateDraft] = useState('')
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const closeMenus = () => {
     setOpenFilter(null)
     setOpenRowMenuId(null)
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    listMembers()
+      .then((loaded) => {
+        if (cancelled) return
+        setMembers(loaded)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setLoadError(memberApiErrorMessage(error, 'Could not load members. Is the backend running?'))
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -63,44 +92,30 @@ export default function MembersPage() {
     })
   }, [members, search, roleFilter, statusFilter])
 
-  const updateMember = (id: string, patch: Partial<User>) => {
-    setMembers((current) => current.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+  const showNotice = (message: string) => {
+    setNotice(message)
+    window.setTimeout(() => setNotice((current) => (current === message ? null : current)), 4000)
   }
 
-  const commitRate = () => {
-    if (editingRateId === null) return
-    const parsed = Number.parseFloat(rateDraft)
-    const rate = rateDraft.trim() === '' || Number.isNaN(parsed) ? null : Math.max(0, parsed)
-    updateMember(editingRateId, { rate })
-    setEditingRateId(null)
-    setRateDraft('')
-  }
-
-  const startEditRate = (member: User) => {
-    if (editingRateId !== null && editingRateId !== member.id) commitRate()
-    setEditingRateId(member.id)
-    setRateDraft(member.rate !== null ? String(member.rate) : '')
-  }
-
-  const sendInvite = (email: string, role: Role) => {
-    const trimmed = email.trim()
-    if (!trimmed) return
-    const displayName = trimmed.split('@')[0]
-    setMembers((current) => [
-      ...current,
-      {
-        id: `invite-${Date.now()}`,
-        email: trimmed,
-        displayName,
-        avatarUrl: null,
-        role,
-        status: 'Invited',
-        rate: null,
-        emailVerified: false,
-        lastLoginAtUtc: null,
-      },
-    ])
+  const handleInvited = (member: Member) => {
+    setMembers((current) => {
+      const existing = current.findIndex((m) => m.id === member.id || m.email === member.email)
+      if (existing === -1) return [...current, member]
+      return current.map((m, index) => (index === existing ? member : m))
+    })
     setInviteOpen(false)
+    showNotice(`Invite sent to ${member.email}.`)
+  }
+
+  const handleResend = (member: Member) => {
+    setOpenRowMenuId(null)
+    if (!member.pendingInvitationId) return
+
+    resendInvite(member.pendingInvitationId)
+      .then(() => showNotice(`Invite re-sent to ${member.email}.`))
+      .catch((error) =>
+        showNotice(memberApiErrorMessage(error, `Could not resend the invite to ${member.email}.`)),
+      )
   }
 
   return (
@@ -124,6 +139,12 @@ export default function MembersPage() {
           Invite members
         </button>
       </header>
+
+      {notice && (
+        <div className="rounded-[14px] bg-purple-tint px-4 py-3 text-[13px] font-medium text-navy">
+          {notice}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <FilterDropdown
@@ -183,48 +204,56 @@ export default function MembersPage() {
         </div>
 
         <div className="divide-y divide-navy/[0.08]">
-          {filtered.map((member) => (
-            <MemberRow
-              key={member.id}
-              member={member}
-              menuOpen={openRowMenuId === member.id}
-              isEditingRate={editingRateId === member.id}
-              rateDraft={rateDraft}
-              onToggleMenu={(event) => {
-                event.stopPropagation()
-                setOpenRowMenuId(openRowMenuId === member.id ? null : member.id)
-                setOpenFilter(null)
-              }}
-              onToggleRole={() => {
-                updateMember(member.id, { role: member.role === 'Admin' ? 'Member' : 'Admin' })
-                setOpenRowMenuId(null)
-              }}
-              onToggleActive={() => {
-                updateMember(member.id, {
-                  status: member.status === 'Disabled' ? 'Active' : 'Disabled',
-                })
-                setOpenRowMenuId(null)
-              }}
-              onResend={() => setOpenRowMenuId(null)}
-              onStartEditRate={() => startEditRate(member)}
-              onRateDraftChange={setRateDraft}
-              onCommitRate={commitRate}
-              onCancelRate={() => {
-                setEditingRateId(null)
-                setRateDraft('')
-              }}
-            />
-          ))}
+          {isLoading && (
+            <div className="flex items-center justify-center px-5 py-10">
+              <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
+            </div>
+          )}
 
-          {filtered.length === 0 && (
+          {!isLoading && loadError && (
+            <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+              <span className="text-[13px] text-red">{loadError}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLoading(true)
+                  setLoadError(null)
+                  setReloadKey((key) => key + 1)
+                }}
+                className="rounded-full border-[1.5px] border-navy px-4 py-1.5 font-display text-[12.5px] font-semibold text-navy"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {!isLoading &&
+            !loadError &&
+            filtered.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                menuOpen={openRowMenuId === member.id}
+                onToggleMenu={(event) => {
+                  event.stopPropagation()
+                  setOpenRowMenuId(openRowMenuId === member.id ? null : member.id)
+                  setOpenFilter(null)
+                }}
+                onResend={() => handleResend(member)}
+              />
+            ))}
+
+          {!isLoading && !loadError && filtered.length === 0 && (
             <div className="px-5 py-10 text-center text-[13px] text-navy/50">
-              No members match your search or filters.
+              {members.length === 0
+                ? 'No members yet. Invite your team to get started.'
+                : 'No members match your search or filters.'}
             </div>
           )}
         </div>
       </div>
 
-      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} onSend={sendInvite} />}
+      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} onInvited={handleInvited} />}
     </div>
   )
 }
@@ -297,29 +326,13 @@ function FilterDropdown({
 function MemberRow({
   member,
   menuOpen,
-  isEditingRate,
-  rateDraft,
   onToggleMenu,
-  onToggleRole,
-  onToggleActive,
   onResend,
-  onStartEditRate,
-  onRateDraftChange,
-  onCommitRate,
-  onCancelRate,
 }: {
-  member: User
+  member: Member
   menuOpen: boolean
-  isEditingRate: boolean
-  rateDraft: string
   onToggleMenu: (event: React.MouseEvent) => void
-  onToggleRole: () => void
-  onToggleActive: () => void
   onResend: () => void
-  onStartEditRate: () => void
-  onRateDraftChange: (value: string) => void
-  onCommitRate: () => void
-  onCancelRate: () => void
 }) {
   const initials = (member.displayName ?? member.email)
     .split(' ')
@@ -327,6 +340,8 @@ function MemberRow({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+
+  const canResend = member.status === 'Invited' && member.pendingInvitationId !== null
 
   return (
     <div className={`${GRID} hover:bg-surface-muted`}>
@@ -342,32 +357,13 @@ function MemberRow({
       <Pill label={member.role} dotClassName={ROLE_DOT[member.role]} />
       <Pill label={STATUS_DISPLAY[member.status]} dotClassName={STATUS_DOT[member.status]} />
 
-      <div
-        className="-mx-1.5 -my-[3px] cursor-pointer rounded-md px-1.5 py-[3px] hover:bg-surface-muted"
-        onClick={(event) => {
-          event.stopPropagation()
-          if (!isEditingRate) onStartEditRate()
-        }}
+      {/* Rates wait on RT-61; display-only until then. */}
+      <span
+        className={`text-[13px] ${member.rate !== null ? 'font-semibold' : 'font-medium opacity-40'}`}
+        title="Rates are coming with billing (RT-61)."
       >
-        {isEditingRate ? (
-          <input
-            autoFocus
-            className="w-16 rounded-md border-[1.5px] border-purple px-1.5 py-[3px] text-[13px] font-semibold text-navy outline-none"
-            value={rateDraft}
-            onChange={(event) => onRateDraftChange(event.target.value)}
-            onBlur={onCommitRate}
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') event.currentTarget.blur()
-              else if (event.key === 'Escape') onCancelRate()
-            }}
-          />
-        ) : (
-          <span className={`text-[13px] ${member.rate !== null ? 'font-semibold' : 'font-medium opacity-40'}`}>
-            {member.rate !== null ? `$${member.rate}/hr` : 'Set rate'}
-          </span>
-        )}
-      </div>
+        {member.rate !== null ? `$${member.rate}/hr` : '—'}
+      </span>
 
       <div className="relative flex justify-end">
         <button
@@ -380,15 +376,17 @@ function MemberRow({
         </button>
         {menuOpen && (
           <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
-            <RowMenuItem icon="settings" label={member.role === 'Admin' ? 'Make member' : 'Make admin'} onClick={onToggleRole} />
-            {member.status === 'Invited' && (
-              <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />
-            )}
+            {canResend && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
+            <RowMenuItem
+              icon="settings"
+              label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
+              disabled
+            />
             <RowMenuItem
               icon="ban"
               label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
               danger
-              onClick={onToggleActive}
+              disabled
             />
           </div>
         )}
@@ -401,25 +399,31 @@ function RowMenuItem({
   icon,
   label,
   danger,
+  disabled,
   onClick,
 }: {
   icon: Parameters<typeof Icon>[0]['name']
   label: string
   danger?: boolean
-  onClick: () => void
+  disabled?: boolean
+  onClick?: () => void
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      title={disabled ? 'Coming soon — backend support is not built yet.' : undefined}
       onClick={(event) => {
         event.stopPropagation()
-        onClick()
+        onClick?.()
       }}
-      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium hover:bg-surface-muted ${
-        danger ? 'text-red' : 'text-navy'
+      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium ${
+        disabled
+          ? 'cursor-not-allowed text-navy/35'
+          : `hover:bg-surface-muted ${danger ? 'text-red' : 'text-navy'}`
       }`}
     >
-      <Icon name={icon} className={`h-[13px] w-[13px] ${danger ? 'opacity-80' : 'opacity-65'}`} />
+      <Icon name={icon} className={`h-[13px] w-[13px] ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
       {label}
     </button>
   )
@@ -427,13 +431,30 @@ function RowMenuItem({
 
 function InviteModal({
   onClose,
-  onSend,
+  onInvited,
 }: {
   onClose: () => void
-  onSend: (email: string, role: Role) => void
+  onInvited: (member: Member) => void
 }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('Member')
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const send = () => {
+    const trimmed = email.trim()
+    if (!trimmed || isSending) return
+
+    setIsSending(true)
+    setError(null)
+
+    inviteMember(trimmed, role)
+      .then(onInvited)
+      .catch((inviteError) => {
+        setError(memberApiErrorMessage(inviteError, 'Could not send the invite. Please try again.'))
+        setIsSending(false)
+      })
+  }
 
   return (
     <Modal
@@ -450,6 +471,9 @@ function InviteModal({
           placeholder="name@company.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') send()
+          }}
         />
       </div>
       <div className="mb-3">
@@ -463,6 +487,13 @@ function InviteModal({
           <option value="Admin">Admin</option>
         </select>
       </div>
+
+      {error && (
+        <div className="mb-3 rounded-[10px] bg-red-tint px-3 py-2.5 text-[12.5px] leading-[1.5] text-red">
+          {error}
+        </div>
+      )}
+
       <div className="mt-[18px] flex gap-2">
         <button
           type="button"
@@ -473,10 +504,11 @@ function InviteModal({
         </button>
         <button
           type="button"
-          onClick={() => onSend(email, role)}
-          className="flex-1 rounded-full bg-purple py-2.5 font-display text-[13px] font-semibold text-cream hover:bg-[#5B2FE0]"
+          disabled={isSending}
+          onClick={send}
+          className="flex-1 rounded-full bg-purple py-2.5 font-display text-[13px] font-semibold text-cream hover:bg-[#5B2FE0] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Send invite
+          {isSending ? 'Sending…' : 'Send invite'}
         </button>
       </div>
     </Modal>
