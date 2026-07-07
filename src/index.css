@@ -1,34 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
 @import 'tailwindcss';
 
 /*
- * ReeTrack design tokens, taken from the Claude-design mockups
- * (firstUser / signin / Timer / User Management). Declaring them in @theme
- * exposes them as first-class Tailwind utilities, e.g. bg-cream, text-navy,
- * font-display, so components stay close to the mockup design system.
+ * ReeTrack design tokens.
+ *
+ * Identity: a technical, developer-tool feel built on the brand gradient
+ * #4366E2 -> #BF6DE6. The gradient is a deliberate accent (brand mark, active
+ * nav, primary actions) on top of a deep "ink" chrome and mono data type —
+ * NOT a full-surface wash, which is what makes generic gradient UIs read as AI.
+ * The warm "crayon" auth palette (cream paper + hand-drawn blobs) is kept as
+ * the human counterweight. See design.md for the full usage guide.
+ *
+ * Declaring tokens in @theme exposes them as first-class Tailwind utilities,
+ * e.g. bg-ink, text-brand, border-brand-tint, font-mono.
  */
 @theme {
+  /* Paper — warm surfaces for the standalone auth screens */
   --color-cream: #fbf6ec;
   --color-cream-card: #f1ead9;
-  --color-surface-muted: #f3f5f9;
-  --color-navy: #1f2b4d;
+  --color-surface-muted: #f2f4f9;
+
+  /* Ink — technical dark chrome (sidebar) and primary text */
+  --color-navy: #1b2540;
   --color-navy-deep: #141d33;
+  --color-ink: #0e1526;
+  --color-ink-raised: #18213a;
+
+  /* Brand — the signature #4366E2 -> #BF6DE6 gradient and its solids */
+  --color-brand: #4366e2;
+  --color-brand-hi: #bf6de6;
+  --color-brand-deep: #3552c4;
+  --color-brand-tint: #eef1fd;
+  --color-brand-veil: #f6eefb;
+
+  /* Crayon accents — the hand-drawn pops that keep the UI from feeling generated */
   --color-orange: #ff6b4a;
   --color-orange-tint: #ffe3d9;
-  --color-purple: #6c3bff;
-  --color-purple-soft: #9b7bff;
-  --color-purple-tint: #ede5ff;
-  --color-red: #e0483e;
-  --color-red-tint: #fde7e5;
   --color-yellow: #ffc93c;
   --color-yellow-tint: #fff3d1;
   --color-green: #2fbf71;
   --color-green-tint: #dcf6e8;
+  --color-red: #e0483e;
+  --color-red-tint: #fde7e5;
 
   --font-sans: 'Manrope', system-ui, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 
-  --shadow-card: 0 10px 28px rgba(31, 43, 77, 0.08);
+  --shadow-card: 0 10px 28px rgba(20, 29, 51, 0.08);
+}
+
+/*
+ * Brand gradient helpers. Centralised so the angle (135deg) and stops stay
+ * identical everywhere the gradient appears — consistency is what stops it
+ * looking accidental. Prefer these over ad-hoc `bg-gradient-to-br` utilities.
+ */
+@layer components {
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-hi) 100%);
+  }
+
+  .text-brand-gradient {
+    background-image: linear-gradient(120deg, var(--color-brand), var(--color-brand-hi));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Tabular figures for timers / durations / totals so digits never jitter. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 html,

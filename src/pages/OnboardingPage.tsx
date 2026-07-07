@@ -25,8 +25,8 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   return (
     <>
       <StepBadge label="Step 1 of 2" />
-      <Blob className="h-[360px] w-[360px] -top-[160px] -right-[120px] rounded-full bg-purple-tint" />
-      <Blob className="h-[130px] w-[130px] bottom-[120px] left-[100px] rounded-[32px] bg-yellow opacity-85" />
+      <Blob className="h-[360px] w-[360px] -top-[160px] -right-[120px] rounded-full bg-brand-veil" />
+      <Blob className="h-[130px] w-[130px] bottom-[120px] left-[100px] rotate-6 rounded-[32px] bg-yellow opacity-85" />
       <Blob className="h-[80px] w-[80px] bottom-[220px] left-[260px] rounded-full bg-orange opacity-90" />
 
       <div className="relative z-[2] flex flex-col items-center px-16 text-center">
@@ -42,7 +42,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
           type="button"
           onClick={onContinue}
           aria-label="Continue"
-          className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#5B34D6] text-cream shadow-[0_10px_24px_rgba(31,43,77,0.18)] transition-transform hover:-translate-y-[3px]"
+          className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-brand text-white shadow-[0_10px_24px_rgba(31,43,77,0.18)] transition-transform hover:-translate-y-[3px]"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -68,11 +68,11 @@ function AdminStep() {
   return (
     <>
       <StepBadge label="Step 2 of 2" />
-      <Blob className="h-[360px] w-[360px] -top-[160px] -right-[120px] rounded-full bg-purple-tint" />
+      <Blob className="h-[360px] w-[360px] -top-[160px] -right-[120px] rounded-full bg-brand-veil" />
 
       <div className="relative z-[2] flex flex-col items-center px-16">
         <div className="flex w-[460px] max-w-full flex-col items-center rounded-[24px] border border-navy/[0.08] bg-white px-14 py-[52px] text-center shadow-[0_30px_70px_rgba(31,43,77,0.14)]">
-          <div className="mb-[22px] flex h-14 w-14 items-center justify-center rounded-[16px] bg-purple text-cream">
+          <div className="mb-[22px] flex h-14 w-14 items-center justify-center rounded-[16px] bg-brand text-white">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-[26px] w-[26px]">
               <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12z" />
               <path d="M4 21.8c0-4.4 3.6-8 8-8s8 3.6 8 8" />
@@ -115,7 +115,7 @@ function AdminStep() {
 function StepBadge({ label }: { label: string }) {
   return (
     <div className="absolute top-0 right-0 left-0 z-[3] flex items-center justify-end px-14 py-9">
-      <span className="rounded-full bg-purple-tint px-4 py-2 font-display text-[13px] font-bold tracking-[0.08em] text-navy uppercase">
+      <span className="rounded-full bg-brand-tint px-4 py-2 font-mono text-[12px] font-medium tracking-[0.12em] text-brand uppercase">
         {label}
       </span>
     </div>
@@ -128,7 +128,7 @@ function StepDots({ step }: { step: 0 | 1 }) {
       {[0, 1].map((index) => (
         <span
           key={index}
-          className={`h-2 w-2 rounded-full ${step === index ? 'bg-purple' : 'bg-navy/15'}`}
+          className={`h-2 w-2 rounded-full ${step === index ? 'bg-brand' : 'bg-navy/15'}`}
         />
       ))}
     </div>

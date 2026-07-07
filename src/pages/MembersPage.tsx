@@ -22,7 +22,7 @@ const STATUS_DISPLAY: Record<UserStatus, string> = {
 }
 
 const ROLE_DOT: Record<Role, string> = {
-  Admin: 'bg-purple',
+  Admin: 'bg-brand',
   Member: 'bg-navy/45',
 }
 
@@ -119,7 +119,8 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-4 px-8 py-6" onClick={closeMenus}>
+    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+      <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-4">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-[19px] font-bold text-navy">Members</h1>
@@ -133,7 +134,7 @@ export default function MembersPage() {
             event.stopPropagation()
             setInviteOpen(true)
           }}
-          className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-purple px-[18px] py-[9px] font-display text-[13px] font-semibold text-cream hover:bg-[#5B2FE0]"
+          className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-[18px] py-[9px] font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep"
         >
           <Icon name="plus" className="h-[13px] w-[13px]" />
           Invite members
@@ -141,7 +142,8 @@ export default function MembersPage() {
       </header>
 
       {notice && (
-        <div className="rounded-[14px] bg-purple-tint px-4 py-3 text-[13px] font-medium text-navy">
+        <div className="flex items-center gap-2 rounded-[14px] bg-brand-tint px-4 py-3 text-[13px] font-medium text-navy">
+          <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
           {notice}
         </div>
       )}
@@ -181,7 +183,7 @@ export default function MembersPage() {
 
         <span className="flex-1" />
 
-        <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] focus-within:border-purple">
+        <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] focus-within:border-brand">
           <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
           <input
             className="w-full border-none bg-transparent text-[13px] text-navy outline-none placeholder:text-navy/45"
@@ -254,6 +256,7 @@ export default function MembersPage() {
       </div>
 
       {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} onInvited={handleInvited} />}
+      </div>
     </div>
   )
 }
@@ -261,7 +264,7 @@ export default function MembersPage() {
 function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
   return (
     <div className="flex items-center gap-1.5 py-1.5 font-display text-[10.5px] font-bold tracking-[0.05em] text-navy/60 uppercase">
-      <Icon name={icon} className="h-3 w-3 text-purple" />
+      <Icon name={icon} className="h-3 w-3 text-brand" />
       {label}
     </div>
   )
@@ -295,7 +298,7 @@ function FilterDropdown({
           event.stopPropagation()
           onToggle()
         }}
-        className="flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy hover:border-purple-soft"
+        className="flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy hover:border-brand"
       >
         {label}
         <Icon name="chevron-down" className="h-3 w-3 opacity-60" />
@@ -346,20 +349,20 @@ function MemberRow({
   return (
     <div className={`${GRID} hover:bg-surface-muted`}>
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-muted font-display text-[10.5px] font-bold text-navy">
+        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-muted font-mono text-[10.5px] font-medium text-navy">
           {initials}
         </span>
         <span className="truncate text-[13px] font-semibold">{member.displayName}</span>
       </div>
 
-      <div className="truncate text-[12.5px] text-navy/65">{member.email}</div>
+      <div className="truncate font-mono text-[12px] text-navy/65">{member.email}</div>
 
       <Pill label={member.role} dotClassName={ROLE_DOT[member.role]} />
       <Pill label={STATUS_DISPLAY[member.status]} dotClassName={STATUS_DOT[member.status]} />
 
       {/* Rates wait on RT-61; display-only until then. */}
       <span
-        className={`text-[13px] ${member.rate !== null ? 'font-semibold' : 'font-medium opacity-40'}`}
+        className={`font-mono text-[12.5px] tabular-nums ${member.rate !== null ? 'font-medium' : 'font-normal opacity-40'}`}
         title="Rates are coming with billing (RT-61)."
       >
         {member.rate !== null ? `$${member.rate}/hr` : '—'}
@@ -467,7 +470,7 @@ function InviteModal({
           Email address
         </label>
         <input
-          className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-purple"
+          className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
           placeholder="name@company.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -479,7 +482,7 @@ function InviteModal({
       <div className="mb-3">
         <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">Role</label>
         <select
-          className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] bg-white px-3 py-[9px] text-[13px] text-navy outline-none focus:border-purple"
+          className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] bg-white px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
           value={role}
           onChange={(event) => setRole(event.target.value as Role)}
         >
@@ -506,7 +509,7 @@ function InviteModal({
           type="button"
           disabled={isSending}
           onClick={send}
-          className="flex-1 rounded-full bg-purple py-2.5 font-display text-[13px] font-semibold text-cream hover:bg-[#5B2FE0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSending ? 'Sending…' : 'Send invite'}
         </button>
