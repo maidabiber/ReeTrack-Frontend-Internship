@@ -1,0 +1,60 @@
+import { useState } from 'react'
+import type { CalendarEvent } from './types'
+import { isSameDay, startOfMonth } from './dateUtils'
+import { TimeGrid } from './TimeGrid'
+import { MiniMonthCalendar } from './MiniMonthCalendar'
+import { EventDetailPanel } from './EventDetailPanel'
+
+interface DayViewProps {
+  selectedDate: Date
+  events: CalendarEvent[]
+  allEvents: CalendarEvent[]
+  selectedEventId: string | null
+  onDateChange: (date: Date) => void
+  onEventSelect: (event: CalendarEvent | null) => void
+}
+
+export function DayView({
+  selectedDate,
+  events,
+  allEvents,
+  selectedEventId,
+  onDateChange,
+  onEventSelect,
+}: DayViewProps) {
+  const [displayMonth, setDisplayMonth] = useState(() => startOfMonth(selectedDate))
+
+  const selectedEvent = allEvents.find((e) => e.id === selectedEventId) ?? null
+
+  function handleDateSelect(date: Date) {
+    onDateChange(date)
+    setDisplayMonth(startOfMonth(date))
+    if (selectedEvent && !isSameDay(selectedEvent.start, date)) {
+      onEventSelect(null)
+    }
+  }
+
+  return (
+    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="flex min-h-0 min-w-0 flex-col border-r border-navy/8">
+        <TimeGrid
+          days={[selectedDate]}
+          events={events}
+          selectedEventId={selectedEventId}
+          onEventClick={onEventSelect}
+        />
+      </div>
+
+      <div className="flex min-h-0 min-w-0 flex-col bg-surface-muted/30">
+        <MiniMonthCalendar
+          displayMonth={displayMonth}
+          selectedDate={selectedDate}
+          events={allEvents}
+          onMonthChange={setDisplayMonth}
+          onDateSelect={handleDateSelect}
+        />
+        <EventDetailPanel event={selectedEvent} selectedDate={selectedDate} />
+      </div>
+    </div>
+  )
+}

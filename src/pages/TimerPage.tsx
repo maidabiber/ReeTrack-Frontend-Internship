@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Icon } from '../components/ui/Icon'
+import { EventCalendar } from '../components/calendar/EventCalendar'
 
 /**
  * RT-270 — the screen a signed-in user lands on.
@@ -9,11 +11,21 @@ import { Icon } from '../components/ui/Icon'
  * added under later tickets.
  */
 export default function TimerPage() {
+  const [contentView, setContentView] = useState<'list' | 'calendar'>('list')
+
   return (
-    <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-6 px-10 py-8">
-      <TrackerBar />
-      <Toolbar />
-      <EntriesCard />
+    <div className="flex min-w-0 flex-1 flex-col">
+      <div className="mx-auto w-full max-w-[1340px] px-10 pt-8">
+        <div className="px-8 pb-4">
+          <TrackerBar />
+        </div>
+      </div>
+
+      <div className="px-15 pt-4">
+      <Toolbar contentView={contentView} onContentViewChange={setContentView} />
+        {contentView === 'list' ? <EntriesCard /> : <EventCalendar />}
+      </div>
+
     </div>
   )
 }
@@ -76,9 +88,15 @@ function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; t
   )
 }
 
-function Toolbar() {
+function Toolbar({
+  contentView,
+  onContentViewChange,
+}: {
+  contentView: 'list' | 'calendar'
+  onContentViewChange: (view: 'list' | 'calendar') => void
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex w-full flex-wrap items-center gap-4 px-10 py-3">
       <div className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-display text-[12.5px] font-bold text-navy shadow-card">
         <Icon name="calendar" className="h-[13px] w-[13px] opacity-55" />
         All dates
@@ -100,10 +118,22 @@ function Toolbar() {
       <div className="flex-1" />
 
       <div className="flex rounded-full bg-surface-muted p-[3px]">
-        <button type="button" className="rounded-full bg-navy px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-cream">
+        <button
+          type="button"
+          onClick={() => onContentViewChange('list')}
+          className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+            contentView === 'list' ? 'bg-navy text-cream' : 'text-navy/55'
+          }`}
+        >
           List view
         </button>
-        <button type="button" title="Coming soon" className="rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy/55">
+        <button
+          type="button"
+          onClick={() => onContentViewChange('calendar')}
+          className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+            contentView === 'calendar' ? 'bg-navy text-cream' : 'text-navy/55'
+          }`}
+        >
           Calendar
         </button>
         <button type="button" title="Coming soon" className="rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy/55">
