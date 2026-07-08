@@ -49,7 +49,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Invoices', path: '/invoices', icon: 'invoices' },
       { label: 'Tags', path: '/tags', icon: 'tags' },
       { label: 'Goals', path: '/goals', icon: 'goals' },
-      { label: 'Integrations', path: '/integrations', icon: 'integrations' },
     ],
   },
 ]

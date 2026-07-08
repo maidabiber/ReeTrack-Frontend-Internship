@@ -9,6 +9,7 @@ import MembersPage from './pages/MembersPage'
 import ApprovalsPage from './pages/ApprovalsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
+import ProfilePage from './pages/ProfilePage'
 
 // Screens that have a real implementation; everything else falls back to a
 // PlaceholderPage until its own screen is built.
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
         <AppLayout />
       </AuthGate>
     ),
-    children: [{ index: true, element: <TimerPage /> }, ...navRoutes],
+    children: [
+      { index: true, element: <TimerPage /> },
+      { path: 'profile', element: <ProfilePage /> },
+      ...navRoutes,
+    ],
   },
 ])
