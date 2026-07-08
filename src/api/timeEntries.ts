@@ -62,6 +62,62 @@ export function stopTimer(description?: string): Promise<TimeEntry> {
     .then(toTimeEntry)
 }
 
+export interface CreateManualEntryParams {
+  description?: string
+  startedAtUtc: string
+  endedAtUtc: string
+  isBillable?: boolean
+  confirmOverlap?: boolean
+}
+
+export interface CreateManualEntryResult {
+  entry: TimeEntry
+  overlapWarning: string | null
+}
+
+export function createManualEntry(params: CreateManualEntryParams): Promise<CreateManualEntryResult> {
+  return apiClient
+    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/manual', {
+      description: params.description,
+      startedAtUtc: params.startedAtUtc,
+      endedAtUtc: params.endedAtUtc,
+      isBillable: params.isBillable ?? true,
+      confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
+export interface UpdateTimeEntryParams {
+  description?: string
+  startedAtUtc: string
+  endedAtUtc: string
+  isBillable?: boolean
+  confirmOverlap?: boolean
+}
+
+export interface UpdateTimeEntryResult {
+  entry: TimeEntry
+  overlapWarning: string | null
+}
+
+export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Promise<UpdateTimeEntryResult> {
+  return apiClient
+    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/${id}`, {
+      description: params.description,
+      startedAtUtc: params.startedAtUtc,
+      endedAtUtc: params.endedAtUtc,
+      isBillable: params.isBillable ?? true,
+      confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
 export function timeEntryApiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'body' in error) {
     const body = (error as { body: unknown }).body
