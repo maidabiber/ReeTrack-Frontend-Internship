@@ -6,6 +6,7 @@ import { ALL_NAV_ITEMS } from './config/navigation'
 import PlaceholderPage from './pages/PlaceholderPage'
 import TimerPage from './pages/TimerPage'
 import MembersPage from './pages/MembersPage'
+import ClientsPage from './pages/ClientsPage'
 import ApprovalsPage from './pages/ApprovalsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
@@ -15,6 +16,7 @@ import ProfilePage from './pages/ProfilePage'
 // PlaceholderPage until its own screen is built.
 const PAGES: Record<string, React.ReactElement> = {
   '/members': <MembersPage />,
+  '/clients': <ClientsPage />,
   '/approvals': <ApprovalsPage />,
 }
 
