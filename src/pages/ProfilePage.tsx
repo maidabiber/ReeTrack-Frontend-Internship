@@ -1,4 +1,7 @@
-import { Icon } from '../components/ui/Icon'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { getIntegrationErrorFromUrl } from '../api/integrations'
+import { GoogleCalendarCard } from '../components/integrations/GoogleCalendarCard'
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
@@ -32,12 +35,21 @@ function ProfileField({ label, children }: { label: string; children: React.Reac
   )
 }
 
-/**
- * Account profile and outside-app integration settings.
- * Integrations are display-only until backend OAuth wiring is added.
- */
+/** Account profile and connected outside-app integrations. */
 export default function ProfilePage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [integrationError] = useState<string | null>(() =>
+    getIntegrationErrorFromUrl(searchParams.toString()),
+  )
+
+  useEffect(() => {
+    if (!searchParams.get('integrationError')) return
+
+    const next = new URLSearchParams(searchParams)
+    next.delete('integrationError')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   if (!user) return null
 
@@ -84,24 +96,13 @@ export default function ProfilePage() {
       <section className="flex flex-col gap-4">
         <h2 className="font-display text-[15px] font-bold text-navy">Integrations</h2>
 
-        <div className="rounded-[18px] bg-white p-5 shadow-card">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px] bg-surface-muted">
-              <Icon name="calendar" className="h-5 w-5 text-navy/70" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="font-display text-[14px] font-semibold text-navy">Google Calendar</p>
-              <p className="mt-0.5 text-[13px] text-navy/60">
-                Sync calendar events to your timer view.
-              </p>
-            </div>
-
-            <span className="rounded-full bg-brand-tint px-3 py-1 font-mono text-[11px] font-medium tracking-[0.1em] text-brand uppercase">
-              Not connected
-            </span>
+        {integrationError && (
+          <div className="rounded-[14px] bg-red-tint px-4 py-3.5 text-[13.5px] leading-[1.5] text-red">
+            {integrationError}
           </div>
-        </div>
+        )}
+
+        <GoogleCalendarCard />
       </section>
     </div>
   )

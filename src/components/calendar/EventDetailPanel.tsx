@@ -12,35 +12,62 @@ export function EventDetailPanel({ event, selectedDate }: EventDetailPanelProps)
   if (!event) {
     return (
       <div className="flex min-h-0 flex-1 flex-col border-t border-navy/8 px-4 py-4">
-        <h3 className="mb-2 font-display text-[13px] font-bold text-navy">Event details</h3>
+        <h3 className="mb-2 font-display text-[13px] font-bold text-navy">Details</h3>
         <div className="flex flex-1 flex-col items-center justify-center rounded-[12px] bg-surface-muted/60 px-4 py-8 text-center">
           <Icon name="calendar" className="mb-2 h-5 w-5 text-navy/25" />
           <p className="text-[12px] leading-relaxed text-navy/45">
-            Select an event on {formatFullDate(selectedDate)} to see its details here.
+            Select an event or time entry on {formatFullDate(selectedDate)} to see its details here.
           </p>
         </div>
       </div>
     )
   }
 
+  const isTimeEntry = event.kind === 'timeEntry'
+  const panelTitle = isTimeEntry ? 'Time entry' : 'Calendar event'
+
   return (
     <div className="flex min-h-0 flex-1 flex-col border-t border-navy/8 px-4 py-4">
-      <h3 className="mb-3 font-display text-[13px] font-bold text-navy">Event details</h3>
+      <h3 className="mb-3 font-display text-[13px] font-bold text-navy">{panelTitle}</h3>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <h4 className="font-display text-[15px] font-bold leading-snug text-navy">{event.title}</h4>
 
         <div className="mt-3 space-y-2.5">
           <DetailRow label="When">{formatTimeRange(event.start, event.end)}</DetailRow>
-          {event.location && <DetailRow label="Where">{event.location}</DetailRow>}
+          {!isTimeEntry && event.location && <DetailRow label="Where">{event.location}</DetailRow>}
         </div>
 
-        {event.description && (
+        {isTimeEntry && (
           <div className="mt-4">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-navy/40">
               Description
             </p>
-            <p className="text-[13px] leading-[1.65] text-navy/70">{event.description}</p>
+            <p className="text-[13px] leading-[1.65] text-navy/70">
+              {event.description?.trim() || 'No description'}
+            </p>
           </div>
+        )}
+
+        {!isTimeEntry && event.description && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-navy/40">
+              Description
+            </p>
+            <p className="whitespace-pre-wrap text-[13px] leading-[1.65] text-navy/70">
+              {event.description}
+            </p>
+          </div>
+        )}
+
+        {!isTimeEntry && event.htmlLink && (
+          <a
+            href={event.htmlLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex text-[13px] font-semibold text-brand hover:text-brand-deep"
+          >
+            Open in Google Calendar
+          </a>
         )}
       </div>
     </div>

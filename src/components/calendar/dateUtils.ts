@@ -129,36 +129,35 @@ export function layoutOverlappingEvents(events: CalendarEvent[]): EventLayout[] 
     layouts.push({ event, column, totalColumns: 1 })
   }
 
-  // Expand totalColumns for overlapping clusters
-  for (let i = 0; i < layouts.length; i++) {
-    const a = layouts[i]
-    let maxCol = a.column
-    for (let j = 0; j < layouts.length; j++) {
-      if (i === j) continue
-      const b = layouts[j]
-      if (eventsOverlap(a.event, b.event)) {
-        maxCol = Math.max(maxCol, b.column)
-      }
+  // Assign equal totalColumns within each connected overlap cluster (sweep by start).
+  let clusterStart = 0
+  let clusterEnd = layouts[0].event.end.getTime()
+  let clusterMaxCol = layouts[0].column
+
+  for (let i = 1; i < layouts.length; i++) {
+    const start = layouts[i].event.start.getTime()
+    if (start < clusterEnd) {
+      clusterEnd = Math.max(clusterEnd, layouts[i].event.end.getTime())
+      clusterMaxCol = Math.max(clusterMaxCol, layouts[i].column)
+      continue
     }
-    a.totalColumns = maxCol + 1
+
+    const totalColumns = clusterMaxCol + 1
+    for (let j = clusterStart; j < i; j++) {
+      layouts[j].totalColumns = totalColumns
+    }
+
+    clusterStart = i
+    clusterEnd = layouts[i].event.end.getTime()
+    clusterMaxCol = layouts[i].column
   }
 
-  // Normalize totalColumns within overlap groups
-  for (let i = 0; i < layouts.length; i++) {
-    let groupMax = layouts[i].totalColumns
-    for (let j = 0; j < layouts.length; j++) {
-      if (eventsOverlap(layouts[i].event, layouts[j].event)) {
-        groupMax = Math.max(groupMax, layouts[j].totalColumns)
-      }
-    }
-    layouts[i].totalColumns = groupMax
+  const totalColumns = clusterMaxCol + 1
+  for (let j = clusterStart; j < layouts.length; j++) {
+    layouts[j].totalColumns = totalColumns
   }
 
   return layouts
-}
-
-function eventsOverlap(a: CalendarEvent, b: CalendarEvent): boolean {
-  return a.start < b.end && b.start < a.end
 }
 
 const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' })

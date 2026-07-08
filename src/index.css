@@ -42,6 +42,10 @@
   --color-green-tint: #dcf6e8;
   --color-red: #e0483e;
   --color-red-tint: #fde7e5;
+  --color-blue: #2563eb;
+  --color-blue-tint: #dbeafe;
+  --color-gray: #4b5563;
+  --color-gray-tint: #e5e7eb;
 
   --font-sans: 'Manrope', system-ui, sans-serif;
   --font-display: 'Space Grotesk', system-ui, sans-serif;

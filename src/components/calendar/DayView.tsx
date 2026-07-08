@@ -9,6 +9,8 @@ interface DayViewProps {
   selectedDate: Date
   events: CalendarEvent[]
   allEvents: CalendarEvent[]
+  hourHeight: number
+  onHourHeightChange: (height: number) => void
   selectedEventId: string | null
   onDateChange: (date: Date) => void
   onEventSelect: (event: CalendarEvent | null) => void
@@ -18,6 +20,8 @@ export function DayView({
   selectedDate,
   events,
   allEvents,
+  hourHeight,
+  onHourHeightChange,
   selectedEventId,
   onDateChange,
   onEventSelect,
@@ -40,6 +44,8 @@ export function DayView({
         <TimeGrid
           days={[selectedDate]}
           events={events}
+          hourHeight={hourHeight}
+          onHourHeightChange={onHourHeightChange}
           selectedEventId={selectedEventId}
           onEventClick={onEventSelect}
         />

@@ -6,6 +6,8 @@ const EVENT_COLOR_CLASSES: Record<EventColor, { bg: string; ring: string }> = {
   orange: { bg: 'bg-orange-tint', ring: 'ring-orange' },
   green: { bg: 'bg-green-tint', ring: 'ring-green' },
   yellow: { bg: 'bg-yellow-tint', ring: 'ring-yellow' },
+  blue: { bg: 'bg-blue-tint', ring: 'ring-blue' },
+  gray: { bg: 'bg-gray-tint', ring: 'ring-gray' },
 }
 
 interface EventBlockProps {

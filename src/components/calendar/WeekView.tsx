@@ -5,11 +5,20 @@ import { TimeGrid } from './TimeGrid'
 interface WeekViewProps {
   selectedDate: Date
   events: CalendarEvent[]
+  hourHeight: number
+  onHourHeightChange: (height: number) => void
   selectedEventId: string | null
   onEventClick: (event: CalendarEvent) => void
 }
 
-export function WeekView({ selectedDate, events, selectedEventId, onEventClick }: WeekViewProps) {
+export function WeekView({
+  selectedDate,
+  events,
+  hourHeight,
+  onHourHeightChange,
+  selectedEventId,
+  onEventClick,
+}: WeekViewProps) {
   const days = getWeekDays(selectedDate)
 
   return (
@@ -17,6 +26,8 @@ export function WeekView({ selectedDate, events, selectedEventId, onEventClick }
       <TimeGrid
         days={days}
         events={events}
+        hourHeight={hourHeight}
+        onHourHeightChange={onHourHeightChange}
         selectedEventId={selectedEventId}
         onEventClick={onEventClick}
       />
