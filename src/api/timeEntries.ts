@@ -10,6 +10,9 @@ interface TimeEntryResponse {
   endedAtUtc: string | null
   durationSeconds: number
   isRunning: boolean
+  status: string
+  submittedByUserId: string | null
+  submittedByDisplayName: string | null
 }
 
 function toTimeEntry(response: TimeEntryResponse): TimeEntry {
@@ -22,6 +25,9 @@ function toTimeEntry(response: TimeEntryResponse): TimeEntry {
     endedAtUtc: response.endedAtUtc,
     durationSeconds: response.durationSeconds,
     isRunning: response.isRunning,
+    status: (response.status as TimeEntry['status']) ?? 'Confirmed',
+    submittedByUserId: response.submittedByUserId,
+    submittedByDisplayName: response.submittedByDisplayName,
   }
 }
 
@@ -116,6 +122,58 @@ export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Prom
       entry: toTimeEntry(response.entry),
       overlapWarning: response.overlapWarning ?? null,
     }))
+}
+
+export interface CreateSharedManualEntryParams extends CreateManualEntryParams {
+  assigneeUserId: string
+}
+
+export function createSharedManualEntry(
+  params: CreateSharedManualEntryParams,
+): Promise<CreateManualEntryResult> {
+  return apiClient
+    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/shared/manual', {
+      assigneeUserId: params.assigneeUserId,
+      description: params.description,
+      startedAtUtc: params.startedAtUtc,
+      endedAtUtc: params.endedAtUtc,
+      isBillable: params.isBillable ?? true,
+      confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
+export function listPendingTimeEntries(): Promise<TimeEntry[]> {
+  return apiClient
+    .get<TimeEntryResponse[]>('/time-entries/pending')
+    .then((entries) => entries.map(toTimeEntry))
+}
+
+export function updatePendingTimeEntry(
+  id: string,
+  params: UpdateTimeEntryParams,
+): Promise<UpdateTimeEntryResult> {
+  return apiClient
+    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/pending/${id}`, {
+      description: params.description,
+      startedAtUtc: params.startedAtUtc,
+      endedAtUtc: params.endedAtUtc,
+      isBillable: params.isBillable ?? true,
+      confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
+export function approvePendingTimeEntry(id: string): Promise<TimeEntry> {
+  return apiClient
+    .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`)
+    .then(toTimeEntry)
 }
 
 export function timeEntryApiErrorMessage(error: unknown, fallback: string): string {

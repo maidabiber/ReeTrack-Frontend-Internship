@@ -1,4 +1,5 @@
 export type TimeEntryMode = 'Timer' | 'Manual' | 'DurationOnly'
+export type TimeEntryStatus = 'Confirmed' | 'Pending'
 
 export interface TimeEntry {
   id: string
@@ -9,6 +10,9 @@ export interface TimeEntry {
   endedAtUtc: string | null
   durationSeconds: number
   isRunning: boolean
+  status: TimeEntryStatus
+  submittedByUserId: string | null
+  submittedByDisplayName: string | null
 }
 
 export interface ActiveTimer extends TimeEntry {

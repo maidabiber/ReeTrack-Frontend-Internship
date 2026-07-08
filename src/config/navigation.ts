@@ -28,6 +28,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Overview', path: '/overview', icon: 'overview' },
       { label: 'Timer', path: '/', icon: 'timer' },
+      { label: 'Approvals', path: '/approvals', icon: 'approvals' },
     ],
   },
   {
@@ -35,7 +36,6 @@ export const NAV_SECTIONS: NavSection[] = [
     adminOnly: true,
     items: [
       { label: 'Reports', path: '/reports', icon: 'reports' },
-      { label: 'Approvals', path: '/approvals', icon: 'approvals' },
     ],
   },
   {

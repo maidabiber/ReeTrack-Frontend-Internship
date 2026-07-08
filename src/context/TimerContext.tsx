@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   createManualEntry,
+  createSharedManualEntry,
   getActiveTimer,
   listTimeEntries,
   startTimer,
@@ -137,13 +138,26 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       startedAtUtc: string
       endedAtUtc: string
       confirmOverlap?: boolean
+      assigneeUserId?: string
     }) => {
       setIsSavingManual(true)
       setError(null)
 
       try {
-        const result = await createManualEntry(params)
-        setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
+        const result = params.assigneeUserId
+          ? await createSharedManualEntry({
+              assigneeUserId: params.assigneeUserId,
+              description: params.description,
+              startedAtUtc: params.startedAtUtc,
+              endedAtUtc: params.endedAtUtc,
+              confirmOverlap: params.confirmOverlap,
+            })
+          : await createManualEntry(params)
+
+        if (!params.assigneeUserId) {
+          setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
+        }
+
         return { overlapWarning: result.overlapWarning }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {

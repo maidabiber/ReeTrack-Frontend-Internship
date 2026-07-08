@@ -6,6 +6,7 @@ import { ALL_NAV_ITEMS } from './config/navigation'
 import PlaceholderPage from './pages/PlaceholderPage'
 import TimerPage from './pages/TimerPage'
 import MembersPage from './pages/MembersPage'
+import ApprovalsPage from './pages/ApprovalsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
 
@@ -13,6 +14,7 @@ import SignInPage from './pages/SignInPage'
 // PlaceholderPage until its own screen is built.
 const PAGES: Record<string, React.ReactElement> = {
   '/members': <MembersPage />,
+  '/approvals': <ApprovalsPage />,
 }
 
 // The Timer landing screen (RT-270) is the index route; every other nav
