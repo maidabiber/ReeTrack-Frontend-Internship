@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { NAV_SECTIONS } from '../../config/navigation'
 import { Icon } from '../ui/Icon'
-import { Wordmark } from '../ui/Wordmark'
+import { LogoMark } from '../ui/LogoMark'
 import { NavItem } from './NavItem'
 
 export function Sidebar() {
@@ -19,9 +19,9 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-[248px] flex-shrink-0 flex-col overflow-y-auto bg-ink px-4 py-6">
-      {/* Wordmark with the ReeTrack trademark: a thin brand-gradient underline. */}
-      <div className="mb-7 px-2">
-        <Wordmark className="text-[19px] text-white" />
+      {/* Logo with the ReeTrack trademark: a thin brand-gradient underline. */}
+      <div className="mb-7 px-2 text-white">
+        <LogoMark className="h-6" />
         <span aria-hidden="true" className="mt-2.5 block h-px w-full bg-brand-gradient" />
       </div>
 

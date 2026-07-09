@@ -12,15 +12,17 @@ agencies, technical teams. So the app chrome reads like a developer tool:
 a deep "ink" sidebar, monospace for anything that is *data* (timers, durations,
 rates, emails, IDs), generous whitespace, and **solid, quiet buttons**. The one
 piece of brand flourish is the **trademark line**: a hairline (`h-px`) of the
-**#4366E2 → #BF6DE6** gradient, used under the ReeTrack wordmark and under the
-timer input. The standalone auth screens are the warm, human counterweight:
-cream paper with a few hand-drawn "crayon" blobs.
+**#4366E2 → #BF6DE6** gradient, used under the `LogoMark` (sidebar and
+standalone auth screens) and under the timer input. The standalone auth screens are the human counterweight: white
+paper with a few hand-placed blobs in the brand blue/purple family, and the
+one card on screen framed in a hairline of the same gradient.
 
 Three rules keep it from looking like every AI-generated gradient dashboard:
 
-1. **The gradient only ever appears as the thin trademark line.** Never on a
-   button, a panel, a fill, or a background. If you want brand color on a solid
-   element, use the flat `brand` blue — not the gradient.
+1. **The gradient only ever appears hairline-thin.** Two places: the trademark
+   line under a wordmark/logo, and the 1px frame around a standalone auth
+   card. Never as a button fill, a panel background, or a glow. If you want
+   brand color on a solid element, use the flat `brand` blue — not the gradient.
 2. **Buttons are simple.** Solid `brand` blue (`hover:bg-brand-deep`) for
    primary, outlined navy for secondary. No colored glows, no lift-on-hover
    theatrics, no gradients.
@@ -48,10 +50,14 @@ All colors are Tailwind tokens (defined in `@theme`). Use the token utilities
 brand → brand-hi) — never hand-roll `bg-gradient-to-br from-... to-...`, because
 a consistent angle is what makes it look intentional.
 
-Where the gradient is allowed: **the trademark hairline only** — a full-width
-`h-px` (or at most `h-[2px]`) line under the ReeTrack wordmark (sidebar) and
-under the timer input. That is the entire list. Anywhere else that needs brand
-color uses the solid `brand` blue.
+Where the gradient is allowed — the entire list:
+- A full-width `h-px` (or at most `h-[2px]`) trademark line under the
+  `LogoMark` (sidebar, and auth screens with no card, e.g. the onboarding
+  welcome step) and under the timer input.
+- A 1px frame around the standalone auth card: an outer `p-px` wrapper in
+  `bg-brand-gradient` holding the white card, in place of a solid border.
+
+Anywhere else that needs brand color uses the solid `brand` blue.
 
 ### Ink & paper
 | Token | Hex | Use |
@@ -59,19 +65,25 @@ color uses the solid `brand` blue.
 | `ink` | `#0E1526` | Sidebar / dark chrome background |
 | `ink-raised` | `#18213A` | Raised surfaces on ink (reserved) |
 | `navy` | `#1B2540` | Primary text on light surfaces |
-| `surface-muted` | `#F2F4F9` | Segmented controls, avatar chips, hover fills |
-| `cream` / `cream-card` | `#FBF6EC` / `#F1EAD9` | Auth-screen paper only |
+| `surface-muted` | `#F2F4F9` | Segmented controls, avatar chips, hover fills, auth-screen info panels |
+| `cream` / `cream-card` | `#FBF6EC` / `#F1EAD9` | Active segmented-toggle text on navy (`text-cream`); reserved otherwise |
 
 On the ink sidebar, tint with white alpha (`text-white/55`, `hover:bg-white/[0.06]`),
 not with gray tokens.
 
-### Crayon accents (semantic + character)
-`orange`, `yellow`, `green`, `red` and their `-tint` variants. Two jobs:
-- **Status/semantics:** green = active/success, red = error/danger, yellow =
-  pending. Use the `-tint` behind text of the same hue (e.g. `bg-red-tint text-red`).
-- **Character:** the tilted rounded blobs on auth screens. Keep them hand-placed
-  and slightly rotated — never centered or evenly spaced. This is the human
-  touch; don't sand it off.
+### Crayon accents (semantic)
+`orange`, `yellow`, `green`, `red` and their `-tint` variants are for
+**status/semantics only:** green = active/success, red = error/danger, yellow =
+pending. Use the `-tint` behind text of the same hue (e.g. `bg-red-tint text-red`).
+
+### Auth-screen blobs (character)
+The tilted decorative shapes on standalone auth screens (`SignInPage`,
+`OnboardingPage`) use the brand blue/purple family only — `brand`, `brand-hi`,
+`brand-tint`, `brand-veil` — never the crayon colors above. Mix a couple of
+large soft washes (`brand-tint`/`brand-veil`) with several smaller solid or
+rotated shapes (`brand`/`brand-hi`) for depth. Keep them hand-placed and
+slightly rotated — never centered or evenly spaced. This is the human touch;
+don't sand it off.
 
 ---
 
@@ -131,8 +143,11 @@ stay **flat** — no glow, colored or otherwise.
 - **Secondary button:** `border-[1.5px] border-navy text-navy bg-transparent`,
   `rounded-full`. Cancel/neutral actions.
 - **Card:** `rounded-[18px] bg-white shadow-card`.
-- **Trademark line:** `block h-px w-full bg-brand-gradient` under a wordmark or
-  a primary input. The only place the gradient appears.
+- **Trademark line:** `block h-px w-full bg-brand-gradient` under a wordmark,
+  `LogoMark`, or a primary input.
+- **Auth card frame:** `rounded-[25px] bg-brand-gradient p-px` outer wrapper
+  around the white `rounded-[24px]` card, in place of a solid border. The only
+  two places the gradient appears — see §1.
 - **Segmented toggle:** `rounded-full bg-surface-muted p-[3px]`; active segment
   `bg-navy text-cream`, inactive `text-navy/55`.
 - **Input / focus:** `border-[1.5px] border-navy/[0.08]`, focus →
@@ -142,7 +157,7 @@ stay **flat** — no glow, colored or otherwise.
 - **Sidebar nav item:** inactive `text-white/70 hover:bg-white/[0.06]`, active
   solid `bg-brand text-white` (`components/layout/NavItem.tsx`).
 
-Reuse `components/ui/*` (Icon, Modal, Pill, BrandMark, Fineprint) rather than
+Reuse `components/ui/*` (Icon, Modal, Pill, LogoMark, Fineprint) rather than
 re-styling their patterns inline.
 
 ---
@@ -188,17 +203,23 @@ The page renders inside `AppLayout` (persistent `Sidebar` + `<Outlet />`), so it
 owns only its own padding and content. Register it in `config/navigation.ts` so
 the sidebar and router pick it up automatically.
 
-Auth-style (standalone, no shell) screens instead go on `bg-cream`, centered,
-with a white `rounded-[24px]` card and a couple of tilted crayon blobs behind it —
-mirror `pages/SignInPage.tsx`.
+Auth-style (standalone, no shell) screens instead go on `bg-white`, centered,
+with several tilted brand-blue/purple blobs behind it (§2). Where there's a
+card (sign-in, invite, the onboarding admin step), frame it in the gradient
+hairline (`rounded-[25px] bg-brand-gradient p-px` wrapping a white
+`rounded-[24px]` inner card) and put the `LogoMark` inside it, above the
+heading. Where there's no card (the onboarding welcome step), put `LogoMark`
+directly on the page with the trademark hairline underneath it, same as in
+the sidebar. Mirror `pages/SignInPage.tsx`.
 
 ---
 
 ## 7. Quick do / don't
 
-**Do** — keep the gradient to the trademark hairline · solid `brand` blue for
-buttons/active nav · mono + tabular for every value · keep sidebar text readable
-(`text-white/70`+) · reuse `ui/*` · tilt the crayon blobs.
+**Do** — keep the gradient hairline-thin (wordmark underline or auth-card frame)
+· solid `brand` blue for buttons/active nav · mono + tabular for every value ·
+keep sidebar text readable (`text-white/70`+) · reuse `ui/*` · tilt the
+auth-screen blobs.
 
 **Don't** — gradient on any button, fill, or background · a second gradient
 angle · colored glows or lift-on-hover on buttons · sans-serif for timers or

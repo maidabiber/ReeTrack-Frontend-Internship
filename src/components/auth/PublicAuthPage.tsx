@@ -45,7 +45,7 @@ export function PublicAuthPage({
 
   if (isInitializing) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-cream text-navy">
+      <div className="flex min-h-screen items-center justify-center bg-white text-navy">
         <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
       </div>
     )
