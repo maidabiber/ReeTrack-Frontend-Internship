@@ -1,0 +1,202 @@
+import { useEffect, useMemo, useState } from 'react'
+import { ApiError } from '../../api/client'
+import { listTeammates } from '../../api/teammates'
+import { shareExistingTimeEntry, timeEntryApiErrorMessage } from '../../api/timeEntries'
+import { filterTeammates, teammateLabel, type Teammate } from '../../lib/mention'
+import type { TimeEntry } from '../../types/timeEntry'
+import { Modal } from '../ui/Modal'
+import { UserAvatar } from '../ui/UserAvatar'
+
+interface AddShareMembersModalProps {
+  entry: TimeEntry
+  groupedEntries?: TimeEntry[]
+  currentUserId: string
+  onClose: () => void
+  onShared: () => void
+}
+
+function collectExcludedUserIds(
+  entry: TimeEntry,
+  groupedEntries: TimeEntry[] | undefined,
+  currentUserId: string,
+): Set<string> {
+  const excluded = new Set<string>([currentUserId])
+  const sources = groupedEntries ?? [entry]
+
+  for (const source of sources) {
+    if (source.assigneeUserId) excluded.add(source.assigneeUserId)
+
+    for (const participant of source.participants) {
+      if (participant.role === 'Assignee') excluded.add(participant.userId)
+    }
+  }
+
+  return excluded
+}
+
+export function AddShareMembersModal({
+  entry,
+  groupedEntries,
+  currentUserId,
+  onClose,
+  onShared,
+}: AddShareMembersModalProps) {
+  const [teammates, setTeammates] = useState<Teammate[]>([])
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<Teammate[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
+  const [pendingOverlapConfirm, setPendingOverlapConfirm] = useState(false)
+
+  const excludedIds = useMemo(
+    () => collectExcludedUserIds(entry, groupedEntries, currentUserId),
+    [entry, groupedEntries, currentUserId],
+  )
+
+  useEffect(() => {
+    listTeammates()
+      .then(setTeammates)
+      .catch(() => setTeammates([]))
+  }, [])
+
+  const selectedIds = new Set(selected.map((teammate) => teammate.id))
+  const suggestions = filterTeammates(teammates, query)
+    .filter((teammate) => !excludedIds.has(teammate.id) && !selectedIds.has(teammate.id))
+    .slice(0, 6)
+
+  const toggleTeammate = (teammate: Teammate) => {
+    setSelected((current) =>
+      current.some((item) => item.id === teammate.id)
+        ? current.filter((item) => item.id !== teammate.id)
+        : [...current, teammate],
+    )
+    setError(null)
+    setOverlapWarning(null)
+    setPendingOverlapConfirm(false)
+  }
+
+  const handleShare = async (confirmOverlap = false) => {
+    if (selected.length === 0) {
+      setError('Select at least one teammate.')
+      return
+    }
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      await shareExistingTimeEntry(entry.id, {
+        assigneeUserIds: selected.map((teammate) => teammate.id),
+        confirmOverlap,
+      })
+      setOverlapWarning(null)
+      setPendingOverlapConfirm(false)
+      onShared()
+      onClose()
+    } catch (err) {
+      if (!confirmOverlap && err instanceof ApiError && err.status === 409) {
+        const message = timeEntryApiErrorMessage(err, 'This entry overlaps with an existing entry.')
+        if (message.toLowerCase().includes('overlap')) {
+          setOverlapWarning(message)
+          setPendingOverlapConfirm(true)
+          return
+        }
+      }
+
+      setError(timeEntryApiErrorMessage(err, 'Could not share this entry.'))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title="Share with teammates"
+      subtitle="They will receive an invitation to approve this time entry."
+      onClose={onClose}
+    >
+      <div className="space-y-4">
+        {selected.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {selected.map((teammate) => (
+              <button
+                key={teammate.id}
+                type="button"
+                onClick={() => toggleTeammate(teammate)}
+                className="inline-flex items-center gap-2 rounded-full bg-surface-muted py-1 pl-1 pr-2.5 text-left"
+              >
+                <UserAvatar name={teammateLabel(teammate)} size={24} className="block" />
+                <span className="text-[12.5px] font-semibold text-navy">{teammateLabel(teammate)}</span>
+                <span className="text-[14px] leading-none text-navy/40">&times;</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search teammates"
+          className="w-full rounded-[10px] border border-navy/10 px-3 py-2.5 text-[13px] text-navy outline-none focus:border-brand/40"
+        />
+
+        {suggestions.length > 0 ? (
+          <ul className="max-h-44 overflow-y-auto rounded-[10px] border border-navy/10 py-1">
+            {suggestions.map((teammate) => (
+              <li key={teammate.id}>
+                <button
+                  type="button"
+                  onClick={() => toggleTeammate(teammate)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-muted"
+                >
+                  <UserAvatar name={teammateLabel(teammate)} size={24} className="block shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-medium text-navy">{teammateLabel(teammate)}</span>
+                    <span className="block truncate text-[11px] text-navy/45">{teammate.email}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[12.5px] text-navy/50">
+            {teammates.length === 0 ? 'No teammates available.' : 'No matching teammates.'}
+          </p>
+        )}
+
+        {overlapWarning ? (
+          <div className="rounded-[10px] border border-yellow/20 bg-yellow-tint/75 px-3 py-2.5 text-[12.5px] text-navy">
+            {overlapWarning}
+          </div>
+        ) : null}
+
+        {error ? (
+          <p className="text-[12.5px] text-red" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-navy/60 hover:text-navy disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleShare(pendingOverlapConfirm)}
+            disabled={isSaving || selected.length === 0}
+            className="rounded-full bg-navy px-4 py-2 text-[12.5px] font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSaving ? 'Sharing…' : pendingOverlapConfirm ? 'Share anyway' : 'Share'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}

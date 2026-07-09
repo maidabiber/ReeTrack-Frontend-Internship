@@ -125,6 +125,47 @@ interface OverlapEntry {
   isRunning: boolean
 }
 
+export function validateDurationOnlyEntry(durationSeconds: number): string | null {
+  if (durationSeconds <= 0) return 'Duration must be greater than zero'
+
+  if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+    return MANUAL_ENTRY_MESSAGES.durationOver24Hours
+  }
+
+  return null
+}
+
+export function toDateInputValue(date: Date): string {
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+export function parseDateInput(value: string): Date | null {
+  if (!value) return null
+
+  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10))
+  if (!year || !month || !day) return null
+
+  const parsed = new Date(year, month - 1, day)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function dateInputToUtcIso(value: string): string | null {
+  const parsed = parseDateInput(value)
+  if (!parsed) return null
+
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0).toISOString()
+}
+
+export function entryDateToDateInputValue(iso: string | null | undefined, fallback = new Date()): string {
+  if (!iso) return toDateInputValue(fallback)
+  return toDateInputValue(new Date(iso))
+}
+
+export function formatEntryDate(iso: string): string {
+  return new Date(iso).toLocaleDateString()
+}
+
 export function validateManualEntry(
   state: ManualEntryState,
   existingEntries: OverlapEntry[],

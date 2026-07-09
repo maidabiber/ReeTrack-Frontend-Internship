@@ -1,11 +1,29 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/client'
 import { MentionDescriptionField } from '../components/time/MentionDescriptionField'
+import { AddShareMembersModal } from '../components/time/AddShareMembersModal'
+import { EntryParticipantAvatars, getEntryMembers } from '../components/time/EntryParticipantAvatars'
+import { ReviewPendingEntryModal } from '../components/time/ReviewPendingEntryModal'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
+import { Pill } from '../components/ui/Pill'
 import { EventCalendar } from '../components/calendar/EventCalendar'
 import { useTimer } from '../hooks/useTimer'
+import { useAuth } from '../hooks/useAuth'
 import { formatDurationHms } from '../lib/formatDuration'
+import { isPendingSharedWithCurrentUser, isSharedByCurrentUser, isShareableByCurrentUser } from '../lib/entryShare'
+import {
+  groupEntriesForDisplay,
+  isAwaitingApprovalEntry,
+  isInvitationEntry,
+} from '../lib/displayEntries'
+import {
+  PENDING_ENTRY_AVATAR_RING_CLASS,
+  PENDING_ENTRY_ROW_CLASS,
+  TIME_ENTRY_ITEM_CLASS,
+  TIME_ENTRY_LIST_CLASS,
+  TIME_ENTRY_ROW_CLASS,
+} from '../lib/pendingEntryStyles'
 import type { Teammate } from '../lib/mention'
 import { timeEntryApiErrorMessage } from '../api/timeEntries'
 import type { TimeEntry } from '../types/timeEntry'
@@ -13,18 +31,27 @@ import {
   applyManualFieldChange,
   createDefaultManualEntry,
   createManualEntryFromTimeEntry,
+  dateInputToUtcIso,
+  entryDateToDateInputValue,
+  formatEntryDate,
   formatManualDurationInput,
   MANUAL_ENTRY_MESSAGES,
   MAX_MANUAL_DURATION_SECONDS,
   parseDatetimeLocal,
   parseDurationInput,
+  toDateInputValue,
   toDatetimeLocalValue,
   validateManualEntry,
+  validateDurationOnlyEntry,
 } from '../lib/manualEntry'
 
 const DURATION_LIMIT_MESSAGE = 'Duration cannot exceed 24 hours. Please shorten the entry before saving.'
+const DEFAULT_DURATION_ONLY_SECONDS = 60 * 60
 
-type TrackerMode = 'timer' | 'manual'
+const TIMER_PANEL_CLASS = 'timer-panel'
+const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
+
+type TrackerMode = 'timer' | 'manual' | 'duration'
 
 function isOverlapConflictError(error: unknown): boolean {
   if (!(error instanceof ApiError) || error.status !== 409) return false
@@ -246,16 +273,17 @@ export default function TimerPage() {
   const [contentView, setContentView] = useState<'list' | 'calendar'>('list')
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <div className="mx-auto w-full max-w-[1340px] px-10 pt-8">
-        <div className="px-8 pb-4">
+    <div className="flex min-w-0 flex-1 flex-col bg-surface-muted/45">
+      <div className="mx-auto w-full max-w-[1340px] px-10 py-8">
+        <div className="mb-5">
           <TrackerBar />
         </div>
-      </div>
 
-      <div className="px-15 pt-4">
         <Toolbar contentView={contentView} onContentViewChange={setContentView} />
-        {contentView === 'list' ? <EntriesCard /> : <EventCalendar />}
+
+        <div className="mt-4">
+          {contentView === 'list' ? <EntriesCard /> : <EventCalendar />}
+        </div>
       </div>
     </div>
   )
@@ -272,16 +300,22 @@ function TrackerBar() {
     error,
     toggle,
     addManualEntry,
+    addDurationEntry,
   } = useTimer()
 
   const [trackerMode, setTrackerMode] = useState<TrackerMode>('timer')
   const [description, setDescription] = useState('')
   const [manualEntry, setManualEntry] = useState(createDefaultManualEntry)
   const [durationInput, setDurationInput] = useState(formatManualDurationInput(manualEntry.durationSeconds))
+  const [durationOnlySeconds, setDurationOnlySeconds] = useState(DEFAULT_DURATION_ONLY_SECONDS)
+  const [durationOnlyInput, setDurationOnlyInput] = useState(
+    formatManualDurationInput(DEFAULT_DURATION_ONLY_SECONDS),
+  )
+  const [durationOnlyDate, setDurationOnlyDate] = useState(() => toDateInputValue(new Date()))
   const [localError, setLocalError] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
-  const [mentionedTeammate, setMentionedTeammate] = useState<Teammate | null>(null)
+  const [mentionedTeammates, setMentionedTeammates] = useState<Teammate[]>([])
   const [shareNotice, setShareNotice] = useState<string | null>(null)
 
   useEffect(() => {
@@ -297,14 +331,91 @@ function TrackerBar() {
   }, [manualEntry.durationSeconds])
 
   const validation = validateManualEntry(manualEntry, [], null)
+  const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
 
   const overlapConfirm = useOverlapConfirm()
 
-  const handleToggle = () => {
-    void toggle(description.trim() || undefined)
+  const handleToggle = async (confirmOverlap = false) => {
+    const trimmedDescription = description.trim() || undefined
+
+    if (!isRunning) {
+      void toggle(trimmedDescription)
+      return
+    }
+
+    const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
+    if (assigneeIds.length === 0) {
+      void toggle(trimmedDescription)
+      return
+    }
+
+    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+      onClearError: () => setShareNotice(null),
+      validationError: null,
+      onValidationError: () => {},
+      save: async (confirmedOverlap) => {
+        const sharedNames = mentionedTeammates.map((teammate) => teammate.displayName ?? teammate.email)
+
+        await toggle(trimmedDescription, {
+          assigneeUserIds: assigneeIds,
+          confirmOverlap: confirmedOverlap,
+        })
+
+        setMentionedTeammates([])
+        setDescription('')
+        if (sharedNames.length === 1) {
+          setShareNotice(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
+        } else if (sharedNames.length > 1) {
+          setShareNotice(`Shared with ${sharedNames.length} teammates. They will be notified to approve it.`)
+        }
+      },
+      onOtherError: () => {},
+    })
   }
 
-  const resetManualForm = () => {
+  const handleSaveDuration = async () => {
+    setDurationLimitMessage(null)
+
+    if (durationOnlySeconds > MAX_MANUAL_DURATION_SECONDS) {
+      setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+      return
+    }
+
+    const validationError = durationOnlyValidationError ?? durationParseError
+    if (validationError) {
+      setLocalError(validationError)
+      return
+    }
+
+    const entryDateUtc = dateInputToUtcIso(durationOnlyDate)
+    if (!entryDateUtc) {
+      setLocalError('Enter a valid date.')
+      return
+    }
+
+    setLocalError(null)
+
+    try {
+      await addDurationEntry({
+        description: description.trim() || undefined,
+        entryDateUtc,
+        durationSeconds: durationOnlySeconds,
+      })
+      setDescription('')
+      setDurationOnlySeconds(DEFAULT_DURATION_ONLY_SECONDS)
+      setDurationOnlyInput(formatManualDurationInput(DEFAULT_DURATION_ONLY_SECONDS))
+      setDurationOnlyDate(toDateInputValue(new Date()))
+    } catch (err) {
+      if (isDurationLimitError(err)) {
+        setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+        return
+      }
+
+      setLocalError(timeEntryApiErrorMessage(err, 'Could not save the duration entry.'))
+    }
+  }
+
+  const resetManualEntryFields = () => {
     const defaults = createDefaultManualEntry()
     setManualEntry(defaults)
     setDurationInput(formatManualDurationInput(defaults.durationSeconds))
@@ -312,7 +423,11 @@ function TrackerBar() {
     setDurationParseError(null)
     setDurationLimitMessage(null)
     overlapConfirm.clearOverlapConfirm()
-    setMentionedTeammate(null)
+  }
+
+  const resetManualForm = () => {
+    resetManualEntryFields()
+    setMentionedTeammates([])
     setShareNotice(null)
   }
 
@@ -337,21 +452,23 @@ function TrackerBar() {
       validationError: validation.error,
       onValidationError: setLocalError,
       save: async (confirmedOverlap) => {
-        const sharedWith = mentionedTeammate
-          ? mentionedTeammate.displayName ?? mentionedTeammate.email
-          : null
+        const sharedNames = mentionedTeammates.map((teammate) => teammate.displayName ?? teammate.email)
 
         await addManualEntry({
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
           confirmOverlap: confirmedOverlap,
-          assigneeUserId: mentionedTeammate?.id,
+          ...(mentionedTeammates.length > 0
+            ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
+            : {}),
         })
 
         resetManualForm()
-        if (sharedWith) {
-          setShareNotice(`Shared with ${sharedWith}. They will be notified to approve it.`)
+        if (sharedNames.length === 1) {
+          setShareNotice(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
+        } else if (sharedNames.length > 1) {
+          setShareNotice(`Shared with ${sharedNames.length} teammates. They will be notified to approve it.`)
         }
         if (trackerMode === 'manual') {
           setDescription('')
@@ -371,16 +488,24 @@ function TrackerBar() {
   }
 
   const switchMode = (mode: TrackerMode) => {
-    if (mode === 'manual' && isRunning) return
+    if ((mode === 'manual' || mode === 'duration') && isRunning) return
     setTrackerMode(mode)
     clearManualFeedback()
     if (mode === 'manual') {
-      resetManualForm()
+      resetManualEntryFields()
+    }
+    if (mode === 'duration') {
+      setDurationOnlySeconds(DEFAULT_DURATION_ONLY_SECONDS)
+      setDurationOnlyInput(formatManualDurationInput(DEFAULT_DURATION_ONLY_SECONDS))
+      setDurationOnlyDate(toDateInputValue(new Date()))
+      setDurationParseError(null)
     }
   }
 
   const manualBlockingError =
     validation.error ?? durationParseError ?? (trackerMode === 'manual' ? localError : null)
+  const durationBlockingError =
+    durationOnlyValidationError ?? durationParseError ?? (trackerMode === 'duration' ? localError : null)
   const timerError = trackerMode === 'timer' ? error : null
   const endOrderError =
     manualEntry.end <= manualEntry.start ? MANUAL_ENTRY_MESSAGES.endBeforeStart : null
@@ -390,54 +515,59 @@ function TrackerBar() {
   const showManualFeedback = Boolean(endOrderError)
 
   return (
-    <div className="rounded-[18px] bg-white shadow-card">
-      <MentionDescriptionField
-        className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-[16px] text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
-        placeholder="What are you working on? Type @ to share with a teammate"
-        value={description}
-        onChange={setDescription}
-        onMentionChange={setMentionedTeammate}
-        disabled={isInitializing || isToggling || isSavingManual}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            if (trackerMode === 'timer') {
-              handleToggle()
-            } else {
-              void handleSaveManual(pendingOverlapConfirm)
+    <div className={TIMER_PANEL_CLASS}>
+      {trackerMode === 'duration' ? (
+        <input
+          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-[16px] text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+          placeholder="What did you work on?"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          disabled={isInitializing || isSavingManual}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              void handleSaveDuration()
             }
-          }
-        }}
-      />
-
-      {mentionedTeammate ? (
-        <div className="px-6 pb-3">
-          <p className="text-[12px] text-navy/55">
-            This entry will be shared with{' '}
-            <span className="font-semibold text-navy">
-              {mentionedTeammate.displayName ?? mentionedTeammate.email}
-            </span>{' '}
-            for approval.
-          </p>
-        </div>
-      ) : null}
+          }}
+        />
+      ) : (
+        <MentionDescriptionField
+          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-[16px] text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+          placeholder="What are you working on? Type @ to share with a teammate"
+          value={description}
+          onChange={setDescription}
+          selectedTeammates={mentionedTeammates}
+          onMentionChange={setMentionedTeammates}
+          disabled={isInitializing || isToggling || isSavingManual}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              if (trackerMode === 'timer') {
+                handleToggle()
+              } else {
+                void handleSaveManual(pendingOverlapConfirm)
+              }
+            }
+          }}
+        />
+      )}
 
       {shareNotice ? (
-        <div className="mx-6 mb-3 rounded-[10px] bg-yellow-tint px-3 py-2.5 text-[12.5px] text-navy">
+        <div className="mx-6 mb-3 rounded-[10px] bg-brand-tint px-3 py-2.5 text-[12.5px] text-navy">
           {shareNotice}
         </div>
       ) : null}
 
       <span aria-hidden="true" className="block h-px w-full bg-brand-gradient" />
 
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-navy/[0.06] bg-surface-muted/25 px-4 py-3.5">
         <IconButton name="projects" title="Project" />
         <IconButton name="tags" title="Tags" />
         <IconButton name="billable" title="Billable" />
 
         <div className="mx-1 h-[22px] w-px flex-shrink-0 bg-navy/10" />
 
-        <div className="flex flex-shrink-0 rounded-full bg-surface-muted p-[3px]">
+        <div className="flex flex-shrink-0 rounded-full border border-navy/[0.06] bg-white p-[3px] shadow-[0_2px_8px_rgba(20,29,51,0.06)]">
           <button
             type="button"
             onClick={() => switchMode('timer')}
@@ -457,6 +587,17 @@ function TrackerBar() {
             }`}
           >
             Manual
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('duration')}
+            disabled={isRunning}
+            title={isRunning ? 'Stop the running timer before adding a duration entry' : undefined}
+            className={`rounded-full px-3.5 py-[7px] font-display text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+              trackerMode === 'duration' ? 'bg-navy text-cream' : 'text-navy/55'
+            }`}
+          >
+            Duration
           </button>
         </div>
 
@@ -496,7 +637,7 @@ function TrackerBar() {
               aria-label={isRunning ? 'Stop timer' : 'Start timer'}
               aria-pressed={isRunning}
               disabled={isInitializing || isToggling}
-              onClick={handleToggle}
+              onClick={() => void handleToggle()}
               className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                 isRunning ? 'bg-navy hover:bg-navy/90' : 'bg-brand hover:bg-brand-deep'
               }`}
@@ -507,7 +648,7 @@ function TrackerBar() {
               />
             </button>
           </>
-        ) : (
+        ) : trackerMode === 'manual' ? (
           <div className="flex min-w-0 flex-col items-end gap-2">
             <div className="flex flex-wrap items-end justify-end gap-2">
               <ManualField
@@ -582,6 +723,59 @@ function TrackerBar() {
               </div>
             ) : null}
           </div>
+        ) : (
+          <div className="flex min-w-0 flex-col items-end gap-2">
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <ManualField
+                label="Date"
+                type="date"
+                value={durationOnlyDate}
+                onChange={setDurationOnlyDate}
+                className="w-[132px]"
+                disabled={isInitializing || isSavingManual}
+              />
+              <ManualField
+                label="Duration"
+                type="text"
+                value={durationOnlyInput}
+                onChange={(value) => {
+                  setDurationOnlyInput(value)
+                  setDurationParseError(null)
+                  clearManualFeedback()
+                  const parsed = parseDurationInput(value)
+                  if (parsed === null) return
+                  setDurationOnlySeconds(parsed)
+                }}
+                onBlur={() => {
+                  const parsed = parseDurationInput(durationOnlyInput)
+                  if (durationOnlyInput.trim() && parsed === null) {
+                    setDurationParseError('Use 1:30 or 1:30:00')
+                    return
+                  }
+                  setDurationParseError(null)
+                  setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
+                }}
+                hint={durationParseError ?? undefined}
+                fieldState={durationParseError ? 'error' : 'default'}
+                className="w-[104px] font-mono"
+                disabled={isInitializing || isSavingManual}
+              />
+
+              <button
+                type="button"
+                aria-label="Add duration entry"
+                disabled={isInitializing || isSavingManual || Boolean(durationBlockingError)}
+                onClick={() => void handleSaveDuration()}
+                className="mb-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Icon name="plus" className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+
+            {durationBlockingError ? (
+              <ManualFormNotice variant="error" message={durationBlockingError} />
+            ) : null}
+          </div>
         )}
       </div>
 
@@ -595,9 +789,15 @@ function TrackerBar() {
       {showOverlapConfirm && overlapWarning ? (
         <OverlapConfirmModal
           message={overlapWarning}
-          isSaving={isSavingManual}
+          isSaving={trackerMode === 'timer' ? isToggling : isSavingManual}
           onCancel={overlapConfirm.clearOverlapConfirm}
-          onConfirm={() => void handleSaveManual(true)}
+          onConfirm={() => {
+            if (trackerMode === 'timer') {
+              void handleToggle(true)
+            } else {
+              void handleSaveManual(true)
+            }
+          }}
         />
       ) : null}
     </div>
@@ -655,7 +855,7 @@ function ManualField({
   hint,
 }: {
   label: string
-  type: 'datetime-local' | 'text'
+  type: 'datetime-local' | 'text' | 'date'
   value: string
   onChange: (value: string) => void
   onBlur?: () => void
@@ -690,7 +890,7 @@ function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; t
     <button
       type="button"
       title={title}
-      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] text-navy/55 hover:bg-surface-muted hover:text-navy"
+      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] border border-navy/[0.06] bg-white text-navy/55 shadow-[0_2px_8px_rgba(20,29,51,0.06)] transition-colors hover:border-brand/20 hover:text-navy"
     >
       <Icon name={name} className="h-4 w-4" />
     </button>
@@ -718,8 +918,8 @@ function Toolbar({
   }, 0)
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-4 px-10 py-3">
-      <div className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 font-display text-[12.5px] font-bold text-navy shadow-card">
+    <div className="mb-1 flex w-full flex-wrap items-center gap-4">
+      <div className="flex items-center gap-1.5 rounded-full border border-navy/[0.06] bg-white px-3.5 py-2 font-display text-[12.5px] font-bold text-navy shadow-[0_8px_22px_rgba(20,29,51,0.1)]">
         <Icon name="calendar" className="h-[13px] w-[13px] opacity-55" />
         All dates
       </div>
@@ -741,7 +941,7 @@ function Toolbar({
 
       <div className="flex-1" />
 
-      <div className="flex rounded-full bg-surface-muted p-[3px]">
+      <div className="flex rounded-full border border-navy/[0.06] bg-white p-[3px] shadow-[0_8px_22px_rgba(20,29,51,0.1)]">
         <button
           type="button"
           onClick={() => onContentViewChange('list')}
@@ -760,7 +960,11 @@ function Toolbar({
         >
           Calendar
         </button>
-        <button type="button" title="Coming soon" className="rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy/55">
+        <button
+          type="button"
+          title="Coming soon"
+          className="rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy/55"
+        >
           Timesheet
         </button>
       </div>
@@ -769,12 +973,38 @@ function Toolbar({
 }
 
 function EntriesCard() {
-  const { entries, isInitializing } = useTimer()
+  const { entries, isInitializing, refresh } = useTimer()
+  const { user } = useAuth()
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null)
+  const [shareEntry, setShareEntry] = useState<{
+    entry: TimeEntry
+    groupedEntries?: TimeEntry[]
+  } | null>(null)
+
+  const handleEntryClick = (entry: TimeEntry) => {
+    if (user && isPendingSharedWithCurrentUser(entry, user.id)) {
+      setReviewEntry(entry)
+      return
+    }
+
+    if (entry.status === 'Confirmed') {
+      if (user && isSharedByCurrentUser(entry, user.id)) {
+        return
+      }
+
+      setEditingEntry(entry)
+    }
+  }
+
+  const handleApproved = () => {
+    setReviewEntry(null)
+    void refresh()
+  }
 
   if (isInitializing) {
     return (
-      <div className="overflow-hidden rounded-[18px] bg-white shadow-card">
+      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
         <div className="px-5 py-16 text-center text-[13px] leading-[1.6] text-navy/50">
           Loading entries…
         </div>
@@ -784,7 +1014,7 @@ function EntriesCard() {
 
   if (entries.length === 0) {
     return (
-      <div className="overflow-hidden rounded-[18px] bg-white shadow-card">
+      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
         <div className="px-5 py-16 text-center text-[13px] leading-[1.6] text-navy/50">
           No time entries yet.
           <br />
@@ -797,42 +1027,139 @@ function EntriesCard() {
 
   return (
     <>
-      <div className="overflow-hidden rounded-[18px] bg-white shadow-card">
-        <ul className="divide-y divide-navy/5">
-          {entries.map((entry) => (
-            <li key={entry.id}>
-              <button
-                type="button"
-                onClick={() => setEditingEntry(entry)}
-                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-muted/60"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-medium text-navy">
-                    {entry.description?.trim() || 'No description'}
-                  </p>
-                  <p className="mt-0.5 text-[12px] text-navy/50">
-                    {entry.mode === 'Manual' ? 'Manual · ' : ''}
-                    {entry.startedAtUtc ? new Date(entry.startedAtUtc).toLocaleString() : ''}
-                  </p>
+      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
+        <ul className={TIME_ENTRY_LIST_CLASS}>
+          {(user ? groupEntriesForDisplay(entries, user.id) : entries.map((entry) => ({
+            key: entry.id,
+            entry,
+            groupedEntries: [entry],
+            isGroupedShare: false,
+          }))).map((displayEntry) => {
+            const { entry, groupedEntries } = displayEntry
+            const isReviewable = user ? isPendingSharedWithCurrentUser(entry, user.id) : false
+            const isInvitation = user ? isInvitationEntry(entry, user.id) : false
+            const isAwaitingApproval = user ? isAwaitingApprovalEntry(entry, user.id) : false
+            const isReadOnlyPending = entry.status === 'Pending' && !isReviewable
+            const members = getEntryMembers(entry, {
+              groupedEntries: displayEntry.isGroupedShare ? groupedEntries : undefined,
+              excludeUserId: user?.id,
+            })
+
+            const isSubmitterConfirmedShare =
+              user ? isSharedByCurrentUser(entry, user.id) && entry.status === 'Confirmed' : false
+            const isPendingCard = isInvitation || isAwaitingApproval || isReadOnlyPending
+            const canAddMembers = user ? isShareableByCurrentUser(entry, user.id) : false
+
+            return (
+              <li key={displayEntry.key} className={TIME_ENTRY_ITEM_CLASS}>
+                <div
+                  className={`flex w-full items-center gap-4 px-5 py-4 ${
+                    isPendingCard
+                      ? PENDING_ENTRY_ROW_CLASS
+                      : TIME_ENTRY_ROW_CLASS
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleEntryClick(entry)}
+                    disabled={isReadOnlyPending || isSubmitterConfirmedShare}
+                    className={`flex min-w-0 flex-1 items-center gap-4 text-left disabled:cursor-default${
+                      isSubmitterConfirmedShare ? '' : ''
+                    }`}
+                  >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-navy">
+                      {entry.description?.trim() || 'No description'}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-navy/50">
+                      {isInvitation ? <Pill label="Invitation" dotClassName="bg-brand" /> : null}
+                      {isAwaitingApproval ? <Pill label="Pending" dotClassName="bg-brand/50" /> : null}
+                      {(isInvitation || isAwaitingApproval) && (entry.mode === 'Manual' || entry.startedAtUtc) ? (
+                        <span aria-hidden="true">·</span>
+                      ) : null}
+                      {entry.mode === 'Manual' ? <span>Manual</span> : null}
+                      {entry.mode === 'DurationOnly' ? <span>Duration only</span> : null}
+                      {(entry.mode === 'Manual' || entry.mode === 'DurationOnly') && entry.startedAtUtc ? (
+                        <span aria-hidden="true">·</span>
+                      ) : null}
+                      {entry.startedAtUtc ? (
+                        <span>
+                          {entry.mode === 'DurationOnly'
+                            ? formatEntryDate(entry.startedAtUtc)
+                            : new Date(entry.startedAtUtc).toLocaleString()}
+                        </span>
+                      ) : null}
+                    </p>
+                  </div>
+                  {members.length > 0 ? (
+                    <EntryParticipantAvatars
+                      participants={members}
+                      ringClassName={isPendingCard ? PENDING_ENTRY_AVATAR_RING_CLASS : 'ring-white'}
+                    />
+                  ) : null}
+                  <div className="shrink-0 font-mono text-[14px] tabular-nums text-navy">
+                    {formatDurationHms(entry.durationSeconds)}
+                  </div>
+                  {!isReadOnlyPending && !isSubmitterConfirmedShare ? (
+                    <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-navy/30" />
+                  ) : null}
+                  </button>
+
+                  {canAddMembers ? (
+                    <button
+                      type="button"
+                      title="Share with a teammate"
+                      aria-label="Share with a teammate"
+                      onClick={() =>
+                        setShareEntry({
+                          entry,
+                          groupedEntries: displayEntry.isGroupedShare ? groupedEntries : undefined,
+                        })
+                      }
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-[18px] leading-none text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
+                    >
+                      +
+                    </button>
+                  ) : null}
                 </div>
-                <div className="font-mono text-[14px] tabular-nums text-navy">
-                  {formatDurationHms(entry.durationSeconds)}
-                </div>
-                <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-navy/30" />
-              </button>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       </div>
 
       {editingEntry ? (
         <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} />
       ) : null}
+
+      {reviewEntry ? (
+        <ReviewPendingEntryModal
+          entry={reviewEntry}
+          allPending={entries.filter((item) => item.status === 'Pending')}
+          onClose={() => setReviewEntry(null)}
+          onUpdated={(updated) => {
+            void refresh()
+            setReviewEntry(updated)
+          }}
+          onApproved={handleApproved}
+        />
+      ) : null}
+
+      {shareEntry && user ? (
+        <AddShareMembersModal
+          entry={shareEntry.entry}
+          groupedEntries={shareEntry.groupedEntries}
+          currentUserId={user.id}
+          onClose={() => setShareEntry(null)}
+          onShared={() => void refresh()}
+        />
+      ) : null}
     </>
   )
 }
 
 function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
+  const isDurationOnly = entry.mode === 'DurationOnly'
   const { isSavingEdit, updateEntry } = useTimer()
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
@@ -840,21 +1167,78 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
   const [durationInput, setDurationInput] = useState(() =>
     formatManualDurationInput(entry.durationSeconds),
   )
+  const [durationOnlySeconds, setDurationOnlySeconds] = useState(entry.durationSeconds)
+  const [durationOnlyInput, setDurationOnlyInput] = useState(() =>
+    formatManualDurationInput(entry.durationSeconds),
+  )
+  const [durationOnlyDate, setDurationOnlyDate] = useState(() =>
+    entryDateToDateInputValue(entry.startedAtUtc),
+  )
   const [error, setError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
+  const [durationParseError, setDurationParseError] = useState<string | null>(null)
 
   useEffect(() => {
     setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
   }, [manualEntry.durationSeconds])
 
   const validation = validateManualEntry(manualEntry, [], null)
+  const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
 
   const overlapConfirm = useOverlapConfirm()
   const { overlapWarning, showOverlapConfirm } = overlapConfirm
 
   const endOrderError =
     manualEntry.end <= manualEntry.start ? 'End must be after start' : null
-  const blockingError = validation.error ?? error
+  const blockingError = isDurationOnly
+    ? durationOnlyValidationError ?? durationParseError ?? error
+    : validation.error ?? error
+
+  const handleSaveDurationOnly = async () => {
+    setDurationLimitMessage(null)
+
+    if (durationOnlySeconds > MAX_MANUAL_DURATION_SECONDS) {
+      setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+      return
+    }
+
+    const validationError = durationOnlyValidationError ?? durationParseError
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    const entryDateUtc = dateInputToUtcIso(durationOnlyDate)
+    if (!entryDateUtc) {
+      setError('Enter a valid date.')
+      return
+    }
+
+    setError(null)
+
+    try {
+      await updateEntry({
+        id: entry.id,
+        description: description.trim() || undefined,
+        startedAtUtc: entryDateUtc,
+        durationSeconds: durationOnlySeconds,
+        isBillable,
+      })
+      onClose()
+    } catch (err) {
+      if (isDurationLimitError(err)) {
+        setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+        return
+      }
+
+      if (err instanceof ApiError && err.status === 403) {
+        setError(timeEntryApiErrorMessage(err, 'This entry cannot be edited.'))
+        return
+      }
+
+      setError(timeEntryApiErrorMessage(err, 'Could not save changes.'))
+    }
+  }
 
   const handleSave = async (confirmOverlap = false) => {
     setDurationLimitMessage(null)
@@ -899,7 +1283,15 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
 
   return (
     <>
-      <Modal title="Edit time entry" subtitle="Update description, times, and billable status." onClose={onClose}>
+      <Modal
+        title="Edit time entry"
+        subtitle={
+          isDurationOnly
+            ? 'Update description, duration, and billable status.'
+            : 'Update description, times, and billable status.'
+        }
+        onClose={onClose}
+      >
       <div className="mb-3">
         <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">
           Description
@@ -913,6 +1305,43 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
         />
       </div>
 
+      {isDurationOnly ? (
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <EditField
+            label="Date"
+            type="date"
+            value={durationOnlyDate}
+            onChange={setDurationOnlyDate}
+            disabled={isSavingEdit}
+          />
+          <EditField
+            label="Duration"
+            type="text"
+            value={durationOnlyInput}
+            onChange={(value) => {
+              setDurationOnlyInput(value)
+              setDurationParseError(null)
+              setDurationLimitMessage(null)
+              const parsed = parseDurationInput(value)
+              if (parsed === null) return
+              setDurationOnlySeconds(parsed)
+            }}
+            onBlur={() => {
+              const parsed = parseDurationInput(durationOnlyInput)
+              if (durationOnlyInput.trim() && parsed === null) {
+                setDurationParseError('Use 1:30 or 1:30:00')
+                return
+              }
+              setDurationParseError(null)
+              setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
+            }}
+            className="font-mono tabular-nums"
+            hasError={Boolean(durationParseError)}
+            hint={durationParseError ?? undefined}
+            disabled={isSavingEdit}
+          />
+        </div>
+      ) : (
       <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <EditField
           label="Start"
@@ -962,6 +1391,7 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
           disabled={isSavingEdit}
         />
       </div>
+      )}
 
       <label className="mb-3 flex cursor-pointer items-center gap-2.5">
         <input
@@ -991,7 +1421,7 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
         <button
           type="button"
           disabled={isSavingEdit || Boolean(blockingError)}
-          onClick={() => void handleSave(false)}
+          onClick={() => void (isDurationOnly ? handleSaveDurationOnly() : handleSave(false))}
           className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSavingEdit ? 'Saving…' : 'Save changes'}
@@ -1006,7 +1436,7 @@ function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => v
         />
       ) : null}
 
-      {showOverlapConfirm && overlapWarning ? (
+      {showOverlapConfirm && overlapWarning && !isDurationOnly ? (
         <OverlapConfirmModal
           message={overlapWarning}
           isSaving={isSavingEdit}
@@ -1030,7 +1460,7 @@ function EditField({
   hint,
 }: {
   label: string
-  type: 'datetime-local' | 'text'
+  type: 'datetime-local' | 'text' | 'date'
   value: string
   onChange: (value: string) => void
   onBlur?: () => void

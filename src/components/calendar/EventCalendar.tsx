@@ -131,7 +131,7 @@ export function EventCalendar() {
   }
 
   return (
-    <div className="relative flex h-[calc(100vh-220px)] min-h-[520px] flex-col overflow-hidden rounded-[18px] bg-white shadow-card">
+    <div className="timer-panel relative flex h-[calc(100vh-220px)] min-h-[520px] flex-col overflow-hidden">
       <CalendarHeader
         selectedDate={selectedDate}
         viewMode={viewMode}

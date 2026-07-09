@@ -11,7 +11,7 @@ export function timeEntryColor(_entry: TimeEntry): EventColor {
 }
 
 export function mapTimeEntryToCalendarEvent(entry: TimeEntry): CalendarEvent | null {
-  if (!entry.startedAtUtc) return null
+  if (!entry.startedAtUtc || entry.mode === 'DurationOnly') return null
 
   const start = new Date(entry.startedAtUtc)
   const end = entry.isRunning

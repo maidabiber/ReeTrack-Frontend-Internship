@@ -1,5 +1,12 @@
-import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
+import type { ActiveTimer, TimeEntry, TimeEntryParticipant } from '../types/timeEntry'
 import { apiClient } from './client'
+
+interface TimeEntryParticipantResponse {
+  userId: string
+  displayName: string
+  email: string
+  role: string
+}
 
 interface TimeEntryResponse {
   id: string
@@ -13,6 +20,19 @@ interface TimeEntryResponse {
   status: string
   submittedByUserId: string | null
   submittedByDisplayName: string | null
+  assigneeUserId: string | null
+  assigneeDisplayName: string | null
+  shareGroupId: string | null
+  participants: TimeEntryParticipantResponse[]
+}
+
+function toParticipant(response: TimeEntryParticipantResponse): TimeEntryParticipant {
+  return {
+    userId: response.userId,
+    displayName: response.displayName,
+    email: response.email,
+    role: response.role as TimeEntryParticipant['role'],
+  }
 }
 
 function toTimeEntry(response: TimeEntryResponse): TimeEntry {
@@ -28,6 +48,10 @@ function toTimeEntry(response: TimeEntryResponse): TimeEntry {
     status: (response.status as TimeEntry['status']) ?? 'Confirmed',
     submittedByUserId: response.submittedByUserId,
     submittedByDisplayName: response.submittedByDisplayName,
+    assigneeUserId: response.assigneeUserId,
+    assigneeDisplayName: response.assigneeDisplayName,
+    shareGroupId: response.shareGroupId,
+    participants: (response.participants ?? []).map(toParticipant),
   }
 }
 
@@ -62,10 +86,47 @@ export function startTimer(description?: string, isBillable = true): Promise<Act
     .then(toActiveTimer)
 }
 
-export function stopTimer(description?: string): Promise<TimeEntry> {
+export interface StopTimerParams {
+  description?: string
+  assigneeUserIds?: string[]
+  confirmOverlap?: boolean
+}
+
+export type StopTimerResult =
+  | { kind: 'single'; entry: TimeEntry }
+  | { kind: 'shared'; entries: TimeEntry[]; overlapWarning: string | null }
+
+export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
+  const hasAssignees = Boolean(params?.assigneeUserIds?.length)
+
   return apiClient
-    .post<TimeEntryResponse>('/time-entries/timer/stop', { description })
-    .then(toTimeEntry)
+    .post<TimeEntryResponse | Record<string, unknown>>('/time-entries/timer/stop', {
+      description: params?.description,
+      ...(hasAssignees
+        ? {
+            assigneeUserIds: params!.assigneeUserIds,
+            confirmOverlap: params?.confirmOverlap ?? false,
+          }
+        : {}),
+    })
+    .then((response) => {
+      if (hasAssignees) {
+        const sharedResponse = response as Record<string, unknown>
+        return {
+          kind: 'shared' as const,
+          entries: sharedManualEntryResponses(sharedResponse).map(toTimeEntry),
+          overlapWarning:
+            (sharedResponse.overlapWarning as string | null | undefined) ??
+            (sharedResponse.OverlapWarning as string | null | undefined) ??
+            null,
+        }
+      }
+
+      return {
+        kind: 'single' as const,
+        entry: toTimeEntry(response as TimeEntryResponse),
+      }
+    })
 }
 
 export interface CreateManualEntryParams {
@@ -89,6 +150,29 @@ export function createManualEntry(params: CreateManualEntryParams): Promise<Crea
       endedAtUtc: params.endedAtUtc,
       isBillable: params.isBillable ?? true,
       confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
+export interface CreateDurationOnlyEntryParams {
+  description?: string
+  entryDateUtc: string
+  durationSeconds: number
+  isBillable?: boolean
+}
+
+export function createDurationOnlyEntry(
+  params: CreateDurationOnlyEntryParams,
+): Promise<CreateManualEntryResult> {
+  return apiClient
+    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/duration', {
+      description: params.description,
+      entryDateUtc: params.entryDateUtc,
+      durationSeconds: params.durationSeconds,
+      isBillable: params.isBillable ?? true,
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
@@ -124,16 +208,57 @@ export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Prom
     }))
 }
 
+export interface UpdateDurationOnlyEntryParams {
+  description?: string
+  entryDateUtc: string
+  durationSeconds: number
+  isBillable?: boolean
+}
+
+export function updateDurationOnlyEntry(
+  id: string,
+  params: UpdateDurationOnlyEntryParams,
+): Promise<UpdateTimeEntryResult> {
+  return apiClient
+    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/${id}/duration`, {
+      description: params.description,
+      entryDateUtc: params.entryDateUtc,
+      durationSeconds: params.durationSeconds,
+      isBillable: params.isBillable ?? true,
+    })
+    .then((response) => ({
+      entry: toTimeEntry(response.entry),
+      overlapWarning: response.overlapWarning ?? null,
+    }))
+}
+
 export interface CreateSharedManualEntryParams extends CreateManualEntryParams {
-  assigneeUserId: string
+  assigneeUserIds: string[]
+}
+
+export interface CreateSharedManualEntryResult {
+  entries: TimeEntry[]
+  overlapWarning: string | null
+}
+
+function sharedManualEntryResponses(
+  response: Record<string, unknown>,
+): TimeEntryResponse[] {
+  const entries = response.entries ?? response.Entries
+  if (Array.isArray(entries)) return entries as TimeEntryResponse[]
+
+  const single = response.entry ?? response.Entry
+  if (single && typeof single === 'object') return [single as TimeEntryResponse]
+
+  throw new Error('Shared manual entry response did not include any entries.')
 }
 
 export function createSharedManualEntry(
   params: CreateSharedManualEntryParams,
-): Promise<CreateManualEntryResult> {
+): Promise<CreateSharedManualEntryResult> {
   return apiClient
-    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/shared/manual', {
-      assigneeUserId: params.assigneeUserId,
+    .post<Record<string, unknown>>('/time-entries/shared/manual', {
+      assigneeUserIds: params.assigneeUserIds,
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
@@ -141,8 +266,34 @@ export function createSharedManualEntry(
       confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
-      entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
+      entries: sharedManualEntryResponses(response).map(toTimeEntry),
+      overlapWarning:
+        (response.overlapWarning as string | null | undefined) ??
+        (response.OverlapWarning as string | null | undefined) ??
+        null,
+    }))
+}
+
+export interface ShareExistingEntryParams {
+  assigneeUserIds: string[]
+  confirmOverlap?: boolean
+}
+
+export function shareExistingTimeEntry(
+  entryId: string,
+  params: ShareExistingEntryParams,
+): Promise<CreateSharedManualEntryResult> {
+  return apiClient
+    .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, {
+      assigneeUserIds: params.assigneeUserIds,
+      confirmOverlap: params.confirmOverlap ?? false,
+    })
+    .then((response) => ({
+      entries: sharedManualEntryResponses(response).map(toTimeEntry),
+      overlapWarning:
+        (response.overlapWarning as string | null | undefined) ??
+        (response.OverlapWarning as string | null | undefined) ??
+        null,
     }))
 }
 
@@ -179,10 +330,23 @@ export function approvePendingTimeEntry(id: string): Promise<TimeEntry> {
 export function timeEntryApiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'body' in error) {
     const body = (error as { body: unknown }).body
-    if (body && typeof body === 'object' && 'message' in body) {
-      const message = (body as { message: unknown }).message
-      if (typeof message === 'string' && message.length > 0) return message
+    if (typeof body === 'string' && body.length > 0) return body
+
+    if (body && typeof body === 'object') {
+      for (const key of ['message', 'title', 'detail'] as const) {
+        const value = (body as Record<string, unknown>)[key]
+        if (typeof value === 'string' && value.length > 0) return value
+      }
     }
   }
+
+  if (error instanceof Error && error.message) {
+    if (error.message === 'Failed to fetch') {
+      return 'Could not reach the server. Make sure the backend is running.'
+    }
+
+    return error.message
+  }
+
   return fallback
 }

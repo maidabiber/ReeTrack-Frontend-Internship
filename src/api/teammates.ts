@@ -7,14 +7,20 @@ interface TeammateResponse {
   displayName: string | null
 }
 
-function toTeammate(response: TeammateResponse): Teammate {
+function toTeammate(response: TeammateResponse & Partial<Record<'Id' | 'Email' | 'DisplayName', unknown>>): Teammate {
+  const id = response.id ?? response.Id
+  const email = response.email ?? response.Email
+  const displayName = response.displayName ?? response.DisplayName
+
   return {
-    id: response.id,
-    email: response.email,
-    displayName: response.displayName,
+    id: String(id ?? ''),
+    email: String(email ?? ''),
+    displayName: typeof displayName === 'string' ? displayName : displayName == null ? null : String(displayName),
   }
 }
 
 export function listTeammates(): Promise<Teammate[]> {
-  return apiClient.get<TeammateResponse[]>('/teammates').then((teammates) => teammates.map(toTeammate))
+  return apiClient
+    .get<(TeammateResponse & Partial<Record<'Id' | 'Email' | 'DisplayName', unknown>>)[]>('/teammates')
+    .then((teammates) => teammates.map(toTeammate).filter((teammate) => teammate.id.length > 0))
 }

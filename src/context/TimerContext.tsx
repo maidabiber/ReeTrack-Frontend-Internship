@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   createManualEntry,
   createSharedManualEntry,
+  createDurationOnlyEntry,
   getActiveTimer,
   listTimeEntries,
   startTimer,
   stopTimer,
   updateTimeEntry,
+  updateDurationOnlyEntry,
   timeEntryApiErrorMessage,
 } from '../api/timeEntries'
 import { ApiError } from '../api/client'
@@ -26,6 +28,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [isSavingManual, setIsSavingManual] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const activeTimerRef = useRef<ActiveTimer | null>(null)
+
+  useEffect(() => {
+    activeTimerRef.current = activeTimer
+  }, [activeTimer])
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
@@ -104,16 +111,41 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const stop = useCallback(async (description?: string) => {
+  const stop = useCallback(async (options?: {
+    description?: string
+    assigneeUserIds?: string[]
+    confirmOverlap?: boolean
+  }) => {
     setIsToggling(true)
     setError(null)
 
-    try {
-      const entry = await stopTimer(description)
+    const timerSnapshot = activeTimerRef.current
+    if (timerSnapshot) {
       setActiveTimer(null)
       setElapsedSeconds(0)
-      setEntries((current) => [entry, ...current.filter((item) => item.id !== entry.id)])
+    }
+
+    try {
+      const result = await stopTimer(options)
+
+      const createdEntries = result.kind === 'shared' ? result.entries : [result.entry]
+      setEntries((current) => {
+        let next = [...current]
+        for (const entry of createdEntries) {
+          next = [entry, ...next.filter((item) => item.id !== entry.id)]
+        }
+        return next
+      })
+
+      return {
+        overlapWarning: result.kind === 'shared' ? result.overlapWarning : null,
+      }
     } catch (err) {
+      if (timerSnapshot) {
+        setActiveTimer(timerSnapshot)
+        setElapsedSeconds(elapsedSecondsSince(timerSnapshot.startedAtUtc))
+      }
+
       setError(timeEntryApiErrorMessage(err, 'Could not stop the timer.'))
       throw err
     } finally {
@@ -122,12 +154,19 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggle = useCallback(
-    async (description?: string) => {
+    async (
+      description?: string,
+      options?: {
+        assigneeUserIds?: string[]
+        confirmOverlap?: boolean
+      },
+    ) => {
       if (activeTimer) {
-        await stop(description)
-      } else {
-        await start(description)
+        return await stop({ description, ...options })
       }
+
+      await start(description)
+      return { overlapWarning: null }
     },
     [activeTimer, start, stop],
   )
@@ -138,15 +177,15 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       startedAtUtc: string
       endedAtUtc: string
       confirmOverlap?: boolean
-      assigneeUserId?: string
+      assigneeUserIds?: string[]
     }) => {
       setIsSavingManual(true)
       setError(null)
 
       try {
-        const result = params.assigneeUserId
+        const result = params.assigneeUserIds?.length
           ? await createSharedManualEntry({
-              assigneeUserId: params.assigneeUserId,
+              assigneeUserIds: params.assigneeUserIds,
               description: params.description,
               startedAtUtc: params.startedAtUtc,
               endedAtUtc: params.endedAtUtc,
@@ -154,9 +193,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
             })
           : await createManualEntry(params)
 
-        if (!params.assigneeUserId) {
-          setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
-        }
+        const createdEntries = 'entries' in result ? result.entries : [result.entry]
+        setEntries((current) => {
+          let next = [...current]
+          for (const entry of createdEntries) {
+            next = [entry, ...next.filter((item) => item.id !== entry.id)]
+          }
+          return next
+        })
 
         return { overlapWarning: result.overlapWarning }
       } catch (err) {
@@ -174,12 +218,38 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const addDurationEntry = useCallback(
+    async (params: {
+      description?: string
+      entryDateUtc: string
+      durationSeconds: number
+      isBillable?: boolean
+    }) => {
+      setIsSavingManual(true)
+      setError(null)
+
+      try {
+        const result = await createDurationOnlyEntry(params)
+        setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
+        return { overlapWarning: null }
+      } catch (err) {
+        const message = timeEntryApiErrorMessage(err, 'Could not save the duration entry.')
+        setError(message)
+        throw err
+      } finally {
+        setIsSavingManual(false)
+      }
+    },
+    [],
+  )
+
   const updateEntry = useCallback(
     async (params: {
       id: string
       description?: string
-      startedAtUtc: string
-      endedAtUtc: string
+      startedAtUtc?: string
+      endedAtUtc?: string
+      durationSeconds?: number
       isBillable?: boolean
       confirmOverlap?: boolean
     }) => {
@@ -187,7 +257,21 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       setError(null)
 
       try {
-        const result = await updateTimeEntry(params.id, params)
+        const result =
+          params.durationSeconds !== undefined && params.endedAtUtc === undefined
+            ? await updateDurationOnlyEntry(params.id, {
+                description: params.description,
+                entryDateUtc: params.startedAtUtc!,
+                durationSeconds: params.durationSeconds,
+                isBillable: params.isBillable,
+              })
+            : await updateTimeEntry(params.id, {
+                description: params.description,
+                startedAtUtc: params.startedAtUtc!,
+                endedAtUtc: params.endedAtUtc!,
+                isBillable: params.isBillable,
+                confirmOverlap: params.confirmOverlap,
+              })
         setEntries((current) =>
           current
             .map((item) => (item.id === result.entry.id ? result.entry : item))
@@ -228,6 +312,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       stop,
       toggle,
       addManualEntry,
+      addDurationEntry,
       updateEntry,
       refresh,
     }),
@@ -245,6 +330,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       stop,
       toggle,
       addManualEntry,
+      addDurationEntry,
       updateEntry,
       refresh,
     ],

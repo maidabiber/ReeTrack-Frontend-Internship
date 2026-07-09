@@ -12,20 +12,37 @@ export interface TimerContextValue {
   isSavingEdit: boolean
   error: string | null
   start: (description?: string) => Promise<void>
-  stop: (description?: string) => Promise<void>
-  toggle: (description?: string) => Promise<void>
+  stop: (options?: {
+    description?: string
+    assigneeUserIds?: string[]
+    confirmOverlap?: boolean
+  }) => Promise<{ overlapWarning: string | null }>
+  toggle: (
+    description?: string,
+    options?: {
+      assigneeUserIds?: string[]
+      confirmOverlap?: boolean
+    },
+  ) => Promise<{ overlapWarning: string | null }>
   addManualEntry: (params: {
     description?: string
     startedAtUtc: string
     endedAtUtc: string
     confirmOverlap?: boolean
-    assigneeUserId?: string
+    assigneeUserIds?: string[]
+  }) => Promise<{ overlapWarning: string | null }>
+  addDurationEntry: (params: {
+    description?: string
+    entryDateUtc: string
+    durationSeconds: number
+    isBillable?: boolean
   }) => Promise<{ overlapWarning: string | null }>
   updateEntry: (params: {
     id: string
     description?: string
-    startedAtUtc: string
-    endedAtUtc: string
+    startedAtUtc?: string
+    endedAtUtc?: string
+    durationSeconds?: number
     isBillable?: boolean
     confirmOverlap?: boolean
   }) => Promise<{ overlapWarning: string | null }>

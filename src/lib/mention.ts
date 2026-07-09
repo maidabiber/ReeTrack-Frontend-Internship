@@ -27,13 +27,19 @@ export function findMentionQuery(description: string, cursorIndex: number): stri
 export function applyMentionSelection(
   description: string,
   cursorIndex: number,
-  teammate: Teammate,
 ): { description: string; cursorIndex: number } {
   const beforeCursor = description.slice(0, cursorIndex)
   const afterCursor = description.slice(cursorIndex)
   const mentionStart = beforeCursor.lastIndexOf('@')
-  const label = teammateLabel(teammate)
-  const nextDescription = `${description.slice(0, mentionStart)}@${label} ${afterCursor}`
-  const nextCursor = mentionStart + label.length + 2
-  return { description: nextDescription, cursorIndex: nextCursor }
+  if (mentionStart < 0) {
+    return { description, cursorIndex }
+  }
+
+  const beforeMention = description.slice(0, mentionStart).replace(/\s$/, '')
+  const trimmedAfter = afterCursor.replace(/^\s+/, '')
+  const nextDescription = beforeMention && trimmedAfter
+    ? `${beforeMention} ${trimmedAfter}`
+    : beforeMention || trimmedAfter
+
+  return { description: nextDescription, cursorIndex: mentionStart }
 }
