@@ -42,15 +42,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Manage',
-    adminOnly: false,
-    items: [
-      { label: 'Projects', path: '/projects', icon: 'projects' },
-      { label: 'Clients', path: '/clients', icon: 'clients' },
-      { label: 'Tags', path: '/tags', icon: 'tags' },
-    ],
-  },
-  {
     title: 'Insights',
     adminOnly: true,
     items: [

@@ -9,6 +9,8 @@ interface WeekViewProps {
   onHourHeightChange: (height: number) => void
   selectedEventId: string | null
   onEventClick: (event: CalendarEvent) => void
+  onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  isEventEditable?: (event: CalendarEvent) => boolean
 }
 
 export function WeekView({
@@ -18,6 +20,8 @@ export function WeekView({
   onHourHeightChange,
   selectedEventId,
   onEventClick,
+  onEventMove,
+  isEventEditable,
 }: WeekViewProps) {
   const days = getWeekDays(selectedDate)
 
@@ -30,6 +34,9 @@ export function WeekView({
         onHourHeightChange={onHourHeightChange}
         selectedEventId={selectedEventId}
         onEventClick={onEventClick}
+        onEventMove={onEventMove}
+        isEventEditable={isEventEditable}
+        allowHorizontalDrag
       />
     </div>
   )

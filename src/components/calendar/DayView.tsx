@@ -14,6 +14,10 @@ interface DayViewProps {
   selectedEventId: string | null
   onDateChange: (date: Date) => void
   onEventSelect: (event: CalendarEvent | null) => void
+  onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  isEventEditable?: (event: CalendarEvent) => boolean
+  canEditSelectedEvent?: boolean
+  onEditEntry?: () => void
 }
 
 export function DayView({
@@ -25,6 +29,10 @@ export function DayView({
   selectedEventId,
   onDateChange,
   onEventSelect,
+  onEventMove,
+  isEventEditable,
+  canEditSelectedEvent = false,
+  onEditEntry,
 }: DayViewProps) {
   const [displayMonth, setDisplayMonth] = useState(() => startOfMonth(selectedDate))
 
@@ -47,7 +55,10 @@ export function DayView({
           hourHeight={hourHeight}
           onHourHeightChange={onHourHeightChange}
           selectedEventId={selectedEventId}
-          onEventClick={onEventSelect}
+          onEventClick={(event) => onEventSelect(event)}
+          onEventMove={onEventMove}
+          isEventEditable={isEventEditable}
+          allowHorizontalDrag={false}
         />
       </div>
 
@@ -59,7 +70,12 @@ export function DayView({
           onMonthChange={setDisplayMonth}
           onDateSelect={handleDateSelect}
         />
-        <EventDetailPanel event={selectedEvent} selectedDate={selectedDate} />
+        <EventDetailPanel
+          event={selectedEvent}
+          selectedDate={selectedDate}
+          canEdit={canEditSelectedEvent}
+          onEdit={onEditEntry}
+        />
       </div>
     </div>
   )

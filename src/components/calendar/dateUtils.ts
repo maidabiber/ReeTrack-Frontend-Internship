@@ -2,6 +2,17 @@ import type { CalendarEvent, EventLayout } from './types'
 
 const MINUTES_PER_DAY = 24 * 60
 
+export const HOVER_MIN_DISPLAY_VH_RATIO = 0.05
+
+export function hoverMinDisplayHeightPx(viewportHeight: number): number {
+  return viewportHeight * HOVER_MIN_DISPLAY_VH_RATIO
+}
+
+export function hoverMinDisplayHeightPercent(viewportHeight: number, hourHeight: number): number {
+  const dayHeightPx = hourHeight * 24
+  return (hoverMinDisplayHeightPx(viewportHeight) / dayHeightPx) * 100
+}
+
 export function startOfDay(date: Date): Date {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
@@ -69,6 +80,137 @@ export function getMonthGridDays(date: Date): Date[] {
 
 export function minutesSinceMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes()
+}
+
+export function snapMinutes(minutes: number, interval = 15): number {
+  return Math.round(minutes / interval) * interval
+}
+
+export function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60 * 1000)
+}
+
+export function preserveDurationMove(start: Date, end: Date, newStart: Date): { start: Date; end: Date } {
+  const durationMs = end.getTime() - start.getTime()
+  return {
+    start: newStart,
+    end: new Date(newStart.getTime() + durationMs),
+  }
+}
+
+export function minutesFromPointerY(clientY: number, columnTop: number, hourHeight: number): number {
+  const relativeY = clientY - columnTop
+  const minutes = (relativeY / hourHeight) * 60
+  return Math.max(0, Math.min(MINUTES_PER_DAY, minutes))
+}
+
+export function dateAtDayMinutes(day: Date, minutes: number): Date {
+  const result = startOfDay(day)
+  result.setMinutes(minutes)
+  return result
+}
+
+export type ResizeEdge = 'start' | 'end'
+
+const MIN_SNAPPED_DURATION_MINUTES = 15
+const MIN_FREE_DURATION_MINUTES = 1
+
+export function resizeEventEdge(
+  start: Date,
+  end: Date,
+  day: Date,
+  edge: ResizeEdge,
+  deltaMinutes: number,
+  altKey: boolean,
+): { start: Date; end: Date } | null {
+  const snappedDelta = altKey ? Math.round(deltaMinutes) : snapMinutes(deltaMinutes, 15)
+  const minDurationMs =
+    (altKey ? MIN_FREE_DURATION_MINUTES : MIN_SNAPPED_DURATION_MINUTES) * 60 * 1000
+
+  let newStart = start
+  let newEnd = end
+
+  if (edge === 'start') {
+    newStart = addMinutes(start, snappedDelta)
+    if (newEnd.getTime() - newStart.getTime() < minDurationMs) {
+      newStart = new Date(newEnd.getTime() - minDurationMs)
+    }
+  } else {
+    newEnd = addMinutes(end, snappedDelta)
+    if (newEnd.getTime() - newStart.getTime() < minDurationMs) {
+      newEnd = new Date(newStart.getTime() + minDurationMs)
+    }
+  }
+
+  return clampEventToDay(newStart, newEnd, day)
+}
+
+export function clampEventToDay(start: Date, end: Date, day: Date): { start: Date; end: Date } | null {
+  const dayStart = startOfDay(day)
+  const dayEnd = endOfDay(day)
+  const durationMs = end.getTime() - start.getTime()
+
+  let newStart = start
+  if (newStart < dayStart) newStart = dayStart
+
+  let newEnd = new Date(newStart.getTime() + durationMs)
+  if (newEnd > dayEnd) {
+    newEnd = dayEnd
+    newStart = new Date(newEnd.getTime() - durationMs)
+    if (newStart < dayStart) return null
+  }
+
+  return { start: newStart, end: newEnd }
+}
+
+export function dayOffset(fromDay: Date, toDay: Date): number {
+  const from = startOfDay(fromDay).getTime()
+  const to = startOfDay(toDay).getTime()
+  return Math.round((to - from) / (24 * 60 * 60 * 1000))
+}
+
+export function moveEventToDay(start: Date, end: Date, targetDay: Date): { start: Date; end: Date } {
+  const durationMs = end.getTime() - start.getTime()
+  const minutes = minutesSinceMidnight(start)
+  const newStart = dateAtDayMinutes(targetDay, minutes)
+  return {
+    start: newStart,
+    end: new Date(newStart.getTime() + durationMs),
+  }
+}
+
+export interface ColumnBounds {
+  day: Date
+  left: number
+  right: number
+}
+
+/** Resolve which day column contains clientX using column boundaries. */
+export function findColumnAtPointer<T extends ColumnBounds>(clientX: number, columns: T[]): T | null {
+  if (columns.length === 0) return null
+  if (columns.length === 1) return columns[0]
+
+  const sorted = [...columns].sort((a, b) => a.left - b.left)
+  const first = sorted[0]
+  const last = sorted[sorted.length - 1]
+
+  if (clientX <= first.left) return first
+  if (clientX >= last.right) return last
+
+  for (const column of sorted) {
+    if (clientX >= column.left && clientX <= column.right) return column
+  }
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const leftCol = sorted[i]
+    const rightCol = sorted[i + 1]
+    if (clientX > leftCol.right && clientX < rightCol.left) {
+      const midpoint = (leftCol.right + rightCol.left) / 2
+      return clientX < midpoint ? leftCol : rightCol
+    }
+  }
+
+  return first
 }
 
 export function eventTopPercent(start: Date, day: Date): number {

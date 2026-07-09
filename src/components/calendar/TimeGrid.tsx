@@ -1,16 +1,20 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useViewportHeight } from '../../hooks/useViewportHeight'
 import type { CalendarEvent } from './types'
 import {
   eventHeightPercent,
   eventTopPercent,
   eventsForDay,
   formatWeekday,
+  isSameDay,
   isToday,
   layoutOverlappingEvents,
   nowLinePercent,
 } from './dateUtils'
 import { EventBlock } from './EventBlock'
 import { clampHourHeight, DEFAULT_HOUR_HEIGHT, stepHourHeight } from './hourZoom'
+import { useCalendarEntryDrag } from './useCalendarEntryDrag'
+import { useCalendarEntryResize } from './useCalendarEntryResize'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const SCROLL_TO_HOUR = 8
@@ -23,6 +27,9 @@ interface TimeGridProps {
   onHourHeightChange?: (height: number) => void
   selectedEventId?: string | null
   onEventClick?: (event: CalendarEvent) => void
+  onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  isEventEditable?: (event: CalendarEvent) => boolean
+  allowHorizontalDrag?: boolean
 }
 
 export function TimeGrid({
@@ -32,12 +39,73 @@ export function TimeGrid({
   onHourHeightChange,
   selectedEventId,
   onEventClick,
+  onEventMove,
+  isEventEditable,
+  allowHorizontalDrag = false,
 }: TimeGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollRef = useRef<number | null>(null)
   const prevHourHeightRef = useRef(hourHeight)
   const didInitScrollRef = useRef(false)
+  const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const isMultiDay = days.length > 1
+  const viewportHeight = useViewportHeight()
+
+  const getColumnRects = useCallback(() => {
+    return days
+      .map((day) => {
+        const el = columnRefs.current.get(day.toISOString())
+        if (!el) return null
+        const rect = el.getBoundingClientRect()
+        return {
+          day,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+        }
+      })
+      .filter((column): column is NonNullable<typeof column> => column !== null)
+  }, [days])
+
+  const {
+    dragPreview,
+    isDragging,
+    handlePointerDown,
+    refreshColumnRects,
+  } = useCalendarEntryDrag({
+    allowHorizontal: allowHorizontalDrag,
+    hourHeight,
+    getColumnRects,
+    onEventClick,
+    onEventMove,
+    isEventEditable,
+  })
+
+  const {
+    resizePreview,
+    isResizing,
+    handleResizeStartPointerDown,
+    handleResizeEndPointerDown,
+  } = useCalendarEntryResize({
+    hourHeight,
+    onEventResize: onEventMove,
+    isEventEditable,
+    disabled: isDragging,
+  })
+
+  const interactionActive = isDragging || isResizing
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const onScroll = () => {
+      if (isDragging) refreshColumnRects()
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [isDragging, refreshColumnRects])
 
   useEffect(() => {
     const el = scrollRef.current
@@ -97,9 +165,67 @@ export function TimeGrid({
 
   const showNowLine = days.some((d) => isToday(d))
 
+  function renderEventBlock(
+    event: CalendarEvent,
+    day: Date,
+    column: number,
+    totalColumns: number,
+    options: {
+      start: Date
+      end: Date
+      isDragSource?: boolean
+      isDragPreview?: boolean
+      isResizePreview?: boolean
+      enablePointer?: boolean
+      enableResize?: boolean
+    },
+  ) {
+    const displayEvent = { ...event, start: options.start, end: options.end }
+    const canInteract = !interactionActive || options.isDragPreview || options.isResizePreview
+    const editable = isEventEditable?.(event) ?? false
+    const useDragInteraction = options.enablePointer && editable
+
+    return (
+      <EventBlock
+        key={`${event.id}-${day.toISOString()}-${options.isDragPreview ? 'drag-preview' : options.isResizePreview ? 'resize-preview' : 'main'}`}
+        event={displayEvent}
+        top={eventTopPercent(options.start, day)}
+        height={eventHeightPercent(options.start, options.end, day)}
+        hourHeight={hourHeight}
+        viewportHeight={viewportHeight}
+        totalColumns={totalColumns}
+        left={(column / totalColumns) * 100}
+        width={100 / totalColumns}
+        selected={selectedEventId === event.id}
+        compact={isMultiDay}
+        editable={isEventEditable?.(event) ?? false}
+        isDragSource={options.isDragSource}
+        isDragPreview={options.isDragPreview}
+        isResizePreview={options.isResizePreview}
+        onPointerDown={
+          useDragInteraction && canInteract && !isResizing
+            ? (pointerEvent) => handlePointerDown(event, pointerEvent)
+            : undefined
+        }
+        onResizeStartPointerDown={
+          options.enableResize && canInteract && editable && !isDragging
+            ? (pointerEvent) => handleResizeStartPointerDown(event, pointerEvent)
+            : undefined
+        }
+        onResizeEndPointerDown={
+          options.enableResize && canInteract && editable && !isDragging
+            ? (pointerEvent) => handleResizeEndPointerDown(event, pointerEvent)
+            : undefined
+        }
+        onClick={
+          !useDragInteraction && onEventClick ? () => onEventClick(event) : undefined
+        }
+      />
+    )
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Sticky day header */}
       <div className="flex flex-shrink-0 border-b border-navy/8 bg-white">
         <div className="w-14 flex-shrink-0" />
         {days.map((day) => (
@@ -121,10 +247,11 @@ export function TimeGrid({
         ))}
       </div>
 
-      {/* Scrollable grid */}
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        className={`min-h-0 flex-1 overflow-y-auto ${interactionActive ? 'select-none' : ''}`}
+      >
         <div className="relative flex" style={{ height: hourHeight * DAY_HOURS }}>
-          {/* Hour labels */}
           <div className="sticky left-0 z-10 w-14 flex-shrink-0 bg-white">
             {HOURS.map((hour) => (
               <div
@@ -141,17 +268,81 @@ export function TimeGrid({
             ))}
           </div>
 
-          {/* Day columns */}
           {days.map((day) => {
             const dayEvents = eventsForDay(events, day)
             const layouts = layoutOverlappingEvents(dayEvents)
 
+            const blocks: ReactNode[] = []
+
+            for (const { event, column, totalColumns } of layouts) {
+              const isBeingDragged = dragPreview?.event.id === event.id && isDragging
+              const isBeingResized = resizePreview?.event.id === event.id && isResizing
+              const previewOnThisDay = isBeingDragged && isSameDay(dragPreview.day, day)
+              const resizeOnThisDay = isBeingResized && isSameDay(resizePreview.day, day)
+              const sourceOnThisDay = isBeingDragged && isSameDay(event.start, day) && !previewOnThisDay
+
+              if (resizeOnThisDay) {
+                blocks.push(
+                  renderEventBlock(event, day, column, totalColumns, {
+                    start: resizePreview.start,
+                    end: resizePreview.end,
+                    isResizePreview: true,
+                  }),
+                )
+              } else if (previewOnThisDay) {
+                blocks.push(
+                  renderEventBlock(event, day, column, totalColumns, {
+                    start: dragPreview.start,
+                    end: dragPreview.end,
+                    isDragPreview: true,
+                    enablePointer: true,
+                  }),
+                )
+              } else if (sourceOnThisDay) {
+                blocks.push(
+                  renderEventBlock(event, day, column, totalColumns, {
+                    start: event.start,
+                    end: event.end,
+                    isDragSource: true,
+                  }),
+                )
+              } else if (!isBeingDragged && !isBeingResized) {
+                blocks.push(
+                  renderEventBlock(event, day, column, totalColumns, {
+                    start: event.start,
+                    end: event.end,
+                    enablePointer: true,
+                    enableResize: true,
+                  }),
+                )
+              }
+            }
+
+            if (
+              dragPreview &&
+              isDragging &&
+              isSameDay(dragPreview.day, day) &&
+              !isSameDay(dragPreview.event.start, day)
+            ) {
+              blocks.push(
+                renderEventBlock(dragPreview.event, day, 0, 1, {
+                  start: dragPreview.start,
+                  end: dragPreview.end,
+                  isDragPreview: true,
+                  enablePointer: true,
+                }),
+              )
+            }
+
             return (
               <div
                 key={day.toISOString()}
+                ref={(el) => {
+                  if (el) columnRefs.current.set(day.toISOString(), el)
+                  else columnRefs.current.delete(day.toISOString())
+                }}
                 className="relative min-w-0 flex-1 border-r border-navy/6 last:border-r-0"
               >
-                {/* Hour grid lines */}
                 {HOURS.map((hour) => (
                   <div key={hour} className="relative" style={{ height: hourHeight }}>
                     <div className="absolute inset-x-0 top-0 border-t border-navy/6" />
@@ -162,7 +353,6 @@ export function TimeGrid({
                   </div>
                 ))}
 
-                {/* Now line */}
                 {showNowLine && isToday(day) && (
                   <div
                     className="pointer-events-none absolute right-0 left-0 z-20"
@@ -175,20 +365,7 @@ export function TimeGrid({
                   </div>
                 )}
 
-                {/* Events */}
-                {layouts.map(({ event, column, totalColumns }) => (
-                  <EventBlock
-                    key={event.id}
-                    event={event}
-                    top={eventTopPercent(event.start, day)}
-                    height={eventHeightPercent(event.start, event.end, day)}
-                    left={(column / totalColumns) * 100}
-                    width={100 / totalColumns}
-                    selected={selectedEventId === event.id}
-                    compact={isMultiDay}
-                    onClick={() => onEventClick?.(event)}
-                  />
-                ))}
+                {blocks}
               </div>
             )
           })}

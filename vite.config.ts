@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // Backend (ReeTrack.Api) HTTP dev port — default `dotnet run` profile (see launchSettings.json).
 // Use the https profile (port 7231) only if you start the API with `dotnet run --launch-profile https`.
-const BACKEND_HTTP_PORT = 5042
+const BACKEND_HTTP_PORT = 7231
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: `http://localhost:${BACKEND_HTTP_PORT}`,
+        target: `https://localhost:${BACKEND_HTTP_PORT}`,
         changeOrigin: true,
         secure: false,
       },

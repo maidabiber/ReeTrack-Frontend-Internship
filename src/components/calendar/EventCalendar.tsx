@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
+import { EditEntryModal } from '../time/EditEntryModal'
+import { OverlapConfirmModal, useOverlapConfirm } from '../time/overlapConfirm'
 import { useTimer } from '../../hooks/useTimer'
+import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent, CalendarViewMode } from './types'
 import {
   addDays,
@@ -11,14 +14,28 @@ import {
   startOfDay,
   startOfWeek,
 } from './dateUtils'
-import { mapSyncedEventToCalendarEvent, mapTimeEntryToCalendarEvent } from './mapCalendarView'
+import {
+  isEditableTimeEntryEvent,
+  mapSyncedEventToCalendarEvent,
+  mapTimeEntryToCalendarEvent,
+  resolveTimeEntryFromCalendarEvent,
+} from './mapCalendarView'
 import { DEFAULT_HOUR_HEIGHT, stepHourHeight } from './hourZoom'
 import { CalendarHeader } from './CalendarHeader'
+import { CalendarEventModal } from './CalendarEventModal'
 import { DayView } from './DayView'
 import { WeekView } from './WeekView'
 
+interface PendingDragSave {
+  entryId: string
+  description?: string
+  startedAtUtc: string
+  endedAtUtc: string
+  isBillable: boolean
+}
+
 export function EventCalendar() {
-  const { entries, activeTimer, elapsedSeconds } = useTimer()
+  const { entries, activeTimer, elapsedSeconds, updateEntry, isSavingEdit } = useTimer()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
@@ -27,6 +44,12 @@ export function EventCalendar() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT)
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
+  const [pendingDragSave, setPendingDragSave] = useState<PendingDragSave | null>(null)
+
+  const overlapConfirm = useOverlapConfirm()
+  const { overlapWarning, showOverlapConfirm } = overlapConfirm
 
   const visibleRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -77,7 +100,6 @@ export function EventCalendar() {
       if (mapped) byId.set(mapped.id, mapped)
     }
 
-    // elapsedSeconds keeps the running block's end advancing while the calendar is open.
     void elapsedSeconds
 
     return [...byId.values(), ...syncedEvents]
@@ -86,6 +108,82 @@ export function EventCalendar() {
   const visibleEvents = useMemo(
     () => eventsInRange(events, visibleRange.from, visibleRange.to),
     [events, visibleRange],
+  )
+
+  const isEventEditable = useCallback(
+    (event: CalendarEvent) => isEditableTimeEntryEvent(event, entries, activeTimer),
+    [entries, activeTimer],
+  )
+
+  const resolveEntry = useCallback(
+    (event: CalendarEvent) => resolveTimeEntryFromCalendarEvent(event, entries, activeTimer),
+    [entries, activeTimer],
+  )
+
+  const selectedEvent = selectedEventId ? events.find((event) => event.id === selectedEventId) ?? null : null
+  const selectedTimeEntry = selectedEvent ? resolveEntry(selectedEvent) : null
+  const canEditSelectedEvent = selectedEvent
+    ? isEditableTimeEntryEvent(selectedEvent, entries, activeTimer)
+    : false
+
+  const executeDragSave = useCallback(
+    async (save: PendingDragSave, confirmOverlap: boolean) => {
+      await updateEntry({
+        id: save.entryId,
+        description: save.description,
+        startedAtUtc: save.startedAtUtc,
+        endedAtUtc: save.endedAtUtc,
+        isBillable: save.isBillable,
+        confirmOverlap,
+      })
+      setPendingDragSave(null)
+      overlapConfirm.clearOverlapConfirm()
+    },
+    [overlapConfirm, updateEntry],
+  )
+
+  const handleDragMoveConfirm = useCallback(async () => {
+    if (!pendingDragSave) return
+
+    await overlapConfirm.saveWithOverlapConfirm(true, {
+      validationError: null,
+      onValidationError: () => undefined,
+      save: async (confirmed) => executeDragSave(pendingDragSave, confirmed),
+    })
+  }, [pendingDragSave, overlapConfirm, executeDragSave])
+
+  const handleEventMove = useCallback(
+    async (event: CalendarEvent, newStart: Date, newEnd: Date) => {
+      if (!isEventEditable(event)) return
+
+      const entry = resolveEntry(event)
+      if (!entry) return
+
+      if (
+        newStart.getTime() === event.start.getTime() &&
+        newEnd.getTime() === event.end.getTime()
+      ) {
+        return
+      }
+
+      const save: PendingDragSave = {
+        entryId: entry.id,
+        description: entry.description ?? undefined,
+        startedAtUtc: newStart.toISOString(),
+        endedAtUtc: newEnd.toISOString(),
+        isBillable: entry.isBillable,
+      }
+
+      setPendingDragSave(save)
+
+      await overlapConfirm.saveWithOverlapConfirm(false, {
+        validationError: null,
+        onValidationError: () => undefined,
+        save: async (confirmed) => executeDragSave(save, confirmed),
+        onOtherError: () => setPendingDragSave(null),
+      })
+    },
+    [executeDragSave, isEventEditable, overlapConfirm, resolveEntry],
   )
 
   function handleToday() {
@@ -100,16 +198,18 @@ export function EventCalendar() {
     setSelectedDate((d) => (viewMode === 'day' ? addDays(d, 1) : addWeeks(d, 1)))
   }
 
-  function handleEventSelect(event: CalendarEvent | null) {
-    if (!event) {
-      setSelectedEventId(null)
+  function handleWeekEventClick(event: CalendarEvent) {
+    if (event.kind === 'timeEntry') {
+      const entry = resolveEntry(event)
+      if (entry) setEditingEntry(entry)
       return
     }
-    setSelectedEventId(event.id)
-    setSelectedDate(event.start)
-    if (viewMode === 'week') {
-      setViewMode('day')
-    }
+
+    setReadonlyCalendarEvent(event)
+  }
+
+  function handleDayEventSelect(event: CalendarEvent | null) {
+    setSelectedEventId(event?.id ?? null)
   }
 
   function handleDateChange(date: Date) {
@@ -166,7 +266,13 @@ export function EventCalendar() {
           onHourHeightChange={setHourHeight}
           selectedEventId={selectedEventId}
           onDateChange={handleDateChange}
-          onEventSelect={handleEventSelect}
+          onEventSelect={handleDayEventSelect}
+          onEventMove={handleEventMove}
+          isEventEditable={isEventEditable}
+          canEditSelectedEvent={canEditSelectedEvent}
+          onEditEntry={
+            selectedTimeEntry ? () => setEditingEntry(selectedTimeEntry) : undefined
+          }
         />
       ) : (
         <WeekView
@@ -175,7 +281,9 @@ export function EventCalendar() {
           hourHeight={hourHeight}
           onHourHeightChange={setHourHeight}
           selectedEventId={selectedEventId}
-          onEventClick={handleEventSelect}
+          onEventClick={handleWeekEventClick}
+          onEventMove={handleEventMove}
+          isEventEditable={isEventEditable}
         />
       )}
 
@@ -184,6 +292,29 @@ export function EventCalendar() {
           <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
         </div>
       )}
+
+      {editingEntry ? (
+        <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} />
+      ) : null}
+
+      {readonlyCalendarEvent ? (
+        <CalendarEventModal
+          event={readonlyCalendarEvent}
+          onClose={() => setReadonlyCalendarEvent(null)}
+        />
+      ) : null}
+
+      {showOverlapConfirm && overlapWarning && pendingDragSave ? (
+        <OverlapConfirmModal
+          message={overlapWarning}
+          isSaving={isSavingEdit}
+          onCancel={() => {
+            overlapConfirm.clearOverlapConfirm()
+            setPendingDragSave(null)
+          }}
+          onConfirm={() => void handleDragMoveConfirm()}
+        />
+      ) : null}
     </div>
   )
 }

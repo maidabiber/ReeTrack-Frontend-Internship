@@ -156,21 +156,6 @@ export function ProjectModal({
               hint: client.isActive ? undefined : '(archived)',
             }))}
           />
-          <select
-            className={`${FIELD} bg-white`}
-            value={clientId}
-            onChange={(event) => setClientId(event.target.value)}
-          >
-            <option value="" disabled>
-              Select a client…
-            </option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-                {client.isActive ? '' : ' (archived)'}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="mb-3">

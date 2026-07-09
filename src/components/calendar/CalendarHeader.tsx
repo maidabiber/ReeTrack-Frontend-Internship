@@ -32,15 +32,7 @@ export function CalendarHeader({
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-navy/8 px-4 py-3">
-      <button
-        type="button"
-        onClick={onToday}
-        className="rounded-full border border-navy/12 px-3.5 py-1.5 font-display text-[12px] font-semibold text-navy hover:bg-surface-muted"
-      >
-        Today
-      </button>
-
-      <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1">
         <NavButton label="Previous" onClick={onPrev} />
         <NavButton label="Next" onClick={onNext} direction="right" />
       </div>
