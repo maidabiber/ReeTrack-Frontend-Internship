@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { ColorSwatchPicker } from '../ui/ColorSwatchPicker'
+import { SearchSelect } from '../ui/SearchSelect'
 import { apiErrorMessage } from '../../api/client'
 import { listClients } from '../../api/clients'
 import { createProject, updateProject, type ProjectInput } from '../../api/projects'
@@ -143,6 +144,18 @@ export function ProjectModal({
 
         <div className="mb-3">
           <label className={LABEL}>Client</label>
+          <SearchSelect
+            ariaLabel="Client"
+            placeholder="Select a client…"
+            searchPlaceholder="Search clients…"
+            value={clientId || null}
+            onChange={(value) => setClientId(value ?? '')}
+            options={clients.map((client) => ({
+              value: client.id,
+              label: client.name,
+              hint: client.isActive ? undefined : '(archived)',
+            }))}
+          />
           <select
             className={`${FIELD} bg-white`}
             value={clientId}

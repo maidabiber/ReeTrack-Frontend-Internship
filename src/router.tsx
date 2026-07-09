@@ -7,9 +7,10 @@ import PlaceholderPage from './pages/PlaceholderPage'
 import TimerPage from './pages/TimerPage'
 import MembersPage from './pages/MembersPage'
 import ClientsPage from './pages/ClientsPage'
-import ApprovalsPage from './pages/ApprovalsPage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
+import TagsPage from './pages/TagsPage'
+import ApprovalsPage from './pages/ApprovalsPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
 import ProfilePage from './pages/ProfilePage'
@@ -19,8 +20,9 @@ import ProfilePage from './pages/ProfilePage'
 const PAGES: Record<string, React.ReactElement> = {
   '/members': <MembersPage />,
   '/clients': <ClientsPage />,
-  '/approvals': <ApprovalsPage />,
   '/projects': <ProjectsPage />,
+  '/tags': <TagsPage />,
+  '/approvals': <ApprovalsPage />,
 }
 
 // The Timer landing screen (RT-270) is the index route; every other nav
