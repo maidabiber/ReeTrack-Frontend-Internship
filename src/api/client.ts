@@ -63,6 +63,22 @@ async function parseBody(response: Response): Promise<unknown> {
   return response.text()
 }
 
+/**
+ * Extracts the backend's `{ message }` error body, falling back to a default.
+ * Generic version of the per-module `*ApiErrorMessage` helpers; new modules use
+ * this directly.
+ */
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object' && 'body' in error) {
+    const body = (error as { body: unknown }).body
+    if (body && typeof body === 'object' && 'message' in body) {
+      const message = (body as { message: unknown }).message
+      if (typeof message === 'string' && message.length > 0) return message
+    }
+  }
+  return fallback
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: 'GET' }),

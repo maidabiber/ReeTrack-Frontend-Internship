@@ -9,11 +9,14 @@ export function Modal({
   subtitle,
   onClose,
   children,
+  widthClassName = 'w-[360px]',
 }: {
   title: string
   subtitle?: string
   onClose: () => void
   children: ReactNode
+  /** Tailwind width class for the dialog card. Defaults to the narrow 360px form. */
+  widthClassName?: string
 }) {
   return (
     <div
@@ -21,7 +24,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="w-[360px] max-w-full rounded-[20px] bg-white p-[26px] shadow-[0_24px_56px_rgba(31,43,77,0.22)]"
+        className={`${widthClassName} max-w-full rounded-[20px] bg-white p-[26px] shadow-[0_24px_56px_rgba(31,43,77,0.22)]`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

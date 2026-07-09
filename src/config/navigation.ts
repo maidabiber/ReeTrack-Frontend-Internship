@@ -3,8 +3,9 @@
  *
  * Both the router (route registration) and the Sidebar consume this so every
  * nav destination is guaranteed to have a matching route. The section grouping
- * mirrors the mockups: "Time" is visible to everyone, while "Insights" and
- * "Admin" are role-gated and only rendered for Admin users.
+ * mirrors the mockups: "Time" and "Manage" are visible to everyone (ReeTrack is
+ * trust-based — the whole team collaborates on projects, clients and tags),
+ * while "Insights" and "Admin" are role-gated and only rendered for Admins.
  */
 import type { IconName } from '../components/ui/Icon'
 
@@ -32,6 +33,15 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: 'Manage',
+    adminOnly: false,
+    items: [
+      { label: 'Projects', path: '/projects', icon: 'projects' },
+      { label: 'Clients', path: '/clients', icon: 'clients' },
+      { label: 'Tags', path: '/tags', icon: 'tags' },
+    ],
+  },
+  {
     title: 'Insights',
     adminOnly: true,
     items: [
@@ -42,12 +52,9 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Admin',
     adminOnly: true,
     items: [
-      { label: 'Projects', path: '/projects', icon: 'projects' },
-      { label: 'Clients', path: '/clients', icon: 'clients' },
       { label: 'Members', path: '/members', icon: 'members' },
       { label: 'Billable rates', path: '/billable-rates', icon: 'billable' },
       { label: 'Invoices', path: '/invoices', icon: 'invoices' },
-      { label: 'Tags', path: '/tags', icon: 'tags' },
       { label: 'Goals', path: '/goals', icon: 'goals' },
     ],
   },
