@@ -114,6 +114,8 @@ Even steps (`xs`/`sm`/`md`/`lg`/…) plus the half-steps dense chrome needs:
 | `text-body-lg` | 0.9375rem (15px) | Auth body / section titles |
 | `text-lg` | 1rem (16px) | Large free-text inputs |
 | `text-xl` | 1.1875rem (19px) | In-app page titles |
+| `text-timer` | 1.375rem (22px) | Live timer digits |
+| `text-plus` | 1.125rem (18px) | List-item + glyph |
 | `text-2xl` | 1.75rem (28px) | Auth card headings |
 | `text-3xl` | 3.5rem (56px) | Onboarding welcome hero |
 
@@ -149,7 +151,8 @@ etc. — in Tailwind v4 those names also drive `max-w-sm` / `w-sm`, so a 0.5rem
 | `py-compact` | 0.4375rem (7px) | Search bars, compact pills / toggles |
 | `py-field` | 0.5625rem (9px) | Form inputs / primary CTA vertical padding |
 | `p-modal` | 1.625rem (26px) | Modal dialog padding |
-| `size-icon-sm` / `size-icon-md` | 0.8125rem / 1.125rem | Inline icons |
+| `size-control` | 2.125rem (34px) | Tracker toolbar icon buttons |
+| `size-icon-sm` / `size-icon-play` / `size-icon-md` | 0.8125rem / 0.9375rem / 1.125rem | Inline icons (13 / 15 / 18px) |
 
 **Radius** — rem scale (overrides Tailwind defaults — use consistently):
 - Pills / buttons / toggles: `rounded-full`
@@ -177,6 +180,9 @@ Buttons and brand elements stay **flat** — no glow, colored or otherwise.
 - Page column: `max-w-page` (1340px)
 - Page subtitle: `max-w-lede` (560px)
 - Auth card: `w-auth` (460px)
+- Timer field columns: `w-manual-time` (92px), `w-duration-value` / `min-w-timer-cluster` (104px), `w-duration-date` (132px)
+- Manual feedback: `min-w-manual-feedback-min` (320px), `max-w-manual-feedback` (520px)
+- Timer error hint: `max-w-error-hint` (180px)
 
 ---
 
