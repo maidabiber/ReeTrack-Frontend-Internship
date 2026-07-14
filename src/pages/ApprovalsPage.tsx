@@ -42,23 +42,23 @@ export default function ApprovalsPage() {
   return (
     <div className="mx-auto w-full max-w-[980px] px-10 py-8">
       <div className="mb-6">
-        <h1 className="font-display text-[28px] font-bold text-navy">Approvals</h1>
-        <p className="mt-1 text-[14px] text-navy/55">
+        <h1 className="font-display text-2xl font-bold text-navy">Approvals</h1>
+        <p className="mt-1 text-md text-navy/55">
           Review time entries teammates logged on your behalf. Edit the duration or times before approving.
         </p>
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-[12px] bg-red-tint px-4 py-3 text-[13px] text-red" role="alert">
+        <div className="mb-4 rounded-lg bg-red-tint px-4 py-3 text-body text-red" role="alert">
           {error}
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-[18px] bg-white shadow-card">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-card">
         {isLoading ? (
-          <div className="px-5 py-16 text-center text-[13px] text-navy/50">Loading pending entries…</div>
+          <div className="px-5 py-16 text-center text-body text-navy/50">Loading pending entries…</div>
         ) : entries.length === 0 ? (
-          <div className="px-5 py-16 text-center text-[13px] leading-[1.6] text-navy/50">
+          <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
             No pending entries.
             <br />
             When a teammate shares a manual entry with you, it will appear here.
@@ -76,10 +76,10 @@ export default function ApprovalsPage() {
                   className={`flex w-full items-center gap-4 px-5 py-4 text-left ${PENDING_ENTRY_ROW_CLASS}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-navy">
+                    <p className="truncate text-md font-medium text-navy">
                       {entry.description?.trim() || 'No description'}
                     </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-navy/50">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
                       <Pill label="Invitation" dotClassName="bg-brand" />
                       {entry.startedAtUtc ? (
                         <>
@@ -95,7 +95,7 @@ export default function ApprovalsPage() {
                       ringClassName={PENDING_ENTRY_AVATAR_RING_CLASS}
                     />
                   ) : null}
-                  <div className="shrink-0 font-mono text-[14px] tabular-nums text-navy">
+                  <div className="shrink-0 font-mono text-md tabular-nums text-navy">
                     {formatDurationHms(entry.durationSeconds)}
                   </div>
                   <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-navy/30" />

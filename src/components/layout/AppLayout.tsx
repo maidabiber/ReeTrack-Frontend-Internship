@@ -11,9 +11,9 @@ export function AppLayout() {
   const { user } = useAuth()
 
   return (
-    <div className="flex min-h-screen bg-white text-navy">
+    <div className="min-h-screen bg-white text-navy">
       <Sidebar />
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="ml-[248px] flex min-h-screen min-w-0 flex-col">
         {user && (
           <div className="flex justify-end px-10 pt-6 pb-2">
             <Link

@@ -26,22 +26,22 @@ export function DayCalendarEventsList({
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-navy/8 bg-white/60">
       <div className="px-4 py-3">
-        <h3 className="font-display text-[13px] font-bold text-navy">Calendar events</h3>
+        <h3 className="font-display text-md font-bold text-navy">Calendar events</h3>
       </div>
 
       {selectedEvent ? (
         <div className="border-b border-navy/8 px-4 pb-3">
-          <h4 className="font-display text-[14px] font-bold leading-snug text-navy">
+          <h4 className="font-display text-md font-bold leading-snug text-navy">
             {selectedEvent.title}
           </h4>
-          <p className="mt-1 text-[12px] text-navy/60">
+          <p className="mt-1 text-sm text-navy/60">
             {formatTimeRange(selectedEvent.start, selectedEvent.end)}
           </p>
           {selectedEvent.location ? (
-            <p className="mt-1 text-[12px] text-navy/50">{selectedEvent.location}</p>
+            <p className="mt-1 text-sm text-navy/50">{selectedEvent.location}</p>
           ) : null}
           {selectedEvent.description ? (
-            <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-[12px] leading-relaxed text-navy/65">
+            <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-navy/65">
               {selectedEvent.description}
             </p>
           ) : null}
@@ -50,7 +50,7 @@ export function DayCalendarEventsList({
               href={selectedEvent.htmlLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex text-[12px] font-semibold text-brand hover:text-brand-deep"
+              className="mt-2 inline-flex text-sm font-semibold text-brand hover:text-brand-deep"
             >
               Open in Google Calendar
             </a>
@@ -60,7 +60,7 @@ export function DayCalendarEventsList({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         {calendarEvents.length === 0 ? (
-          <p className="px-1 py-2 text-[12px] leading-relaxed text-navy/45">
+          <p className="px-1 py-2 text-sm leading-relaxed text-navy/45">
             No synced calendar events for this day.
           </p>
         ) : (
@@ -73,7 +73,7 @@ export function DayCalendarEventsList({
                   <button
                     type="button"
                     onClick={() => onEventSelect(event)}
-                    className={`w-full rounded-[10px] border px-3 py-2.5 text-left transition-colors ${
+                    className={`w-full rounded-md border px-3 py-2.5 text-left transition-colors ${
                       selected
                         ? 'border-brand/30 bg-blue-tint ring-1 ring-brand/20'
                         : 'border-navy/8 bg-white hover:bg-surface-muted/80'
@@ -82,10 +82,10 @@ export function DayCalendarEventsList({
                     <div className="flex items-start gap-2">
                       <Icon name="calendar" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-navy/35" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-display text-[12.5px] font-semibold text-navy">
+                        <p className="truncate font-display text-sm font-semibold text-navy">
                           {event.title}
                         </p>
-                        <p className="mt-0.5 truncate text-[11px] text-navy/55">
+                        <p className="mt-0.5 truncate text-xs text-navy/55">
                           {formatTimeRange(event.start, event.end)}
                         </p>
                       </div>

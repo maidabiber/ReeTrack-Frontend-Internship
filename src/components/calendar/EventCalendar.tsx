@@ -246,11 +246,11 @@ export function EventCalendar() {
 
       {loadError && (
         <div className="flex items-center justify-between gap-3 border-b border-navy/8 bg-red-tint px-4 py-2.5">
-          <span className="text-[13px] text-red">{loadError}</span>
+          <span className="text-body text-red">{loadError}</span>
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="rounded-full border-[1.5px] border-navy px-3 py-1 font-display text-[12px] font-semibold text-navy"
+            className="rounded-full border-control border-navy px-3 py-1 font-display text-sm font-semibold text-navy"
           >
             Retry
           </button>

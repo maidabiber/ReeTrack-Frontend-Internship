@@ -12,7 +12,7 @@
  * the human counterweight. See design.md for the full usage guide.
  *
  * Declaring tokens in @theme exposes them as first-class Tailwind utilities,
- * e.g. bg-ink, text-brand, border-brand-tint, font-mono.
+ * e.g. bg-ink, text-brand, rounded-2xl, text-md, shadow-dropdown, font-mono.
  */
 @theme {
   /* Paper — warm surfaces for the standalone auth screens */
@@ -51,8 +51,64 @@
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
 
+  /*
+   * Type / radius / spacing scales use rem so they track the root font size.
+   * Prefer named scale utilities over ad-hoc [Npx]. Borders & shadows stay in px.
+   * Even steps (xs/sm/md…) plus the half-steps the chrome actually needs.
+   */
+  --text-xs: 0.625rem; /* 10px — tiny hints */
+  --text-eyebrow: 0.65625rem; /* 10.5px — uppercase eyebrows */
+  --text-micro: 0.6875rem; /* 11px — micro labels / badges */
+  --text-label: 0.71875rem; /* 11.5px — form labels */
+  --text-sm: 0.75rem; /* 12px — compact chrome */
+  --text-caption: 0.78125rem; /* 12.5px — secondary labels */
+  --text-body: 0.8125rem; /* 13px — dense in-app body */
+  --text-notice: 0.84375rem; /* 13.5px — auth notices */
+  --text-md: 0.875rem; /* 14px — mid-weight list / entry text */
+  --text-body-lg: 0.9375rem; /* 15px — auth body copy */
+  --text-lg: 1rem; /* 16px — large inputs */
+  --text-xl: 1.1875rem; /* 19px — page titles */
+  --text-2xl: 1.75rem; /* 28px — auth titles */
+  --text-3xl: 3.5rem; /* 56px — hero */
+
+  /* Radius — overrides Tailwind defaults; use the scale consistently */
+  --radius-xs: 0.375rem; /* 6px — menu rows, tight controls */
+  --radius-sm: 0.5rem; /* 8px — small fields, calendar blocks */
+  --radius-md: 0.625rem; /* 10px — form controls */
+  --radius-lg: 0.75rem; /* 12px — soft panels */
+  --radius-xl: 0.875rem; /* 14px — chips / menus */
+  --radius-2xl: 1.125rem; /* 18px — cards */
+  --radius-3xl: 1.25rem; /* 20px — modals / timer panel */
+  --radius-4xl: 1.5rem; /* 24px — auth cards */
+
+  /* Layout measure — fixed layout widths stay in px */
+  --max-width-page: 1340px;
+  --max-width-lede: 560px;
+  --width-auth: 460px;
+
+  /* Spacing — chrome half-steps only. Do NOT add --spacing-xs/sm/md/…;
+   * those names feed max-w-* / w-* and would collapse utilities like max-w-sm
+   * to a few pixels. Use Tailwind’s numeric scale (p-1, p-2, …) for even steps. */
+  --spacing-segment: 0.1875rem; /* 3px — segmented-toggle track inset */
+  --spacing-menu: 0.3125rem; /* 5px — dropdown inset / tight inline gaps */
+  --spacing-compact: 0.4375rem; /* 7px — search bars, compact pills */
+  --spacing-field: 0.5625rem; /* 9px — form inputs / primary CTA py */
+  --spacing-modal: 1.625rem; /* 26px — modal padding */
+
+  /* Icon hit sizes (size-* utilities) */
+  --spacing-icon-sm: 0.8125rem; /* 13px */
+  --spacing-icon-md: 1.125rem; /* 18px */
+
+  /* Control chrome */
+  --border-width-control: 1.5px;
+
+  --shadow-soft: 0 2px 8px rgba(20, 29, 51, 0.06);
+  --shadow-float: 0 8px 22px rgba(20, 29, 51, 0.1);
   --shadow-card: 0 10px 28px rgba(20, 29, 51, 0.08);
   --shadow-panel: 0 18px 44px rgba(20, 29, 51, 0.12), 0 4px 12px rgba(20, 29, 51, 0.06);
+  --shadow-dropdown: 0 16px 36px rgba(31, 43, 77, 0.16);
+  --shadow-modal: 0 24px 56px rgba(31, 43, 77, 0.22);
+  --shadow-auth: 0 30px 70px rgba(31, 43, 77, 0.14);
 }
 
 /*
@@ -71,7 +127,7 @@
   }
 
   .timer-panel {
-    border-radius: 20px;
+    border-radius: var(--radius-3xl);
     border: 1px solid color-mix(in srgb, var(--color-navy) 6%, transparent);
     background-color: white;
     box-shadow: var(--shadow-panel);

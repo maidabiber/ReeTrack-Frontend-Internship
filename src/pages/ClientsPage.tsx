@@ -111,11 +111,11 @@ export default function ClientsPage() {
 
   return (
     <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
-      <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-[19px] font-bold text-navy">Clients</h1>
-            <p className="mt-[3px] max-w-[560px] text-[13px] leading-[1.5] text-navy/60">
+            <h1 className="font-display text-xl font-bold text-navy">Clients</h1>
+            <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
               The companies and people you work for. Projects (and their tracked time) are grouped
               under a client.
             </p>
@@ -126,28 +126,28 @@ export default function ClientsPage() {
               event.stopPropagation()
               setModal({ mode: 'create' })
             }}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-[18px] py-[9px] font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
           >
-            <Icon name="plus" className="h-[13px] w-[13px]" />
+            <Icon name="plus" className="size-icon-sm" />
             New client
           </button>
         </header>
 
         {notice && (
-          <div className="flex items-center gap-2 rounded-[14px] bg-brand-tint px-4 py-3 text-[13px] font-medium text-navy">
+          <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
             <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
             {notice}
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-full bg-surface-muted p-[3px]">
+          <div className="flex rounded-full bg-surface-muted p-segment">
             {(['active', 'archived', 'all'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => changeTab(option)}
-                className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold capitalize ${
+                className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold capitalize ${
                   tab === option ? 'bg-navy text-cream' : 'text-navy/55'
                 }`}
               >
@@ -158,10 +158,10 @@ export default function ClientsPage() {
 
           <span className="flex-1" />
 
-          <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] focus-within:border-brand">
+          <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
             <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
             <input
-              className="w-full border-none bg-transparent text-[13px] text-navy outline-none placeholder:text-navy/45"
+              className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
               placeholder="Search clients..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -170,7 +170,7 @@ export default function ClientsPage() {
           </label>
         </div>
 
-        <div className="rounded-[18px] bg-white shadow-card">
+        <div className="rounded-2xl bg-white shadow-card">
           <div className={`${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="clients" label="Name" />
             <HeaderCell icon="projects" label="Projects" />
@@ -183,7 +183,7 @@ export default function ClientsPage() {
 
             {!isLoading && loadError && (
               <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="text-[13px] text-red">{loadError}</span>
+                <span className="text-body text-red">{loadError}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -191,7 +191,7 @@ export default function ClientsPage() {
                     setLoadError(null)
                     refresh()
                   }}
-                  className="rounded-full border-[1.5px] border-navy px-4 py-1.5 font-display text-[12.5px] font-semibold text-navy"
+                  className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
                 >
                   Try again
                 </button>
@@ -219,7 +219,7 @@ export default function ClientsPage() {
               ))}
 
             {!isLoading && !loadError && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-[13px] text-navy/50">
+              <div className="px-5 py-10 text-center text-body text-navy/50">
                 {clients.length === 0
                   ? tab === 'active'
                     ? 'No clients yet. Add your first client to group projects under it.'
@@ -256,7 +256,7 @@ function LoadingRow() {
 
 function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 py-1.5 font-display text-[10.5px] font-bold tracking-[0.05em] text-navy/60 uppercase">
+    <div className="flex items-center gap-1.5 py-1.5 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/60 uppercase">
       <Icon name={icon} className="h-3 w-3 text-brand" />
       {label}
     </div>
@@ -284,14 +284,14 @@ function ClientRow({
   return (
     <div className={`${GRID} hover:bg-surface-muted`}>
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-muted font-mono text-[10.5px] font-medium text-navy">
+        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-sm bg-surface-muted font-mono text-xs font-medium text-navy">
           {initial}
         </span>
-        <span className="truncate text-[13px] font-semibold">{client.name}</span>
+        <span className="truncate text-md font-semibold">{client.name}</span>
       </div>
 
       <span
-        className={`font-mono text-[12.5px] tabular-nums ${
+        className={`font-mono text-caption tabular-nums ${
           client.projectCount > 0 ? 'font-medium' : 'font-normal opacity-40'
         }`}
       >
@@ -308,12 +308,12 @@ function ClientRow({
           type="button"
           onClick={onToggleMenu}
           aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-surface-muted hover:text-navy"
+          className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
         >
           <Icon name="more" className="h-[15px] w-[15px]" />
         </button>
         {menuOpen && (
-          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
             <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
             <RowMenuItem
               icon="check-badge"
@@ -359,13 +359,13 @@ function RowMenuItem({
         event.stopPropagation()
         onClick?.()
       }}
-      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium ${
+      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium ${
         disabled
           ? 'cursor-not-allowed text-navy/35'
           : `hover:bg-surface-muted ${danger ? 'text-red' : 'text-navy'}`
       }`}
     >
-      <Icon name={icon} className={`h-[13px] w-[13px] ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
+      <Icon name={icon} className={`size-icon-sm ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
       {label}
     </button>
   )
@@ -416,12 +416,12 @@ function ClientModal({
         }}
       >
         <div className="mb-3">
-          <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">
+          <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">
             Client name
           </label>
           <input
             autoFocus
-            className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+            className="w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
             placeholder="Acme Corp"
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -429,23 +429,23 @@ function ClientModal({
         </div>
 
         {error && (
-          <div className="mb-3 rounded-[10px] bg-red-tint px-3 py-2.5 text-[12.5px] leading-[1.5] text-red">
+          <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm leading-[1.5] text-red">
             {error}
           </div>
         )}
 
-        <div className="mt-[18px] flex gap-2">
+        <div className="mt-4.5 flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+            className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSave}
-            className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Saving…' : client ? 'Save changes' : 'Add client'}
           </button>

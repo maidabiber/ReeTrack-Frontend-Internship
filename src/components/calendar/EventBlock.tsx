@@ -93,7 +93,7 @@ export function EventBlock({
         type="button"
         onPointerDown={onPointerDown}
         onClick={onClick}
-        className={`h-full w-full rounded-[8px] px-2 py-0.5 text-left ${colors.bg} ${
+        className={`h-full w-full rounded-sm px-2 py-0.5 text-left ${colors.bg} ${
           isElevated ? 'overflow-visible shadow-lg' : 'overflow-hidden'
         } ${isDragSource ? 'opacity-30' : ''} ${
           isDragPreview || isResizePreview
@@ -105,11 +105,11 @@ export function EventBlock({
           selected ? `ring-2 ${colors.ring} ring-offset-1` : !isDragPreview && !isResizePreview ? 'hover:brightness-[0.97]' : ''
         }`}
       >
-        <div className="truncate font-display text-[11px] font-semibold leading-tight text-navy">
+        <div className="truncate font-display text-xs font-semibold leading-tight text-navy">
           {event.title}
         </div>
         {(isHovered || isDragPreview || isResizePreview) && (
-          <div className="truncate text-[10px] text-navy/55">
+          <div className="truncate text-xs text-navy/55">
             {formatTimeRange(event.start, event.end)}
           </div>
         )}

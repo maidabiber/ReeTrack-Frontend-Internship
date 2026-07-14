@@ -66,7 +66,7 @@ export default function TimerPage() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-surface-muted/45">
-      <div className="mx-auto w-full max-w-[1340px] px-10 py-8">
+      <div className="mx-auto w-full max-w-page px-10 py-8">
         <div className="mb-5">
           <TrackerBar />
         </div>
@@ -310,7 +310,7 @@ function TrackerBar() {
     <div className={TIMER_PANEL_CLASS}>
       {trackerMode === 'duration' ? (
         <input
-          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-[16px] text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
           placeholder="What did you work on?"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -324,7 +324,7 @@ function TrackerBar() {
         />
       ) : (
         <MentionDescriptionField
-          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-[16px] text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+          className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
           placeholder="What are you working on? Type @ to share with a teammate"
           value={description}
           onChange={setDescription}
@@ -345,7 +345,7 @@ function TrackerBar() {
       )}
 
       {shareNotice ? (
-        <div className="mx-6 mb-3 rounded-[10px] bg-brand-tint px-3 py-2.5 text-[12.5px] text-navy">
+        <div className="mx-6 mb-3 rounded-md bg-brand-tint px-3 py-2.5 text-sm text-navy">
           {shareNotice}
         </div>
       ) : null}
@@ -359,11 +359,11 @@ function TrackerBar() {
 
         <div className="mx-1 h-[22px] w-px flex-shrink-0 bg-navy/10" />
 
-        <div className="flex flex-shrink-0 rounded-full border border-navy/[0.06] bg-white p-[3px] shadow-[0_2px_8px_rgba(20,29,51,0.06)]">
+        <div className="flex flex-shrink-0 rounded-full border border-navy/[0.06] bg-white p-segment shadow-soft">
           <button
             type="button"
             onClick={() => switchMode('timer')}
-            className={`rounded-full px-4 py-[7px] font-display text-xs font-semibold ${
+            className={`rounded-full px-4 py-compact font-display text-sm font-semibold ${
               trackerMode === 'timer' ? 'bg-navy text-cream' : 'text-navy/55'
             }`}
           >
@@ -374,7 +374,7 @@ function TrackerBar() {
             onClick={() => switchMode('manual')}
             disabled={isRunning}
             title={isRunning ? 'Stop the running timer before adding a manual entry' : undefined}
-            className={`rounded-full px-4 py-[7px] font-display text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`rounded-full px-4 py-compact font-display text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
               trackerMode === 'manual' ? 'bg-navy text-cream' : 'text-navy/55'
             }`}
           >
@@ -385,7 +385,7 @@ function TrackerBar() {
             onClick={() => switchMode('duration')}
             disabled={isRunning}
             title={isRunning ? 'Stop the running timer before adding a duration entry' : undefined}
-            className={`rounded-full px-3.5 py-[7px] font-display text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
               trackerMode === 'duration' ? 'bg-navy text-cream' : 'text-navy/55'
             }`}
           >
@@ -399,7 +399,7 @@ function TrackerBar() {
           <>
             {timerError ? (
               <span
-                className="max-w-[180px] truncate text-right text-[11px] text-red"
+                className="max-w-[180px] truncate text-right text-micro text-red"
                 title={timerError}
                 role="alert"
               >
@@ -503,7 +503,7 @@ function TrackerBar() {
                 onClick={() => void handleSaveManual(false)}
                 className="mb-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Icon name="plus" className="h-[18px] w-[18px]" />
+                <Icon name="plus" className="size-icon-md" />
               </button>
             </div>
 
@@ -560,7 +560,7 @@ function TrackerBar() {
                 onClick={() => void handleSaveDuration()}
                 className="mb-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Icon name="plus" className="h-[18px] w-[18px]" />
+                <Icon name="plus" className="size-icon-md" />
               </button>
             </div>
 
@@ -623,14 +623,14 @@ function ManualFormNotice({
 
   return (
     <div
-      className={`flex items-start gap-2.5 rounded-[10px] px-3 py-2 ${styles}`}
+      className={`flex items-start gap-2.5 rounded-md px-3 py-2 ${styles}`}
       role={variant === 'error' ? 'alert' : 'status'}
     >
       <span
         aria-hidden="true"
         className={`mt-[5px] h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotColor}`}
       />
-      <p className="min-w-0 flex-1 text-[11px] leading-[1.45] text-navy/75">{message}</p>
+      <p className="min-w-0 flex-1 text-micro leading-[1.45] text-navy/75">{message}</p>
     </div>
   )
 }
@@ -658,7 +658,7 @@ function ManualField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-display text-[10px] font-semibold uppercase tracking-wide text-navy/45">
+      <span className="font-display text-sm font-semibold uppercase tracking-wide text-navy/45">
         {label}
       </span>
       <input
@@ -668,10 +668,10 @@ function ManualField({
         onBlur={onBlur}
         disabled={disabled}
         aria-invalid={fieldState === 'error' ? true : undefined}
-        className={`rounded-[10px] border bg-surface-muted px-2.5 py-1.5 text-[12px] text-navy outline-none transition-colors disabled:opacity-60 ${MANUAL_FIELD_STYLES[fieldState]} ${className}`}
+        className={`rounded-md border bg-surface-muted px-2.5 py-1.5 text-sm text-navy outline-none transition-colors disabled:opacity-60 ${MANUAL_FIELD_STYLES[fieldState]} ${className}`}
       />
       {hint ? (
-        <span className="text-[10px] leading-tight text-navy/50">{hint}</span>
+        <span className="text-xs leading-tight text-navy/50">{hint}</span>
       ) : null}
     </label>
   )
@@ -682,7 +682,7 @@ function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; t
     <button
       type="button"
       title={title}
-      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] border border-navy/[0.06] bg-white text-navy/55 shadow-[0_2px_8px_rgba(20,29,51,0.06)] transition-colors hover:border-brand/20 hover:text-navy"
+      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-md border border-navy/[0.06] bg-white text-navy/55 shadow-soft transition-colors hover:border-brand/20 hover:text-navy"
     >
       <Icon name={name} className="h-4 w-4" />
     </button>
@@ -731,23 +731,23 @@ function Toolbar({
 
   return (
     <div className="mb-1 flex w-full flex-wrap items-center gap-4">
-      <div className="flex items-center gap-1.5 rounded-full border border-navy/[0.06] bg-white px-3.5 py-2 font-display text-[12.5px] font-bold text-navy shadow-[0_8px_22px_rgba(20,29,51,0.1)]">
-        <Icon name="calendar" className="h-[13px] w-[13px] opacity-55" />
+      <div className="flex items-center gap-1.5 rounded-full border border-navy/[0.06] bg-white px-3.5 py-2 font-display text-sm font-bold text-navy shadow-float">
+        <Icon name="calendar" className="size-icon-sm opacity-55" />
         All dates
       </div>
 
-      <div className="flex items-center gap-[18px] text-xs text-navy/60">
+      <div className="flex items-center gap-4.5 text-sm text-navy/60">
         <span>
           TODAY TOTAL
-          <b className="ml-[5px] font-mono text-[13px] font-normal tabular-nums text-navy">
+          <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
             {formatDurationHms(todayTotalSeconds)}
           </b>
         </span>
       </div>
-      <div className="flex items-center gap-[18px] text-xs text-navy/60">
+      <div className="flex items-center gap-4.5 text-sm text-navy/60">
         <span>
           WEEK TOTAL
-          <b className="ml-[5px] font-mono text-[13px] font-normal tabular-nums text-navy">
+          <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
             {formatDurationHms(displayWeekTotalSeconds)}
           </b>
         </span>
@@ -755,11 +755,11 @@ function Toolbar({
 
       <div className="flex-1" />
 
-      <div className="flex rounded-full border border-navy/[0.06] bg-white p-[3px] shadow-[0_8px_22px_rgba(20,29,51,0.1)]">
+      <div className="flex rounded-full border border-navy/[0.06] bg-white p-segment shadow-float">
         <button
           type="button"
           onClick={() => onContentViewChange('list')}
-          className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
             contentView === 'list' ? 'bg-navy text-cream' : 'text-navy/55'
           }`}
         >
@@ -768,7 +768,7 @@ function Toolbar({
         <button
           type="button"
           onClick={() => onContentViewChange('calendar')}
-          className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
             contentView === 'calendar' ? 'bg-navy text-cream' : 'text-navy/55'
           }`}
         >
@@ -777,7 +777,7 @@ function Toolbar({
         <button
           type="button"
           title="Coming soon"
-          className="rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy/55"
+          className="rounded-full px-3.5 py-compact font-display text-sm font-semibold text-navy/55"
         >
           Timesheet
         </button>
@@ -819,7 +819,7 @@ function EntriesCard() {
   if (isInitializing) {
     return (
       <div className={TIMER_PANEL_OVERFLOW_CLASS}>
-        <div className="px-5 py-16 text-center text-[13px] leading-[1.6] text-navy/50">
+        <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
           Loading entries…
         </div>
       </div>
@@ -829,7 +829,7 @@ function EntriesCard() {
   if (entries.length === 0) {
     return (
       <div className={TIMER_PANEL_OVERFLOW_CLASS}>
-        <div className="px-5 py-16 text-center text-[13px] leading-[1.6] text-navy/50">
+        <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
           No time entries yet.
           <br />
           <br />
@@ -882,10 +882,10 @@ function EntriesCard() {
                     }`}
                   >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-navy">
+                    <p className="truncate text-md font-medium text-navy">
                       {entry.description?.trim() || 'No description'}
                     </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-navy/50">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
                       {isInvitation ? <Pill label="Invitation" dotClassName="bg-brand" /> : null}
                       {isAwaitingApproval ? <Pill label="Pending" dotClassName="bg-brand/50" /> : null}
                       {(isInvitation || isAwaitingApproval) && (entry.mode === 'Manual' || entry.startedAtUtc) ? (
@@ -911,7 +911,7 @@ function EntriesCard() {
                       ringClassName={isPendingCard ? PENDING_ENTRY_AVATAR_RING_CLASS : 'ring-white'}
                     />
                   ) : null}
-                  <div className="shrink-0 font-mono text-[14px] tabular-nums text-navy">
+                  <div className="shrink-0 font-mono text-md tabular-nums text-navy">
                     {formatDurationHms(entry.durationSeconds)}
                   </div>
                   {!isReadOnlyPending && !isSubmitterConfirmedShare ? (
@@ -930,7 +930,7 @@ function EntriesCard() {
                           groupedEntries: displayEntry.isGroupedShare ? groupedEntries : undefined,
                         })
                       }
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-[18px] leading-none text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-xl leading-none text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
                     >
                       +
                     </button>

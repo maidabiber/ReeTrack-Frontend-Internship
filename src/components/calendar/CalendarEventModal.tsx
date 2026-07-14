@@ -11,7 +11,7 @@ interface CalendarEventModalProps {
 export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) {
   return (
     <Modal title="Calendar event" subtitle={formatFullDate(event.start)} onClose={onClose}>
-      <h3 className="font-display text-[15px] font-bold leading-snug text-navy">{event.title}</h3>
+      <h3 className="font-display text-body-lg font-bold leading-snug text-navy">{event.title}</h3>
 
       <div className="mt-4 space-y-3">
         <DetailField label="When">{formatTimeRange(event.start, event.end)}</DetailField>
@@ -28,7 +28,7 @@ export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) 
           href={event.htmlLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-5 inline-flex text-[13px] font-semibold text-brand hover:text-brand-deep"
+          className="mt-5 inline-flex text-md font-semibold text-brand hover:text-brand-deep"
         >
           Open in Google Calendar
         </a>
@@ -37,7 +37,7 @@ export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) 
       <button
         type="button"
         onClick={onClose}
-        className="mt-6 w-full rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+        className="mt-6 w-full rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
       >
         Close
       </button>
@@ -48,8 +48,8 @@ export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) 
 function DetailField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-navy/40">{label}</p>
-      <p className="mt-1 text-[13px] leading-[1.65] text-navy/75">{children}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy/40">{label}</p>
+      <p className="mt-1 text-md leading-[1.65] text-navy/75">{children}</p>
     </div>
   )
 }

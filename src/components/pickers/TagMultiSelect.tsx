@@ -56,7 +56,7 @@ export function TagMultiSelect({
     <div ref={rootRef} className="relative">
       <div
         onClick={() => !disabled && setOpen(true)}
-        className={`flex min-h-[40px] w-full flex-wrap items-center gap-1.5 rounded-[10px] border-[1.5px] bg-white px-2 py-1.5 text-[13px] ${
+        className={`flex min-h-[40px] w-full flex-wrap items-center gap-1.5 rounded-md border-control bg-white px-2 py-1.5 text-md ${
           open ? 'border-brand' : 'border-navy/[0.08]'
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-text hover:border-brand/60'}`}
       >
@@ -65,7 +65,7 @@ export function TagMultiSelect({
         {selectedTags.map((tag) => (
           <span
             key={tag.id}
-            className="flex items-center gap-1.5 rounded-full bg-surface-muted py-1 pr-1 pl-2 text-[12px] font-medium text-navy"
+            className="flex items-center gap-1.5 rounded-full bg-surface-muted py-1 pr-1 pl-2 text-sm font-medium text-navy"
           >
             <span
               aria-hidden="true"
@@ -83,7 +83,7 @@ export function TagMultiSelect({
                 }}
                 className="flex h-4 w-4 items-center justify-center rounded-full text-navy/45 hover:bg-navy/10 hover:text-navy"
               >
-                <span aria-hidden="true" className="text-[13px] leading-none">
+                <span aria-hidden="true" className="text-md leading-none">
                   ×
                 </span>
               </button>
@@ -99,19 +99,19 @@ export function TagMultiSelect({
             setOpen((v) => !v)
           }}
           aria-label="Toggle tag list"
-          className="ml-auto flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-navy/45 hover:bg-surface-muted"
+          className="ml-auto flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-xs text-navy/45 hover:bg-surface-muted"
         >
           <Icon name="chevron-down" className="h-3 w-3" />
         </button>
       </div>
 
       {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 z-40 max-h-[280px] w-full min-w-[200px] overflow-hidden rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
-          <label className="mb-1 flex items-center gap-1.5 rounded-md border-[1.5px] border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
+        <div className="absolute top-[calc(100%+4px)] left-0 z-40 max-h-[280px] w-full min-w-[200px] overflow-hidden rounded-xl bg-white p-menu shadow-dropdown">
+          <label className="mb-1 flex items-center gap-1.5 rounded-xs border-control border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
             <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
             <input
               autoFocus
-              className="w-full border-none bg-transparent text-[12.5px] text-navy outline-none placeholder:text-navy/45"
+              className="w-full border-none bg-transparent text-sm text-navy outline-none placeholder:text-navy/45"
               placeholder="Search tags…"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -130,15 +130,15 @@ export function TagMultiSelect({
                     event.stopPropagation()
                     toggle(tag.id)
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-[7px] text-left text-[12.5px] font-medium text-navy hover:bg-surface-muted"
+                  className="flex w-full items-center gap-2 rounded-xs px-2.5 py-compact text-left text-caption font-medium text-navy hover:bg-surface-muted"
                 >
                   <span
-                    className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] ${
+                    className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-xs border-control ${
                       checked ? 'border-brand bg-brand text-white' : 'border-navy/25'
                     }`}
                   >
                     {checked && (
-                      <span aria-hidden="true" className="text-[10px] leading-none">
+                      <span aria-hidden="true" className="text-xs leading-none">
                         ✓
                       </span>
                     )}
@@ -154,7 +154,7 @@ export function TagMultiSelect({
             })}
 
             {options.length === 0 && (
-              <div className="px-2.5 py-3 text-center text-[12px] text-navy/45">No tags.</div>
+              <div className="px-2.5 py-3 text-center text-sm text-navy/45">No tags.</div>
             )}
           </div>
         </div>

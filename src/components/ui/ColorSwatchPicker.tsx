@@ -22,7 +22,7 @@ export function ColorSwatchPicker({
         aria-label="No colour"
         aria-pressed={normalized === null}
         title="No colour"
-        className={`flex h-7 w-7 items-center justify-center rounded-full border-[1.5px] bg-white ${
+        className={`flex h-7 w-7 items-center justify-center rounded-full border-control bg-white ${
           normalized === null ? 'border-navy' : 'border-navy/15'
         }`}
       >

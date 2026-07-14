@@ -205,11 +205,11 @@ export default function MembersPage() {
 
   return (
     <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
-      <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-page flex-col gap-4">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-[19px] font-bold text-navy">Members</h1>
-          <p className="mt-[3px] max-w-[560px] text-[13px] leading-[1.5] text-navy/60">
+          <h1 className="font-display text-xl font-bold text-navy">Members</h1>
+          <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
             See everyone with access to this workspace, their role, and account status.
           </p>
         </div>
@@ -219,28 +219,28 @@ export default function MembersPage() {
             event.stopPropagation()
             setInviteOpen(true)
           }}
-          className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-[18px] py-[9px] font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep"
+          className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
         >
-          <Icon name="plus" className="h-[13px] w-[13px]" />
+          <Icon name="plus" className="size-icon-sm" />
           Invite members
         </button>
       </header>
 
       {notice && (
-        <div className="flex items-center gap-2 rounded-[14px] bg-brand-tint px-4 py-3 text-[13px] font-medium text-navy">
+        <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
           <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
           {notice}
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-full bg-surface-muted p-[3px]">
+        <div className="flex rounded-full bg-surface-muted p-segment">
           {(['members', 'invitations'] as const).map((option) => (
             <button
               key={option}
               type="button"
               onClick={() => setView(option)}
-              className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+              className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
                 view === option ? 'bg-navy text-cream' : 'text-navy/55'
               }`}
             >
@@ -285,10 +285,10 @@ export default function MembersPage() {
 
             <span className="flex-1" />
 
-            <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] focus-within:border-brand">
+            <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
               <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
               <input
-                className="w-full border-none bg-transparent text-[13px] text-navy outline-none placeholder:text-navy/45"
+                className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
                 placeholder="Search members..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -300,7 +300,7 @@ export default function MembersPage() {
       </div>
 
       {view === 'members' ? (
-        <div className="rounded-[18px] bg-white shadow-card">
+        <div className="rounded-2xl bg-white shadow-card">
           <div className={`${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="members" label="Name" />
             <HeaderCell icon="mail" label="Email" />
@@ -315,7 +315,7 @@ export default function MembersPage() {
 
             {!isLoading && loadError && (
               <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="text-[13px] text-red">{loadError}</span>
+                <span className="text-body text-red">{loadError}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -323,7 +323,7 @@ export default function MembersPage() {
                     setLoadError(null)
                     setReloadKey((key) => key + 1)
                   }}
-                  className="rounded-full border-[1.5px] border-navy px-4 py-1.5 font-display text-[12.5px] font-semibold text-navy"
+                  className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
                 >
                   Try again
                 </button>
@@ -350,7 +350,7 @@ export default function MembersPage() {
               ))}
 
             {!isLoading && !loadError && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-[13px] text-navy/50">
+              <div className="px-5 py-10 text-center text-body text-navy/50">
                 {members.length === 0
                   ? 'No members yet. Invite your team to get started.'
                   : 'No members match your search or filters.'}
@@ -393,7 +393,7 @@ function LoadingRow() {
 
 function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 py-1.5 font-display text-[10.5px] font-bold tracking-[0.05em] text-navy/60 uppercase">
+    <div className="flex items-center gap-1.5 py-1.5 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/60 uppercase">
       <Icon name={icon} className="h-3 w-3 text-brand" />
       {label}
     </div>
@@ -428,13 +428,13 @@ function FilterDropdown({
           event.stopPropagation()
           onToggle()
         }}
-        className="flex items-center gap-1.5 rounded-full border-[1.5px] border-navy/[0.08] bg-white px-3.5 py-[7px] font-display text-[12.5px] font-semibold text-navy hover:border-brand"
+        className="flex items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact font-display text-sm font-semibold text-navy hover:border-brand"
       >
         {label}
         <Icon name="chevron-down" className="h-3 w-3 opacity-60" />
       </button>
       {isOpen && (
-        <div className="absolute top-[calc(100%+4px)] left-0 z-20 min-w-[140px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+        <div className="absolute top-[calc(100%+4px)] left-0 z-20 min-w-[140px] rounded-xl bg-white p-menu shadow-dropdown">
           {options.map((option) => (
             <button
               key={option.value}
@@ -443,7 +443,7 @@ function FilterDropdown({
                 event.stopPropagation()
                 onSelect(option.value)
               }}
-              className={`flex w-full items-center rounded-md px-2.5 py-[7px] text-left text-[12.5px] hover:bg-surface-muted ${
+              className={`flex w-full items-center rounded-xs px-2.5 py-compact text-left text-caption hover:bg-surface-muted ${
                 value === option.value ? 'font-bold text-navy' : 'font-medium'
               }`}
             >
@@ -485,20 +485,20 @@ function MemberRow({
   return (
     <div className={`${GRID} hover:bg-surface-muted`}>
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[9px] bg-surface-muted font-mono text-[10.5px] font-medium text-navy">
+        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-sm bg-surface-muted font-mono text-xs font-medium text-navy">
           {initials}
         </span>
-        <span className="truncate text-[13px] font-semibold">{member.displayName}</span>
+        <span className="truncate text-md font-semibold">{member.displayName}</span>
       </div>
 
-      <div className="truncate font-mono text-[12px] text-navy/65">{member.email}</div>
+      <div className="truncate font-mono text-sm text-navy/65">{member.email}</div>
 
       <Pill label={member.role} dotClassName={ROLE_DOT[member.role]} />
       <Pill label={STATUS_DISPLAY[member.status]} dotClassName={STATUS_DOT[member.status]} />
 
       {/* Rates wait on RT-61; display-only until then. */}
       <span
-        className={`font-mono text-[12.5px] tabular-nums ${member.rate !== null ? 'font-medium' : 'font-normal opacity-40'}`}
+        className={`font-mono text-caption tabular-nums ${member.rate !== null ? 'font-medium' : 'font-normal opacity-40'}`}
         title="Rates are coming with billing (RT-61)."
       >
         {member.rate !== null ? `$${member.rate}/hr` : '—'}
@@ -509,12 +509,12 @@ function MemberRow({
           type="button"
           onClick={onToggleMenu}
           aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-surface-muted hover:text-navy"
+          className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
         >
           <Icon name="more" className="h-[15px] w-[15px]" />
         </button>
         {menuOpen && (
-          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
             {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
             <RowMenuItem
               icon="settings"
@@ -559,13 +559,13 @@ function RowMenuItem({
         event.stopPropagation()
         onClick?.()
       }}
-      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium ${
+      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium ${
         disabled
           ? 'cursor-not-allowed text-navy/35'
           : `hover:bg-surface-muted ${danger ? 'text-red' : 'text-navy'}`
       }`}
     >
-      <Icon name={icon} className={`h-[13px] w-[13px] ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
+      <Icon name={icon} className={`size-icon-sm ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
       {label}
     </button>
   )
@@ -643,7 +643,7 @@ function InvitationsCard({
   }
 
   return (
-    <div className="rounded-[18px] bg-white shadow-card">
+    <div className="rounded-2xl bg-white shadow-card">
       <div className={`${INVITE_GRID} border-b border-navy/[0.08]`}>
         <HeaderCell icon="mail" label="Email" />
         <HeaderCell icon="shield" label="Role" />
@@ -658,7 +658,7 @@ function InvitationsCard({
         {isLoading && <LoadingRow />}
 
         {!isLoading && loadError && (
-          <div className="px-5 py-10 text-center text-[13px] text-red">{loadError}</div>
+          <div className="px-5 py-10 text-center text-body text-red">{loadError}</div>
         )}
 
         {!isLoading &&
@@ -667,12 +667,12 @@ function InvitationsCard({
             const isActionable = invitation.status === 'Pending' || invitation.status === 'Expired'
             return (
               <div key={invitation.id} className={`${INVITE_GRID} hover:bg-surface-muted`}>
-                <div className="truncate text-[13px] font-semibold">{invitation.email}</div>
+                <div className="truncate text-md font-semibold">{invitation.email}</div>
                 <Pill label={invitation.role} dotClassName={ROLE_DOT[invitation.role]} />
                 <Pill label={invitation.status} dotClassName={INVITE_STATUS_DOT[invitation.status]} />
-                <div className="truncate text-[12.5px] text-navy/65">{invitation.invitedByName}</div>
-                <div className="text-[12.5px] text-navy/65">{formatDate(invitation.createdAtUtc)}</div>
-                <div className="text-[12.5px] text-navy/65">
+                <div className="truncate text-caption text-navy/65">{invitation.invitedByName}</div>
+                <div className="text-sm text-navy/65">{formatDate(invitation.createdAtUtc)}</div>
+                <div className="text-sm text-navy/65">
                   {invitation.status === 'Accepted' && invitation.acceptedAtUtc
                     ? `Joined ${formatDate(invitation.acceptedAtUtc)}`
                     : formatDate(invitation.expiresAtUtc)}
@@ -687,13 +687,13 @@ function InvitationsCard({
                         onToggleRowMenu(invitation.id)
                       }}
                       aria-label="Invitation actions"
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-surface-muted hover:text-navy"
+                      className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
                     >
                       <Icon name="more" className="h-[15px] w-[15px]" />
                     </button>
                   )}
                   {isActionable && openRowMenuId === invitation.id && (
-                    <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+                    <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
                       <RowMenuItem icon="resend" label="Resend invite" onClick={() => handleResend(invitation)} />
                       <RowMenuItem icon="ban" label="Revoke invite" danger onClick={() => handleRevoke(invitation)} />
                     </div>
@@ -704,7 +704,7 @@ function InvitationsCard({
           })}
 
         {!isLoading && !loadError && invitations.length === 0 && (
-          <div className="px-5 py-10 text-center text-[13px] text-navy/50">
+          <div className="px-5 py-10 text-center text-body text-navy/50">
             No invitations yet. Invite your team to get started.
           </div>
         )}
@@ -834,11 +834,11 @@ function InviteModal({
   if (results) {
     return (
       <Modal title="Invite results" subtitle="Some addresses need attention." onClose={onClose}>
-        <div className="mb-3 max-h-[260px] overflow-y-auto rounded-[10px] border-[1.5px] border-navy/[0.08]">
+        <div className="mb-3 max-h-[260px] overflow-y-auto rounded-md border-control border-navy/[0.08]">
           {results.map((row, index) => (
             <div
               key={`${row.email}-${index}`}
-              className="flex items-start justify-between gap-3 border-b border-navy/[0.08] px-3 py-2 text-[12.5px] last:border-b-0"
+              className="flex items-start justify-between gap-3 border-b border-navy/[0.08] px-3 py-2 text-sm last:border-b-0"
             >
               <span className="truncate font-medium text-navy">{row.email}</span>
               <span
@@ -855,7 +855,7 @@ function InviteModal({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-full bg-navy py-2.5 font-display text-[13px] font-semibold text-cream"
+          className="w-full rounded-full bg-navy py-2.5 font-display text-body font-semibold text-cream"
         >
           Done
         </button>
@@ -870,12 +870,12 @@ function InviteModal({
       onClose={onClose}
     >
       <div className="mb-3">
-        <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">
+        <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">
           Email addresses
         </label>
         <textarea
           rows={3}
-          className="w-full resize-none rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+          className="w-full resize-none rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
           placeholder={domain ? `alice, bob (adds @${domain})` : 'name@company.com, other@company.com'}
           value={emailsInput}
           onChange={(event) => {
@@ -885,9 +885,9 @@ function InviteModal({
         />
         {allowedDomains.length > 0 && (
           <div className="mt-2 flex items-center gap-2">
-            <label className="font-display text-[11.5px] font-semibold text-navy/70">Domain</label>
+            <label className="font-display text-label font-semibold text-navy/70">Domain</label>
             <select
-              className="rounded-[10px] border-[1.5px] border-navy/[0.08] bg-white px-2.5 py-1.5 text-[12.5px] text-navy outline-none focus:border-brand"
+              className="rounded-md border-control border-navy/[0.08] bg-white px-2.5 py-1.5 text-sm text-navy outline-none focus:border-brand"
               value={domain}
               onChange={(event) => {
                 setDomain(event.target.value)
@@ -900,10 +900,10 @@ function InviteModal({
                 </option>
               ))}
             </select>
-            <span className="text-[11px] text-navy/45">added to names without an @</span>
+            <span className="text-xs text-navy/45">added to names without an @</span>
           </div>
         )}
-        <div className="mt-1 min-h-[16px] text-[11.5px]">
+        <div className="mt-1 min-h-[16px] text-sm">
           {invalidEmails.length > 0 ? (
             <span className="text-red">
               Not a valid email: {invalidEmails.join(', ')}
@@ -913,7 +913,7 @@ function InviteModal({
           ) : null}
         </div>
         {attemptedSend && disallowedEmails.length > 0 && (
-          <div className="mt-2 rounded-[10px] bg-[#B8860B]/[0.10] px-3 py-2 text-[11.5px] leading-[1.5] text-[#8A6400]">
+          <div className="mt-2 rounded-md bg-[#B8860B]/[0.10] px-3 py-2 text-sm leading-[1.5] text-[#8A6400]">
             {disallowedEmails.join(', ')} {disallowedEmails.length === 1 ? 'is' : 'are'} outside{' '}
             {allowedDomains.map((allowed) => `@${allowed}`).join(', ')} and can't sign in. Remove or
             fix {disallowedEmails.length === 1 ? 'it' : 'them'} to continue.
@@ -921,9 +921,9 @@ function InviteModal({
         )}
       </div>
       <div className="mb-3">
-        <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">Role</label>
+        <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">Role</label>
         <select
-          className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] bg-white px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+          className="w-full rounded-md border-control border-navy/[0.08] bg-white px-3 py-field text-body text-navy outline-none focus:border-brand"
           value={role}
           onChange={(event) => setRole(event.target.value as Role)}
         >
@@ -933,16 +933,16 @@ function InviteModal({
       </div>
 
       {error && (
-        <div className="mb-3 rounded-[10px] bg-red-tint px-3 py-2.5 text-[12.5px] leading-[1.5] text-red">
+        <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm leading-[1.5] text-red">
           {error}
         </div>
       )}
 
-      <div className="mt-[18px] flex gap-2">
+      <div className="mt-4.5 flex gap-2">
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+          className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
         >
           Cancel
         </button>
@@ -950,7 +950,7 @@ function InviteModal({
           type="button"
           disabled={isSending || tokens.length === 0 || invalidEmails.length > 0}
           onClick={send}
-          className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSending ? 'Sending…' : tokens.length > 1 ? `Send ${tokens.length} invites` : 'Send invite'}
         </button>

@@ -24,14 +24,14 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className={`${widthClassName} max-w-full rounded-[20px] bg-white p-[26px] shadow-[0_24px_56px_rgba(31,43,77,0.22)]`}
+        className={`${widthClassName} max-w-full rounded-3xl bg-white p-modal shadow-modal`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         <h2 className="font-display text-base font-bold text-navy">{title}</h2>
-        {subtitle && <p className="mt-1 mb-[18px] text-[12.5px] text-navy/60">{subtitle}</p>}
+        {subtitle && <p className="mt-1 mb-4.5 text-sm text-navy/60">{subtitle}</p>}
         {children}
       </div>
     </div>

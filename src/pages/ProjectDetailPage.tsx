@@ -134,10 +134,10 @@ export default function ProjectDetailPage() {
   if (loadError || !project) {
     return (
       <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-3 px-10 text-center">
-        <span className="text-[13px] text-red">{loadError ?? 'Project not found.'}</span>
+        <span className="text-body text-red">{loadError ?? 'Project not found.'}</span>
         <Link
           to="/projects"
-          className="rounded-full border-[1.5px] border-navy px-4 py-1.5 font-display text-[12.5px] font-semibold text-navy"
+          className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
         >
           Back to projects
         </Link>
@@ -152,7 +152,7 @@ export default function ProjectDetailPage() {
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4">
         <Link
           to="/projects"
-          className="flex w-fit items-center gap-1.5 font-display text-[12.5px] font-semibold text-navy/55 hover:text-navy"
+          className="flex w-fit items-center gap-1.5 font-display text-sm font-semibold text-navy/55 hover:text-navy"
         >
           <Icon name="chevron-right" className="h-3.5 w-3.5 rotate-180" />
           Projects
@@ -178,14 +178,14 @@ export default function ProjectDetailPage() {
             <button
               type="button"
               onClick={handleToggleArchived}
-              className="rounded-full border-[1.5px] border-navy/15 px-4 py-2 font-display text-[12.5px] font-semibold text-navy hover:border-navy"
+              className="rounded-full border-control border-navy/15 px-4 py-2 font-display text-sm font-semibold text-navy hover:border-navy"
             >
               {isActive ? 'Archive' : 'Restore'}
             </button>
             <button
               type="button"
               onClick={() => setEditingProject(true)}
-              className="rounded-full bg-brand px-4 py-2 font-display text-[12.5px] font-semibold text-white transition-colors hover:bg-brand-deep"
+              className="rounded-full bg-brand px-4 py-2 font-display text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
             >
               Edit
             </button>
@@ -193,14 +193,14 @@ export default function ProjectDetailPage() {
         </header>
 
         {notice && (
-          <div className="flex items-center gap-2 rounded-[14px] bg-brand-tint px-4 py-3 text-[13px] font-medium text-navy">
+          <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
             <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
             {notice}
           </div>
         )}
 
         {/* Details card */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 rounded-[18px] bg-white p-6 shadow-card sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 rounded-2xl bg-white p-6 shadow-card sm:grid-cols-3">
           <InfoRow label="Client" value={project.clientName} />
           <InfoRow label="Billing" value={formatBillingSummary(project)} />
           <InfoRow
@@ -272,16 +272,16 @@ export default function ProjectDetailPage() {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="mb-1 font-display text-[10.5px] font-bold tracking-[0.05em] text-navy/45 uppercase">
+      <p className="mb-1 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/45 uppercase">
         {label}
       </p>
-      <p className="text-[13px] font-medium text-navy">{value}</p>
+      <p className="text-md font-medium text-navy">{value}</p>
     </div>
   )
 }
 
 const ASSIGNEE_SELECT =
-  'max-w-[150px] rounded-[8px] border-[1.5px] border-navy/[0.08] bg-white px-2 py-1 text-[12px] text-navy/80 outline-none focus:border-brand'
+  'max-w-[150px] rounded-sm border-control border-navy/[0.08] bg-white px-2 py-1 text-sm text-navy/80 outline-none focus:border-brand'
 
 function TasksCard({
   projectId,
@@ -343,10 +343,10 @@ function TasksCard({
   }
 
   return (
-    <div className="rounded-[18px] bg-white p-6 shadow-card">
+    <div className="rounded-2xl bg-white p-6 shadow-card">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-[15px] font-bold text-navy">Tasks</h2>
-        <span className="font-mono text-[12px] text-navy/45 tabular-nums">
+        <h2 className="font-display text-body-lg font-bold text-navy">Tasks</h2>
+        <span className="font-mono text-sm text-navy/45 tabular-nums">
           {tasks.filter((t) => t.status === 'done').length}/{tasks.length} done
         </span>
       </div>
@@ -357,10 +357,10 @@ function TasksCard({
           event.preventDefault()
           addTask()
         }}
-        className="mb-2 flex items-center gap-2 rounded-[12px] bg-surface-muted px-3 py-2"
+        className="mb-2 flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2"
       >
         <input
-          className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-navy outline-none placeholder:text-navy/45"
+          className="min-w-0 flex-1 border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
           placeholder="Add a task…"
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
@@ -369,7 +369,7 @@ function TasksCard({
           type="number"
           min="0"
           step="0.25"
-          className="w-[70px] rounded-[8px] border-[1.5px] border-navy/[0.08] bg-white px-2 py-1 text-[12px] text-navy outline-none focus:border-brand"
+          className="w-[70px] rounded-sm border-control border-navy/[0.08] bg-white px-2 py-1 text-sm text-navy outline-none focus:border-brand"
           placeholder="h"
           value={newEstimate}
           onChange={(event) => setNewEstimate(event.target.value)}
@@ -389,7 +389,7 @@ function TasksCard({
         <button
           type="submit"
           disabled={newName.trim() === '' || isAdding}
-          className="flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 font-display text-[12px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1 rounded-full bg-brand px-3 py-1.5 font-display text-sm font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Icon name="plus" className="h-3 w-3" />
           Add
@@ -397,7 +397,7 @@ function TasksCard({
       </form>
 
       {tasks.length === 0 ? (
-        <p className="px-3 py-6 text-center text-[13px] text-navy/50">
+        <p className="px-3 py-6 text-center text-body text-navy/50">
           No tasks yet. Add one above to break this project down.
         </p>
       ) : (
@@ -410,7 +410,7 @@ function TasksCard({
                   type="button"
                   onClick={() => onToggleDone(task)}
                   aria-label={done ? 'Mark as open' : 'Mark as done'}
-                  className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[6px] border-[1.5px] ${
+                  className={`flex size-icon-md flex-shrink-0 items-center justify-center rounded-xs border-control ${
                     done ? 'border-green bg-green text-white' : 'border-navy/25 text-transparent hover:border-navy/50'
                   }`}
                 >
@@ -418,7 +418,7 @@ function TasksCard({
                 </button>
 
                 <span
-                  className={`min-w-0 flex-1 truncate text-[13px] ${
+                  className={`min-w-0 flex-1 truncate text-md ${
                     done ? 'text-navy/40 line-through' : 'font-medium text-navy'
                   }`}
                 >
@@ -426,7 +426,7 @@ function TasksCard({
                 </span>
 
                 {task.timeEstimateHours !== null && (
-                  <span className="flex-shrink-0 font-mono text-[12px] text-navy/45 tabular-nums">
+                  <span className="flex-shrink-0 font-mono text-sm text-navy/45 tabular-nums">
                     {task.timeEstimateHours}h
                   </span>
                 )}
@@ -453,21 +453,21 @@ function TasksCard({
                       event.stopPropagation()
                       onToggleTaskMenu(openTaskMenuId === task.id ? null : task.id)
                     }}
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-navy/50 hover:bg-surface-muted hover:text-navy"
+                    className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
                   >
                     <Icon name="more" className="h-[15px] w-[15px]" />
                   </button>
                   {openTaskMenuId === task.id && (
-                    <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[150px] rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+                    <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[150px] rounded-xl bg-white p-menu shadow-dropdown">
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation()
                           onRename(task)
                         }}
-                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium text-navy hover:bg-surface-muted"
+                        className="flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium text-navy hover:bg-surface-muted"
                       >
-                        <Icon name="settings" className="h-[13px] w-[13px] opacity-65" />
+                        <Icon name="settings" className="size-icon-sm opacity-65" />
                         Edit
                       </button>
                       <button
@@ -476,9 +476,9 @@ function TasksCard({
                           event.stopPropagation()
                           onDelete(task)
                         }}
-                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium text-red hover:bg-surface-muted"
+                        className="flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium text-red hover:bg-surface-muted"
                       >
-                        <Icon name="ban" className="h-[13px] w-[13px] opacity-80" />
+                        <Icon name="ban" className="size-icon-sm opacity-80" />
                         Delete
                       </button>
                     </div>
@@ -542,10 +542,10 @@ function TaskModal({
         }}
       >
         <div className="mb-3">
-          <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">Task name</label>
+          <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">Task name</label>
           <input
             autoFocus
-            className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+            className="w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -553,21 +553,21 @@ function TaskModal({
 
         <div className="mb-3 flex gap-2.5">
           <div className="w-[110px] flex-shrink-0">
-            <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">Estimate (h)</label>
+            <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">Estimate (h)</label>
             <input
               type="number"
               min="0"
               step="0.25"
-              className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+              className="w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
               placeholder="Optional"
               value={estimate}
               onChange={(event) => setEstimate(event.target.value)}
             />
           </div>
           <div className="flex-1">
-            <label className="mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70">Assignee</label>
+            <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">Assignee</label>
             <select
-              className="w-full rounded-[10px] border-[1.5px] border-navy/[0.08] bg-white px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand"
+              className="w-full rounded-md border-control border-navy/[0.08] bg-white px-3 py-field text-body text-navy outline-none focus:border-brand"
               value={assignee}
               onChange={(event) => setAssignee(event.target.value)}
             >
@@ -582,23 +582,23 @@ function TaskModal({
         </div>
 
         {error && (
-          <div className="mb-3 rounded-[10px] bg-red-tint px-3 py-2.5 text-[12.5px] leading-[1.5] text-red">
+          <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm leading-[1.5] text-red">
             {error}
           </div>
         )}
 
-        <div className="mt-[18px] flex gap-2">
+        <div className="mt-4.5 flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+            className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSave}
-            className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Saving…' : 'Save changes'}
           </button>

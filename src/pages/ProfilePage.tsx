@@ -27,10 +27,10 @@ const STATUS_DOT: Record<UserStatus, string> = {
 function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-[11px] font-medium tracking-[0.1em] text-navy/45 uppercase">
+      <span className="font-mono text-xs font-medium tracking-[0.1em] text-navy/45 uppercase">
         {label}
       </span>
-      <div className="text-[14px] text-navy">{children}</div>
+      <div className="text-md text-navy">{children}</div>
     </div>
   )
 }
@@ -56,15 +56,15 @@ export default function ProfilePage() {
   const avatarName = user.displayName ?? user.email
 
   return (
-    <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-6 px-10 py-8">
+    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-10 py-8">
       <header>
-        <h1 className="font-display text-[19px] font-bold text-navy">Profile</h1>
-        <p className="mt-[3px] max-w-[560px] text-[13px] leading-[1.5] text-navy/60">
+        <h1 className="font-display text-xl font-bold text-navy">Profile</h1>
+        <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
           Your account details and connected services.
         </p>
       </header>
 
-      <section className="rounded-[18px] bg-white p-6 shadow-card">
+      <section className="rounded-2xl bg-white p-6 shadow-card">
         <div className="flex flex-wrap items-start gap-6">
           <UserAvatar name={avatarName} size={72} aria-label={`Avatar for ${avatarName}`} />
 
@@ -94,10 +94,10 @@ export default function ProfilePage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-display text-[15px] font-bold text-navy">Integrations</h2>
+        <h2 className="font-display text-body-lg font-bold text-navy">Integrations</h2>
 
         {integrationError && (
-          <div className="rounded-[14px] bg-red-tint px-4 py-3.5 text-[13.5px] leading-[1.5] text-red">
+          <div className="rounded-xl bg-red-tint px-4 py-3.5 text-notice leading-[1.5] text-red">
             {integrationError}
           </div>
         )}

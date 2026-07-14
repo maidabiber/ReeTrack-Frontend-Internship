@@ -129,7 +129,7 @@ export function MentionDescriptionField({
         {isMentionActive ? (
           suggestions.length > 0 ? (
             <ul
-              className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-[12px] border border-navy/10 bg-white py-1 shadow-[0_16px_36px_rgba(31,43,77,0.16)]"
+              className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-navy/10 bg-white py-1 shadow-dropdown"
               role="listbox"
             >
               {suggestions.map((teammate, index) => (
@@ -138,7 +138,7 @@ export function MentionDescriptionField({
                     type="button"
                     role="option"
                     aria-selected={index === highlightIndex}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] ${
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-md ${
                       index === highlightIndex ? 'bg-surface-muted text-navy' : 'text-navy/80'
                     }`}
                     onMouseDown={(event) => {
@@ -149,14 +149,14 @@ export function MentionDescriptionField({
                     <UserAvatar name={teammateLabel(teammate)} size={24} className="block shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium">{teammateLabel(teammate)}</span>
-                      <span className="block truncate text-[11px] text-navy/45">{teammate.email}</span>
+                      <span className="block truncate text-xs text-navy/45">{teammate.email}</span>
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-[12px] border border-navy/10 bg-white px-3 py-2.5 text-[12.5px] text-navy/50 shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-navy/10 bg-white px-3 py-2.5 text-sm text-navy/50 shadow-dropdown">
               {teammates.length === 0 ? 'No teammates available to mention.' : 'No matching teammates.'}
             </div>
           )
@@ -171,7 +171,7 @@ export function MentionDescriptionField({
               className="inline-flex items-center gap-2 rounded-full bg-surface-muted py-1 pl-1 pr-2.5"
             >
               <UserAvatar name={teammateLabel(teammate)} size={24} className="block" />
-              <span className="text-[12.5px] font-semibold text-navy">{teammateLabel(teammate)}</span>
+              <span className="text-sm font-semibold text-navy">{teammateLabel(teammate)}</span>
               <button
                 type="button"
                 onClick={() => removeTeammate(teammate.id)}
@@ -179,7 +179,7 @@ export function MentionDescriptionField({
                 className="rounded-full p-0.5 text-navy/40 transition-colors hover:bg-navy/10 hover:text-navy/70 disabled:opacity-50"
                 aria-label={`Remove ${teammateLabel(teammate)}`}
               >
-                <span className="block text-[14px] leading-none">&times;</span>
+                <span className="block text-md leading-none">&times;</span>
               </button>
             </div>
           ))}

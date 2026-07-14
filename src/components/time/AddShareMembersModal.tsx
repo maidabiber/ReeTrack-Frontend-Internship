@@ -127,8 +127,8 @@ export function AddShareMembersModal({
                 className="inline-flex items-center gap-2 rounded-full bg-surface-muted py-1 pl-1 pr-2.5 text-left"
               >
                 <UserAvatar name={teammateLabel(teammate)} size={24} className="block" />
-                <span className="text-[12.5px] font-semibold text-navy">{teammateLabel(teammate)}</span>
-                <span className="text-[14px] leading-none text-navy/40">&times;</span>
+                <span className="text-sm font-semibold text-navy">{teammateLabel(teammate)}</span>
+                <span className="text-md leading-none text-navy/40">&times;</span>
               </button>
             ))}
           </div>
@@ -139,11 +139,11 @@ export function AddShareMembersModal({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search teammates"
-          className="w-full rounded-[10px] border border-navy/10 px-3 py-2.5 text-[13px] text-navy outline-none focus:border-brand/40"
+          className="w-full rounded-md border border-navy/10 px-3 py-2.5 text-body text-navy outline-none focus:border-brand/40"
         />
 
         {suggestions.length > 0 ? (
-          <ul className="max-h-44 overflow-y-auto rounded-[10px] border border-navy/10 py-1">
+          <ul className="max-h-44 overflow-y-auto rounded-md border border-navy/10 py-1">
             {suggestions.map((teammate) => (
               <li key={teammate.id}>
                 <button
@@ -153,27 +153,27 @@ export function AddShareMembersModal({
                 >
                   <UserAvatar name={teammateLabel(teammate)} size={24} className="block shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium text-navy">{teammateLabel(teammate)}</span>
-                    <span className="block truncate text-[11px] text-navy/45">{teammate.email}</span>
+                    <span className="block text-md font-medium text-navy">{teammateLabel(teammate)}</span>
+                    <span className="block truncate text-xs text-navy/45">{teammate.email}</span>
                   </span>
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-[12.5px] text-navy/50">
+          <p className="text-sm text-navy/50">
             {teammates.length === 0 ? 'No teammates available.' : 'No matching teammates.'}
           </p>
         )}
 
         {overlapWarning ? (
-          <div className="rounded-[10px] border border-yellow/20 bg-yellow-tint/75 px-3 py-2.5 text-[12.5px] text-navy">
+          <div className="rounded-md border border-yellow/20 bg-yellow-tint/75 px-3 py-2.5 text-sm text-navy">
             {overlapWarning}
           </div>
         ) : null}
 
         {error ? (
-          <p className="text-[12.5px] text-red" role="alert">
+          <p className="text-sm text-red" role="alert">
             {error}
           </p>
         ) : null}
@@ -183,7 +183,7 @@ export function AddShareMembersModal({
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-navy/60 hover:text-navy disabled:opacity-50"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-navy/60 hover:text-navy disabled:opacity-50"
           >
             Cancel
           </button>
@@ -191,7 +191,7 @@ export function AddShareMembersModal({
             type="button"
             onClick={() => void handleShare(pendingOverlapConfirm)}
             disabled={isSaving || selected.length === 0}
-            className="rounded-full bg-navy px-4 py-2 text-[12.5px] font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? 'Sharing…' : pendingOverlapConfirm ? 'Share anyway' : 'Share'}
           </button>

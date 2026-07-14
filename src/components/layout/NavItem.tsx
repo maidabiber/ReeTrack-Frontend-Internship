@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { Icon } from '../ui/Icon'
 import type { NavItem as NavItemModel } from '../../config/navigation'
 
-const BASE = 'flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 font-display text-[14px] font-medium no-underline transition-colors'
+const BASE = 'flex items-center gap-2.5 rounded-md px-3 py-2.5 font-display text-md font-medium no-underline transition-colors'
 const ACTIVE = 'bg-brand text-white'
 const INACTIVE = 'text-white/70 hover:bg-white/[0.06] hover:text-white'
 

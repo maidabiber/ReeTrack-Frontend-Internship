@@ -72,7 +72,7 @@ export function SearchSelect({
           event.stopPropagation()
           setOpen((v) => !v)
         }}
-        className={`flex w-full items-center gap-2 rounded-[10px] border-[1.5px] bg-white px-3 py-[9px] text-left text-[13px] outline-none ${
+        className={`flex w-full items-center gap-2 rounded-md border-control bg-white px-3 py-field text-left text-body outline-none ${
           open ? 'border-brand' : 'border-navy/[0.08]'
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-brand/60'}`}
       >
@@ -91,12 +91,12 @@ export function SearchSelect({
       </button>
 
       {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 z-40 max-h-[280px] w-full min-w-[200px] overflow-hidden rounded-[14px] bg-white p-[5px] shadow-[0_16px_36px_rgba(31,43,77,0.16)]">
-          <label className="mb-1 flex items-center gap-1.5 rounded-md border-[1.5px] border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
+        <div className="absolute top-[calc(100%+4px)] left-0 z-40 max-h-[280px] w-full min-w-[200px] overflow-hidden rounded-xl bg-white p-menu shadow-dropdown">
+          <label className="mb-1 flex items-center gap-1.5 rounded-xs border-control border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
             <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
             <input
               autoFocus
-              className="w-full border-none bg-transparent text-[12.5px] text-navy outline-none placeholder:text-navy/45"
+              className="w-full border-none bg-transparent text-sm text-navy outline-none placeholder:text-navy/45"
               placeholder={searchPlaceholder}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -113,7 +113,7 @@ export function SearchSelect({
                   onChange(null)
                   close()
                 }}
-                className="flex w-full items-center rounded-md px-2.5 py-[7px] text-left text-[12.5px] font-medium text-navy/55 hover:bg-surface-muted"
+                className="flex w-full items-center rounded-xs px-2.5 py-compact text-left text-caption font-medium text-navy/55 hover:bg-surface-muted"
               >
                 Clear selection
               </button>
@@ -128,7 +128,7 @@ export function SearchSelect({
                   onChange(option.value)
                   close()
                 }}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-[7px] text-left text-[12.5px] hover:bg-surface-muted ${
+                className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-compact text-left text-caption hover:bg-surface-muted ${
                   option.value === value ? 'font-bold text-navy' : 'font-medium text-navy'
                 }`}
               >
@@ -145,7 +145,7 @@ export function SearchSelect({
             ))}
 
             {filtered.length === 0 && (
-              <div className="px-2.5 py-3 text-center text-[12px] text-navy/45">No matches.</div>
+              <div className="px-2.5 py-3 text-center text-sm text-navy/45">No matches.</div>
             )}
           </div>
         </div>

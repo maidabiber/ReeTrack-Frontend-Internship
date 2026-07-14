@@ -97,17 +97,39 @@ Three families, each with a job. Don't reach outside these.
 | **Manrope** | `font-sans` (default) | Body copy, descriptions, paragraphs |
 | **DM Mono** | `font-mono` | **Data:** timers, durations, totals, rates, emails, IDs, initials, uppercase eyebrows |
 
+**Type scale** (rem tokens in `@theme` — prefer these over `text-[Npx]`).
+Even steps (`xs`/`sm`/`md`/`lg`/…) plus the half-steps dense chrome needs:
+
+| Utility | Size | Use |
+|---|---|---|
+| `text-xs` | 0.625rem (10px) | Tiny hints / field footnotes |
+| `text-eyebrow` | 0.65625rem (10.5px) | Uppercase table/section eyebrows |
+| `text-micro` | 0.6875rem (11px) | Micro labels, step badges |
+| `text-label` | 0.71875rem (11.5px) | Form field labels |
+| `text-sm` | 0.75rem (12px) | Compact chrome / dense secondary UI |
+| `text-caption` | 0.78125rem (12.5px) | Secondary labels, menu rows |
+| `text-body` | 0.8125rem (13px) | Dense in-app body copy and controls |
+| `text-notice` | 0.84375rem (13.5px) | Auth notices / soft callouts |
+| `text-md` | 0.875rem (14px) | Entry titles, mid-weight list text |
+| `text-body-lg` | 0.9375rem (15px) | Auth body / section titles |
+| `text-lg` | 1rem (16px) | Large free-text inputs |
+| `text-xl` | 1.1875rem (19px) | In-app page titles |
+| `text-2xl` | 1.75rem (28px) | Auth card headings |
+| `text-3xl` | 3.5rem (56px) | Onboarding welcome hero |
+
 Rules:
 - Any **number a user reads as a value** (0:00:00, $120/hr) is `font-mono` +
   `tabular-nums` so digits don't jitter as they change.
 - DM Mono is a modern, light monospace — lean into it. The hero timer digit is
   `font-light` (300); secondary values (totals, rates, initials) are
   `font-normal`/`font-medium`. Never `font-bold` — heavy numerals kill the look.
-- Uppercase micro-labels ("COMING SOON", step badges) are `font-mono`, ~11–12px,
-  `tracking-[0.12em]`, low-contrast color.
-- Headings: `font-display font-bold`. Page title ≈ 19px in-app, 28px on auth
-  cards, 56px on the onboarding hero.
-- Body: 13px in dense app UI, 15px on auth screens, `leading-[1.5]–[1.6]`.
+- Uppercase micro-labels ("COMING SOON", step badges) are `font-mono`,
+  `text-xs`–`text-eyebrow`, `tracking-[0.12em]`, low-contrast color.
+- Form labels: `font-display text-label font-semibold`.
+- Headings: `font-display font-bold` with `text-xl` / `text-2xl` /
+  `text-3xl` as appropriate.
+- Body: `text-body` in dense app UI, `text-body-lg` on auth screens,
+  `leading-[1.5]–[1.6]`.
 - Weights available: display 400–700, sans 400–800, mono 300–500. Don't fake
   weights the font doesn't ship.
 
@@ -115,23 +137,46 @@ Rules:
 
 ## 4. Spacing, radius, shadow
 
-**Spacing** — an 8px-ish rhythm with a 4px half-step. In-app pages use a
-centered `px-10 py-8` column (see §6); vertical gaps between blocks are
-`gap-4`–`gap-6`. Inside cards use
-`px-3.5 / px-5` and `py-2 / py-3`. Prefer the Tailwind scale; the occasional
-odd pixel value (`py-[7px]`, `gap-[9px]`) is fine to hit a mockup, but don't
-invent new ones where a scale step works.
+**Spacing** — chrome half-steps as named tokens, plus Tailwind’s numeric scale
+(`p-1` = 4px, `p-2` = 8px, …). **Do not** add `--spacing-xs` / `--spacing-sm`
+etc. — in Tailwind v4 those names also drive `max-w-sm` / `w-sm`, so a 0.5rem
+`--spacing-sm` collapses `max-w-sm` to 8px and text wraps one character per line.
 
-**Radius** — rounded, consistent by element size:
+| Utility | Size | Use |
+|---|---|---|
+| `p-segment` / `mt-segment` | 0.1875rem (3px) | Segmented-toggle track inset, title→lede gap |
+| `p-menu` / `ml-menu` | 0.3125rem (5px) | Dropdown inset, tight inline gaps |
+| `py-compact` | 0.4375rem (7px) | Search bars, compact pills / toggles |
+| `py-field` | 0.5625rem (9px) | Form inputs / primary CTA vertical padding |
+| `p-modal` | 1.625rem (26px) | Modal dialog padding |
+| `size-icon-sm` / `size-icon-md` | 0.8125rem / 1.125rem | Inline icons |
+
+**Radius** — rem scale (overrides Tailwind defaults — use consistently):
 - Pills / buttons / toggles: `rounded-full`
-- Cards & panels: `rounded-[18px]` (large), `rounded-[16px]` (rail), `rounded-[14px]` (chips, dropdowns)
-- Modals: `rounded-[20px]` · Auth cards: `rounded-[24px]`
-- Small square tiles (avatars, icon tiles): `rounded-[9px]`–`rounded-[16px]`
+- Menu rows / tight controls: `rounded-xs` (6px)
+- Small fields / calendar blocks: `rounded-sm` (8px)
+- Inputs & form controls: `rounded-md` (10px)
+- Soft panels / mention menus: `rounded-lg` (12px)
+- Chips, notices, dropdowns: `rounded-xl` (14px)
+- Cards & panels: `rounded-2xl` (18px)
+- Modals / timer panel: `rounded-3xl` (20px)
+- Auth cards: `rounded-4xl` (24px) for both frame and inner card
+- One-off decorative tiles (auth blobs): keep arbitrary `rounded-[Npx]`
 
-**Shadow** — one token, `shadow-card` (`0 10px 28px rgba(20,29,51,.08)`), for
-every resting card on white. Elevated/overlay surfaces (dropdowns, modals) go
-deeper and ad-hoc (`0_16px_36px…`, `0_24px_56px…`). Buttons and brand elements
-stay **flat** — no glow, colored or otherwise.
+**Shadow** — tokens for resting and elevated surfaces:
+- `shadow-soft` — light chrome (icon buttons, tiny chips)
+- `shadow-float` — floating toolbars / segmented chrome
+- `shadow-card` — every resting card on white
+- `shadow-panel` — timer / raised panels
+- `shadow-dropdown` — menus and pickers
+- `shadow-modal` — modal dialogs
+- `shadow-auth` — standalone auth card
+Buttons and brand elements stay **flat** — no glow, colored or otherwise.
+
+**Measure**
+- Page column: `max-w-page` (1340px)
+- Page subtitle: `max-w-lede` (560px)
+- Auth card: `w-auth` (460px)
 
 ---
 
@@ -140,18 +185,18 @@ stay **flat** — no glow, colored or otherwise.
 - **Primary button:** solid `bg-brand text-white rounded-full`,
   `hover:bg-brand-deep`, `transition-colors`. No shadow, no lift. Icon-only
   primary actions (e.g. the timer Start) are a `rounded-full` blue circle.
-- **Secondary button:** `border-[1.5px] border-navy text-navy bg-transparent`,
+- **Secondary button:** `border-control border-navy text-navy bg-transparent`,
   `rounded-full`. Cancel/neutral actions.
-- **Card:** `rounded-[18px] bg-white shadow-card`.
+- **Card:** `rounded-2xl bg-white shadow-card`.
 - **Trademark line:** `block h-px w-full bg-brand-gradient` under a wordmark,
   `LogoMark`, or a primary input.
-- **Auth card frame:** `rounded-[25px] bg-brand-gradient p-px` outer wrapper
-  around the white `rounded-[24px]` card, in place of a solid border. The only
+- **Auth card frame:** `rounded-4xl bg-brand-gradient p-px` outer wrapper
+  around the white `rounded-4xl` card, in place of a solid border. The only
   two places the gradient appears — see §1.
-- **Segmented toggle:** `rounded-full bg-surface-muted p-[3px]`; active segment
+- **Segmented toggle:** `rounded-full bg-surface-muted p-segment`; active segment
   `bg-navy text-cream`, inactive `text-navy/55`.
-- **Input / focus:** `border-[1.5px] border-navy/[0.08]`, focus →
-  `focus:border-brand` (or `focus-within:border-brand` on a wrapping label).
+- **Input / focus:** `rounded-md border-control border-navy/[0.08] py-field`,
+  focus → `focus:border-brand` (or `focus-within:border-brand` on a wrapping label).
 - **Status pill:** colored dot + label (`components/ui/Pill.tsx`); dot uses the
   semantic crayon color.
 - **Sidebar nav item:** inactive `text-white/70 hover:bg-white/[0.06]`, active
@@ -168,13 +213,13 @@ In-app screens do **not** stretch edge to edge. Content sits in a **centered
 column** with a max width, so it stays comfortable to read on wide monitors and
 the app feels composed rather than sprawling.
 
-- **Max width: `max-w-[1340px]`**, centered with `mx-auto w-full`.
+- **Max width: `max-w-page`**, centered with `mx-auto w-full`.
 - **Outer padding: `px-10 py-8`.**
 - This applies to every in-app screen (Timer, Members, …) so they share the same
   measure. Only the persistent sidebar is full-height; the content column is not.
 
 If a screen needs full-area click behaviour (e.g. click-anywhere-to-close menus),
-keep the padded, full-width wrapper for the handler and put the `max-w-[1340px]`
+keep the padded, full-width wrapper for the handler and put the `max-w-page`
 column *inside* it — see `MembersPage.tsx`.
 
 ### Scaffolding a new in-app page
@@ -182,18 +227,18 @@ column *inside* it — see `MembersPage.tsx`.
 ```tsx
 export default function ThingPage() {
   return (
-    <div className="mx-auto flex w-full max-w-[1340px] flex-col gap-6 px-10 py-8">
+    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-10 py-8">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-[19px] font-bold text-navy">Thing</h1>
-          <p className="mt-[3px] max-w-[560px] text-[13px] leading-[1.5] text-navy/60">
+          <h1 className="font-display text-xl font-bold text-navy">Thing</h1>
+          <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
             One line on what this screen is for.
           </p>
         </div>
         {/* one solid-blue primary action, if any */}
       </header>
 
-      {/* content in rounded-[18px] bg-white shadow-card cards */}
+      {/* content in rounded-2xl bg-white shadow-card cards */}
     </div>
   )
 }
@@ -206,8 +251,8 @@ the sidebar and router pick it up automatically.
 Auth-style (standalone, no shell) screens instead go on `bg-white`, centered,
 with several tilted brand-blue/purple blobs behind it (§2). Where there's a
 card (sign-in, invite, the onboarding admin step), frame it in the gradient
-hairline (`rounded-[25px] bg-brand-gradient p-px` wrapping a white
-`rounded-[24px]` inner card) and put the `LogoMark` inside it, above the
+hairline (`rounded-4xl bg-brand-gradient p-px` wrapping a white
+`rounded-4xl` inner card) and put the `LogoMark` inside it, above the
 heading. Where there's no card (the onboarding welcome step), put `LogoMark`
 directly on the page with the trademark hairline underneath it, same as in
 the sidebar. Mirror `pages/SignInPage.tsx`.

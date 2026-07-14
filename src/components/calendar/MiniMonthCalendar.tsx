@@ -36,18 +36,18 @@ export function MiniMonthCalendar({
         <button
           type="button"
           onClick={() => onMonthChange(addDays(startOfMonth(displayMonth), -1))}
-          className="flex h-7 w-7 items-center justify-center rounded-[8px] text-navy/50 hover:bg-surface-muted hover:text-navy"
+          className="flex h-7 w-7 items-center justify-center rounded-sm text-navy/50 hover:bg-surface-muted hover:text-navy"
           aria-label="Previous month"
         >
           <Icon name="chevron-right" className="h-3.5 w-3.5 rotate-180" />
         </button>
-        <span className="font-display text-[13px] font-bold text-navy">
+        <span className="font-display text-md font-bold text-navy">
           {formatMonthYear(displayMonth)}
         </span>
         <button
           type="button"
           onClick={() => onMonthChange(addDays(startOfMonth(displayMonth), 32))}
-          className="flex h-7 w-7 items-center justify-center rounded-[8px] text-navy/50 hover:bg-surface-muted hover:text-navy"
+          className="flex h-7 w-7 items-center justify-center rounded-sm text-navy/50 hover:bg-surface-muted hover:text-navy"
           aria-label="Next month"
         >
           <Icon name="chevron-right" className="h-3.5 w-3.5" />
@@ -58,7 +58,7 @@ export function MiniMonthCalendar({
         {WEEKDAY_LABELS.map((label, i) => (
           <div
             key={`${label}-${i}`}
-            className="py-1 text-center text-[10px] font-semibold text-navy/40"
+            className="py-1 text-center text-xs font-semibold text-navy/40"
           >
             {label}
           </div>
@@ -75,7 +75,7 @@ export function MiniMonthCalendar({
               key={day.toISOString()}
               type="button"
               onClick={() => onDateSelect(day)}
-              className={`relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium transition-colors ${
+              className={`relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
                 selected
                   ? 'bg-navy text-cream'
                   : today

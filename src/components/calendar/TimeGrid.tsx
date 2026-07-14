@@ -233,11 +233,11 @@ export function TimeGrid({
             key={day.toISOString()}
             className="flex min-w-0 flex-1 flex-col items-center py-2"
           >
-            <span className="text-[11px] font-medium uppercase tracking-wide text-navy/45">
+            <span className="text-xs font-medium uppercase tracking-wide text-navy/45">
               {formatWeekday(day)}
             </span>
             <span
-              className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-[13px] font-bold ${
+              className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-md font-bold ${
                 isToday(day) ? 'bg-navy text-cream' : 'text-navy'
               }`}
             >
@@ -260,7 +260,7 @@ export function TimeGrid({
                 style={{ height: hourHeight }}
               >
                 {hour > 0 && (
-                  <span className="absolute -top-2 right-2 text-[10px] text-navy/40">
+                  <span className="absolute -top-2 right-2 text-xs text-navy/40">
                     {hour === 12 ? '12 PM' : hour < 12 ? `${hour} AM` : `${hour - 12} PM`}
                   </span>
                 )}

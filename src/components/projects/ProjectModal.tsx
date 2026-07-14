@@ -11,9 +11,9 @@ import type { BillingType, Project } from '../../types/project'
 /** Currencies offered in the picker; the backend accepts any 3-letter code. */
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'BAM', 'CHF'] as const
 
-const LABEL = 'mb-1.5 block font-display text-[11.5px] font-semibold text-navy/70'
+const LABEL = 'mb-1.5 block font-display text-label font-semibold text-navy/70'
 const FIELD =
-  'w-full rounded-[10px] border-[1.5px] border-navy/[0.08] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand'
+  'w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand'
 
 /** Empty string → null; otherwise the parsed number (may be negative — backend validates). */
 function parseAmount(value: string): number | null {
@@ -123,7 +123,7 @@ export function ProjectModal({
       title={project ? 'Edit project' : 'New project'}
       subtitle={project ? undefined : 'Projects are grouped under a client and hold tracked time.'}
       onClose={onClose}
-      widthClassName="w-[460px]"
+      widthClassName="w-auth"
     >
       <form
         onSubmit={(event) => {
@@ -160,13 +160,13 @@ export function ProjectModal({
 
         <div className="mb-3">
           <label className={LABEL}>Billing</label>
-          <div className="flex rounded-full bg-surface-muted p-[3px]">
+          <div className="flex rounded-full bg-surface-muted p-segment">
             {(['hourly', 'fixedFee'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => setBillingType(option)}
-                className={`flex-1 rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+                className={`flex-1 rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
                   billingType === option ? 'bg-navy text-cream' : 'text-navy/55'
                 }`}
               >
@@ -253,23 +253,23 @@ export function ProjectModal({
         </div>
 
         {error && (
-          <div className="mb-3 rounded-[10px] bg-red-tint px-3 py-2.5 text-[12.5px] leading-[1.5] text-red">
+          <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm leading-[1.5] text-red">
             {error}
           </div>
         )}
 
-        <div className="mt-[18px] flex gap-2">
+        <div className="mt-4.5 flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+            className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSave}
-            className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Saving…' : project ? 'Save changes' : 'Add project'}
           </button>

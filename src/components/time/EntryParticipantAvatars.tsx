@@ -37,7 +37,7 @@ export function EntryParticipantAvatars({
       ))}
       {overflow > 0 ? (
         <span
-          className="ml-1.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-navy/8 px-1.5 text-[11px] font-semibold text-navy/60"
+          className="ml-1.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-navy/8 px-1.5 text-xs font-semibold text-navy/60"
           title={`${overflow} more`}
         >
           +{overflow}

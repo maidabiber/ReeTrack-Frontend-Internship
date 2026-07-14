@@ -32,12 +32,20 @@ export function CalendarHeader({
 
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-navy/8 px-4 py-3">
-        <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onToday}
+        className="rounded-full border border-navy/12 px-3.5 py-1.5 font-display text-sm font-semibold text-navy hover:bg-surface-muted"
+      >
+        Today
+      </button>
+
+      <div className="flex items-center gap-1">
         <NavButton label="Previous" onClick={onPrev} />
         <NavButton label="Next" onClick={onNext} direction="right" />
       </div>
 
-      <h2 className="min-w-0 flex-1 font-display text-[15px] font-bold text-navy">
+      <h2 className="min-w-0 flex-1 font-display text-body-lg font-bold text-navy">
         {formatHeaderLabel(selectedDate, viewMode)}
       </h2>
 
@@ -50,7 +58,7 @@ export function CalendarHeader({
         </ZoomButton>
       </div>
 
-      <div className="flex rounded-full bg-surface-muted p-[3px]">
+      <div className="flex rounded-full bg-surface-muted p-segment">
         <ToggleButton active={viewMode === 'day'} onClick={() => onViewModeChange('day')}>
           Day
         </ToggleButton>
@@ -79,7 +87,7 @@ function ZoomButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-[10px] font-display text-[16px] font-semibold leading-none text-navy/55 hover:bg-surface-muted hover:text-navy disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-navy/55"
+      className="flex h-8 w-8 items-center justify-center rounded-md font-display text-lg font-semibold leading-none text-navy/55 hover:bg-surface-muted hover:text-navy disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-navy/55"
     >
       {children}
     </button>
@@ -100,7 +108,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-[10px] text-navy/55 hover:bg-surface-muted hover:text-navy"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-navy/55 hover:bg-surface-muted hover:text-navy"
     >
       <Icon
         name="chevron-right"
@@ -123,7 +131,7 @@ function ToggleButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3.5 py-[7px] font-display text-[12.5px] font-semibold ${
+      className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
         active ? 'bg-navy text-cream' : 'text-navy/55'
       }`}
     >

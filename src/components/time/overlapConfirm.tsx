@@ -129,7 +129,7 @@ function CenteredAlertModal({
       role="presentation"
     >
       <div
-        className="w-[400px] max-w-full rounded-[20px] bg-white p-[26px] shadow-[0_24px_56px_rgba(31,43,77,0.22)]"
+        className="w-[400px] max-w-full rounded-3xl bg-white p-modal shadow-modal"
         onClick={(event) => event.stopPropagation()}
         role="alertdialog"
         aria-modal="true"
@@ -147,7 +147,7 @@ function CenteredAlertModal({
             <h2 id={titleId} className="font-display text-base font-bold text-navy">
               {title}
             </h2>
-            <p id={messageId} className="mt-2 text-[13px] leading-[1.55] text-navy/75">
+            <p id={messageId} className="mt-2 text-body leading-[1.55] text-navy/75">
               {message}
             </p>
           </div>
@@ -159,7 +159,7 @@ function CenteredAlertModal({
               type="button"
               onClick={onDismiss}
               disabled={isSaving}
-              className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy disabled:opacity-60"
+              className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy disabled:opacity-60"
             >
               {secondaryLabel}
             </button>
@@ -168,7 +168,7 @@ function CenteredAlertModal({
             type="button"
             onClick={onPrimary}
             disabled={isSaving}
-            className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Saving…' : primaryLabel}
           </button>
