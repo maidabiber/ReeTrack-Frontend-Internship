@@ -8,6 +8,7 @@ interface EventDetailPanelProps {
   selectedDate: Date
   canEdit?: boolean
   onEdit?: () => void
+  onCreateTimeEntry?: () => void
 }
 
 export function EventDetailPanel({
@@ -15,6 +16,7 @@ export function EventDetailPanel({
   selectedDate,
   canEdit = false,
   onEdit,
+  onCreateTimeEntry,
 }: EventDetailPanelProps) {
   if (!event) {
     return (
@@ -45,6 +47,15 @@ export function EventDetailPanel({
             className="rounded-full border-control border-navy px-3 py-1 font-display text-sm font-semibold text-navy transition-colors hover:bg-white"
           >
             Edit
+          </button>
+        ) : null}
+        {!isTimeEntry && onCreateTimeEntry ? (
+          <button
+            type="button"
+            onClick={onCreateTimeEntry}
+            className="rounded-full border-[1.5px] border-navy px-3 py-1 font-display text-[11.5px] font-semibold text-navy transition-colors hover:bg-white"
+          >
+            Create time entry
           </button>
         ) : null}
       </div>

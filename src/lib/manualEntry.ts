@@ -38,6 +38,26 @@ export function createManualEntryFromTimeEntry(entry: {
   }
 }
 
+export function createManualEntryFromCalendarEvent(event: {
+  start: Date
+  end: Date
+}): ManualEntryState {
+  const start = event.start
+  let end = event.end
+
+  if (end <= start) {
+    end = new Date(start.getTime() + 60 * 60 * 1000)
+  }
+
+  let durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000)
+  if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+    durationSeconds = MAX_MANUAL_DURATION_SECONDS
+    end = new Date(start.getTime() + durationSeconds * 1000)
+  }
+
+  return { start, end, durationSeconds }
+}
+
 export function createDefaultManualEntry(now = new Date()): ManualEntryState {
   const end = roundToMinute(now)
   const start = new Date(end.getTime() - 60 * 60 * 1000)

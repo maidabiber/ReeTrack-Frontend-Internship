@@ -176,6 +176,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       description?: string
       startedAtUtc: string
       endedAtUtc: string
+      isBillable?: boolean
       confirmOverlap?: boolean
       assigneeUserIds?: string[]
     }) => {
@@ -189,6 +190,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               description: params.description,
               startedAtUtc: params.startedAtUtc,
               endedAtUtc: params.endedAtUtc,
+              isBillable: params.isBillable,
               confirmOverlap: params.confirmOverlap,
             })
           : await createManualEntry(params)

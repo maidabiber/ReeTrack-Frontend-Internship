@@ -6,9 +6,10 @@ import { formatFullDate, formatTimeRange } from './dateUtils'
 interface CalendarEventModalProps {
   event: CalendarEvent
   onClose: () => void
+  onCreateTimeEntry?: () => void
 }
 
-export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) {
+export function CalendarEventModal({ event, onClose, onCreateTimeEntry }: CalendarEventModalProps) {
   return (
     <Modal title="Calendar event" subtitle={formatFullDate(event.start)} onClose={onClose}>
       <h3 className="font-display text-body-lg font-bold leading-snug text-navy">{event.title}</h3>
@@ -34,13 +35,24 @@ export function CalendarEventModal({ event, onClose }: CalendarEventModalProps) 
         </a>
       ) : null}
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="mt-6 w-full rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
-      >
-        Close
-      </button>
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 rounded-full border-[1.5px] border-navy bg-transparent py-2.5 font-display text-[13px] font-semibold text-navy"
+        >
+          Close
+        </button>
+        {onCreateTimeEntry ? (
+          <button
+            type="button"
+            onClick={onCreateTimeEntry}
+            className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep"
+          >
+            Create time entry
+          </button>
+        ) : null}
+      </div>
     </Modal>
   )
 }

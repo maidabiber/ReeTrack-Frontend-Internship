@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
+import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
 import { OverlapConfirmModal, useOverlapConfirm } from '../time/overlapConfirm'
 import { useTimer } from '../../hooks/useTimer'
@@ -46,6 +47,7 @@ export function EventCalendar() {
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT)
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
+  const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
   const [pendingDragSave, setPendingDragSave] = useState<PendingDragSave | null>(null)
 
   const overlapConfirm = useOverlapConfirm()
@@ -186,6 +188,11 @@ export function EventCalendar() {
     [executeDragSave, isEventEditable, overlapConfirm, resolveEntry],
   )
 
+  function handleCreateFromCalendarEvent(event: CalendarEvent) {
+    setReadonlyCalendarEvent(null)
+    setCreatingFromEvent(event)
+  }
+
   function handleToday() {
     setSelectedDate(new Date())
   }
@@ -273,6 +280,11 @@ export function EventCalendar() {
           onEditEntry={
             selectedTimeEntry ? () => setEditingEntry(selectedTimeEntry) : undefined
           }
+          onCreateTimeEntry={
+            selectedEvent?.kind === 'calendarEvent'
+              ? () => handleCreateFromCalendarEvent(selectedEvent)
+              : undefined
+          }
         />
       ) : (
         <WeekView
@@ -297,10 +309,20 @@ export function EventCalendar() {
         <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} />
       ) : null}
 
+      {creatingFromEvent ? (
+        <CreateEntryModal
+          initialDescription={creatingFromEvent.title}
+          initialStart={creatingFromEvent.start}
+          initialEnd={creatingFromEvent.end}
+          onClose={() => setCreatingFromEvent(null)}
+        />
+      ) : null}
+
       {readonlyCalendarEvent ? (
         <CalendarEventModal
           event={readonlyCalendarEvent}
           onClose={() => setReadonlyCalendarEvent(null)}
+          onCreateTimeEntry={() => handleCreateFromCalendarEvent(readonlyCalendarEvent)}
         />
       ) : null}
 

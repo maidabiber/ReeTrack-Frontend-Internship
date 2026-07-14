@@ -18,6 +18,7 @@ interface DayViewProps {
   isEventEditable?: (event: CalendarEvent) => boolean
   canEditSelectedEvent?: boolean
   onEditEntry?: () => void
+  onCreateTimeEntry?: () => void
 }
 
 export function DayView({
@@ -33,6 +34,7 @@ export function DayView({
   isEventEditable,
   canEditSelectedEvent = false,
   onEditEntry,
+  onCreateTimeEntry,
 }: DayViewProps) {
   const [displayMonth, setDisplayMonth] = useState(() => startOfMonth(selectedDate))
 
@@ -75,6 +77,7 @@ export function DayView({
           selectedDate={selectedDate}
           canEdit={canEditSelectedEvent}
           onEdit={onEditEntry}
+          onCreateTimeEntry={onCreateTimeEntry}
         />
       </div>
     </div>

@@ -28,6 +28,7 @@ export interface TimerContextValue {
     description?: string
     startedAtUtc: string
     endedAtUtc: string
+    isBillable?: boolean
     confirmOverlap?: boolean
     assigneeUserIds?: string[]
   }) => Promise<{ overlapWarning: string | null }>
