@@ -139,9 +139,9 @@ export function useCalendarEntryCreate({
   }, [cancelPreviewRaf, removeWindowListeners, updateCreatePreview])
 
   const finishSession = useCallback(
-    (session: CreateSession) => {
+    () => {
       const preview = createPreviewRef.current
-      const shouldCreate = session.moved && preview !== null
+      const shouldCreate = sessionRef.current?.moved && preview !== null
 
       clearSession()
 
@@ -153,7 +153,7 @@ export function useCalendarEntryCreate({
   )
 
   const attachWindowListeners = useCallback(
-    (session: CreateSession) => {
+    () => {
       removeWindowListeners()
 
       const onMove = (event: PointerEvent) => {
@@ -176,7 +176,7 @@ export function useCalendarEntryCreate({
       const onUp = (event: PointerEvent) => {
         const active = sessionRef.current
         if (!active || active.pointerId !== event.pointerId) return
-        finishSession(active)
+        finishSession()
       }
 
       const onCancel = (event: PointerEvent) => {
@@ -216,7 +216,7 @@ export function useCalendarEntryCreate({
       sessionRef.current = session
       setIsCreating(true)
       updateCreatePreview(null)
-      attachWindowListeners(session)
+      attachWindowListeners()
     },
     [attachWindowListeners, disabled, hourHeight, onEventCreate, updateCreatePreview],
   )

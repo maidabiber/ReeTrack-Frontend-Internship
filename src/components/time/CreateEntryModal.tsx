@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { timeEntryApiErrorMessage } from '../../api/timeEntries'
 import { useTimer } from '../../hooks/useTimer'
 import {
@@ -12,13 +12,9 @@ import {
   validateManualEntry,
 } from '../../lib/manualEntry'
 import { Modal } from '../ui/Modal'
-import {
-  DURATION_LIMIT_MESSAGE,
-  DurationLimitModal,
-  isDurationLimitError,
-  OverlapConfirmModal,
-  useOverlapConfirm,
-} from './overlapConfirm'
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/overlapErrors'
+import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
+import { DurationLimitModal, OverlapConfirmModal } from './overlapConfirm'
 
 interface CreateEntryModalProps {
   initialDescription: string
@@ -39,15 +35,12 @@ export function CreateEntryModal({
   const [manualEntry, setManualEntry] = useState(() =>
     createManualEntryFromCalendarEvent({ start: initialStart, end: initialEnd }),
   )
-  const [durationInput, setDurationInput] = useState(() =>
-    formatManualDurationInput(manualEntry.durationSeconds),
-  )
+  const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
 
-  useEffect(() => {
-    setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
-  }, [manualEntry.durationSeconds])
+  const durationInput =
+    durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
 
   const validation = validateManualEntry(manualEntry, [], null)
   const overlapConfirm = useOverlapConfirm()
@@ -145,16 +138,14 @@ export function CreateEntryModal({
             type="text"
             value={durationInput}
             onChange={(value) => {
-              setDurationInput(value)
+              setDurationDraft(value)
               setDurationLimitMessage(null)
               overlapConfirm.clearOverlapConfirm()
               const parsed = parseDurationInput(value)
               if (parsed === null) return
               setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
             }}
-            onBlur={() => {
-              setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
-            }}
+            onBlur={() => setDurationDraft(null)}
             className="font-mono tabular-nums"
             disabled={isSavingManual}
           />

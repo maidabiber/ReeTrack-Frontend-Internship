@@ -19,12 +19,14 @@ export function TimeEntryTemplatesPanel({
   onSelectTemplate: (template: TimeEntryTemplate) => void
 }) {
   const [templates, setTemplates] = useState<TimeEntryTemplate[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [fetchedKey, setFetchedKey] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TimeEntryTemplate | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+
+  const isLoading = fetchedKey !== reloadKey
 
   const reload = useCallback(() => {
     setReloadKey((key) => key + 1)
@@ -33,21 +35,19 @@ export function TimeEntryTemplatesPanel({
   useEffect(() => {
     let cancelled = false
 
-    setIsLoading(true)
     listTimeEntryTemplates()
       .then((result) => {
         if (cancelled) return
         setTemplates(result.items)
         setLoadError(null)
+        setFetchedKey(reloadKey)
       })
       .catch((error) => {
         if (cancelled) return
         setLoadError(
           timeEntryTemplateApiErrorMessage(error, 'Could not load favourites.'),
         )
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
+        setFetchedKey(reloadKey)
       })
 
     return () => {

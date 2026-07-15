@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ApiError } from '../../api/client'
 import { timeEntryApiErrorMessage } from '../../api/timeEntries'
 import { useTimer } from '../../hooks/useTimer'
@@ -17,13 +17,9 @@ import {
 } from '../../lib/manualEntry'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
-import {
-  DURATION_LIMIT_MESSAGE,
-  DurationLimitModal,
-  isDurationLimitError,
-  OverlapConfirmModal,
-  useOverlapConfirm,
-} from './overlapConfirm'
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/overlapErrors'
+import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
+import { DurationLimitModal, OverlapConfirmModal } from './overlapConfirm'
 
 export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
   const isDurationOnly = entry.mode === 'DurationOnly'
@@ -31,9 +27,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
-  const [durationInput, setDurationInput] = useState(() =>
-    formatManualDurationInput(entry.durationSeconds),
-  )
+  const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [durationOnlySeconds, setDurationOnlySeconds] = useState(entry.durationSeconds)
   const [durationOnlyInput, setDurationOnlyInput] = useState(() =>
     formatManualDurationInput(entry.durationSeconds),
@@ -45,9 +39,8 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
-  }, [manualEntry.durationSeconds])
+  const durationInput =
+    durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
 
   const validation = validateManualEntry(manualEntry, [], null)
   const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
@@ -244,16 +237,14 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
               type="text"
               value={durationInput}
               onChange={(value) => {
-                setDurationInput(value)
+                setDurationDraft(value)
                 setDurationLimitMessage(null)
                 overlapConfirm.clearOverlapConfirm()
                 const parsed = parseDurationInput(value)
                 if (parsed === null) return
                 setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
               }}
-              onBlur={() => {
-                setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
-              }}
+              onBlur={() => setDurationDraft(null)}
               className="font-mono tabular-nums"
               disabled={isSavingEdit}
             />

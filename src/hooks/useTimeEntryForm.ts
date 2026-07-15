@@ -1,10 +1,7 @@
 import { useCallback, useState } from 'react'
 import { timeEntryApiErrorMessage } from '../api/timeEntries'
-import {
-  DURATION_LIMIT_MESSAGE,
-  isDurationLimitError,
-  useOverlapConfirm,
-} from '../components/time/overlapConfirm'
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/overlapErrors'
+import { useOverlapConfirm } from './useOverlapConfirm'
 import type { ManualFieldState } from '../components/time/ManualField'
 import { useTimer } from './useTimer'
 import type { Teammate } from '../lib/mention'

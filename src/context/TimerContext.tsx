@@ -22,13 +22,20 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isInitializing: isAuthInitializing } = useAuth()
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null)
   const [entries, setEntries] = useState<TimeEntry[]>([])
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [tick, setTick] = useState(0)
+  const [fetchedKey, setFetchedKey] = useState<string | null>(null)
   const [isToggling, setIsToggling] = useState(false)
   const [isSavingManual, setIsSavingManual] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const activeTimerRef = useRef<ActiveTimer | null>(null)
+
+  const requestKey = isAuthInitializing
+    ? null
+    : isAuthenticated
+      ? 'authenticated'
+      : 'anonymous'
+  const isInitializing = requestKey === null || fetchedKey !== requestKey
 
   useEffect(() => {
     activeTimerRef.current = activeTimer
@@ -38,36 +45,49 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     if (!isAuthenticated) {
       setActiveTimer(null)
       setEntries([])
-      setElapsedSeconds(0)
-      setIsInitializing(false)
       return
     }
 
     const [active, list] = await Promise.all([getActiveTimer(), listTimeEntries()])
     setActiveTimer(active)
     setEntries(list)
-    setElapsedSeconds(active ? elapsedSecondsSince(active.startedAtUtc) : 0)
   }, [isAuthenticated])
 
   useEffect(() => {
-    if (isAuthInitializing) return
+    if (requestKey === null) return
 
     let cancelled = false
-    setIsInitializing(true)
-    setError(null)
 
-    refresh()
-      .catch(() => {
-        if (!cancelled) setError('Could not load timer state.')
-      })
-      .finally(() => {
-        if (!cancelled) setIsInitializing(false)
-      })
+    void (async () => {
+      try {
+        if (!isAuthenticated) {
+          // Yield so setState is not synchronous with the effect body.
+          await Promise.resolve()
+          if (cancelled) return
+          setActiveTimer(null)
+          setEntries([])
+          setError(null)
+          setFetchedKey(requestKey)
+          return
+        }
+
+        const [active, list] = await Promise.all([getActiveTimer(), listTimeEntries()])
+        if (cancelled) return
+        setActiveTimer(active)
+        setEntries(list)
+        setError(null)
+        setFetchedKey(requestKey)
+      } catch {
+        if (cancelled) return
+        setError('Could not load timer state.')
+        setFetchedKey(requestKey)
+      }
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [isAuthInitializing, refresh])
+  }, [requestKey, isAuthenticated])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -81,19 +101,17 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, refresh])
 
   useEffect(() => {
-    if (!activeTimer) {
-      setElapsedSeconds(0)
-      return
-    }
-
-    setElapsedSeconds(elapsedSecondsSince(activeTimer.startedAtUtc))
+    if (!activeTimer) return
 
     const intervalId = window.setInterval(() => {
-      setElapsedSeconds(elapsedSecondsSince(activeTimer.startedAtUtc))
+      setTick((value) => value + 1)
     }, 1000)
 
     return () => window.clearInterval(intervalId)
   }, [activeTimer])
+
+  const elapsedSeconds =
+    tick >= 0 && activeTimer ? elapsedSecondsSince(activeTimer.startedAtUtc) : 0
 
   const start = useCallback(async (description?: string) => {
     setIsToggling(true)
@@ -102,7 +120,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     try {
       const timer = await startTimer(description)
       setActiveTimer(timer)
-      setElapsedSeconds(0)
     } catch (err) {
       setError(timeEntryApiErrorMessage(err, 'Could not start the timer.'))
       throw err
@@ -122,7 +139,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const timerSnapshot = activeTimerRef.current
     if (timerSnapshot) {
       setActiveTimer(null)
-      setElapsedSeconds(0)
     }
 
     try {
@@ -143,7 +159,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       if (timerSnapshot) {
         setActiveTimer(timerSnapshot)
-        setElapsedSeconds(elapsedSecondsSince(timerSnapshot.startedAtUtc))
       }
 
       setError(timeEntryApiErrorMessage(err, 'Could not stop the timer.'))

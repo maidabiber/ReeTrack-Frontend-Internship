@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ApiError } from '../../api/client'
 import {
   approvePendingTimeEntry,
@@ -35,16 +35,15 @@ export function ReviewPendingEntryModal({
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
-  const [durationInput, setDurationInput] = useState(() => formatManualDurationInput(entry.durationSeconds))
+  const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
   const [pendingOverlapConfirm, setPendingOverlapConfirm] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isApproving, setIsApproving] = useState(false)
 
-  useEffect(() => {
-    setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
-  }, [manualEntry.durationSeconds])
+  const durationInput =
+    durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
 
   const validation = validateManualEntry(
     manualEntry,
@@ -163,14 +162,14 @@ export function ReviewPendingEntryModal({
           type="text"
           value={durationInput}
           onChange={(value) => {
-            setDurationInput(value)
+            setDurationDraft(value)
             setOverlapWarning(null)
             setPendingOverlapConfirm(false)
             const parsed = parseDurationInput(value)
             if (parsed === null) return
             setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
           }}
-          onBlur={() => setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))}
+          onBlur={() => setDurationDraft(null)}
           className="font-mono tabular-nums"
           disabled={isSaving || isApproving}
         />

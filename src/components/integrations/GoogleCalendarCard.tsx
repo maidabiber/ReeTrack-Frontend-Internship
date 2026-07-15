@@ -25,7 +25,7 @@ function formatLastSynced(value: string | null): string {
 
 export function GoogleCalendarCard() {
   const [connection, setConnection] = useState<CalendarConnection | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [fetchedKey, setFetchedKey] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
@@ -34,24 +34,23 @@ export function GoogleCalendarCard() {
   const [disconnectOpen, setDisconnectOpen] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
+  const isLoading = fetchedKey !== reloadKey
+
   useEffect(() => {
     let cancelled = false
-
-    setIsLoading(true)
-    setLoadError(null)
 
     listCalendarConnections()
       .then((connections) => {
         if (cancelled) return
         const google = connections.find((item) => item.providerType === CalendarProviderType.Google) ?? null
         setConnection(google)
+        setLoadError(null)
+        setFetchedKey(reloadKey)
       })
       .catch(() => {
         if (cancelled) return
         setLoadError('Could not load calendar connections. Is the backend running?')
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
+        setFetchedKey(reloadKey)
       })
 
     return () => {

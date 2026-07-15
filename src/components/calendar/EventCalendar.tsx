@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
 import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
-import { OverlapConfirmModal, useOverlapConfirm } from '../time/overlapConfirm'
+import { OverlapConfirmModal } from '../time/overlapConfirm'
+import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
 import { useTimer } from '../../hooks/useTimer'
 import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent, CalendarViewMode } from './types'
@@ -41,7 +42,7 @@ export function EventCalendar() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [fetchedKey, setFetchedKey] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT)
@@ -61,11 +62,11 @@ export function EventCalendar() {
     return { from: startOfWeek(selectedDate), to: endOfWeek(selectedDate) }
   }, [selectedDate, viewMode])
 
+  const requestKey = `${visibleRange.from.toISOString()}:${visibleRange.to.toISOString()}:${reloadKey}`
+  const isLoading = fetchedKey !== requestKey
+
   useEffect(() => {
     let cancelled = false
-
-    setIsLoading(true)
-    setLoadError(null)
 
     getCalendarView({
       from: visibleRange.from.toISOString(),
@@ -74,21 +75,21 @@ export function EventCalendar() {
       .then((view) => {
         if (cancelled) return
         setSyncedEvents(view.calendarEvents.map(mapSyncedEventToCalendarEvent))
+        setLoadError(null)
+        setFetchedKey(requestKey)
       })
       .catch((error) => {
         if (cancelled) return
         setLoadError(
           calendarApiErrorMessage(error, 'Could not load calendar data. Is the backend running?'),
         )
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
+        setFetchedKey(requestKey)
       })
 
     return () => {
       cancelled = true
     }
-  }, [visibleRange.from, visibleRange.to, reloadKey])
+  }, [requestKey, visibleRange.from, visibleRange.to])
 
   const events = useMemo(() => {
     const byId = new Map<string, CalendarEvent>()

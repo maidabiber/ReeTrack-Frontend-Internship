@@ -26,6 +26,7 @@ export interface TimeEntry {
   assigneeDisplayName: string | null
   shareGroupId: string | null
   participants: TimeEntryParticipant[]
+  projectId: string | null
 }
 
 export interface ActiveTimer extends TimeEntry {

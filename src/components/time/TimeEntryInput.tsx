@@ -35,13 +35,6 @@ type TimeEntryInputProps = {
   templateSeed?: TemplateSeed | null
 }
 
-export function isDurationOnlyTemplate(template: {
-  startTimeUtc: string | null
-  endTimeUtc: string | null
-}): boolean {
-  return template.startTimeUtc === null && template.endTimeUtc === null
-}
-
 export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputProps>(
   function TimeEntryInput(
     {

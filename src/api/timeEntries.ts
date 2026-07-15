@@ -52,6 +52,7 @@ function toTimeEntry(response: TimeEntryResponse): TimeEntry {
     assigneeDisplayName: response.assigneeDisplayName,
     shareGroupId: response.shareGroupId,
     participants: (response.participants ?? []).map(toParticipant),
+    projectId: null, 
   }
 }
 

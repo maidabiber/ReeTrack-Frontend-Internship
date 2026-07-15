@@ -131,7 +131,7 @@ export function useCalendarEntryResize({
   )
 
   const attachWindowListeners = useCallback(
-    (session: ResizeSession) => {
+    () => {
       removeWindowListeners()
 
       const onMove = (event: PointerEvent) => {
@@ -192,7 +192,7 @@ export function useCalendarEntryResize({
         end: event.end,
         day,
       })
-      attachWindowListeners(session)
+      attachWindowListeners()
     },
     [attachWindowListeners, disabled, isEventEditable, updateResizePreview],
   )

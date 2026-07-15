@@ -9,7 +9,11 @@ const TIME_ENTRY_ID_PREFIX = 'te-'
 
 /** Future: return project-based colors when TimeEntry includes projectId. */
 export function timeEntryColor(_entry: TimeEntry): EventColor {
-  return 'gray'
+  if (_entry.projectId === null) return 'gray'
+  else {
+    // Future: return project-based colors when TimeEntry includes projectId.
+    return 'gray'
+  }
 }
 
 export function timeEntryIdFromCalendarEvent(event: CalendarEvent): string | null {

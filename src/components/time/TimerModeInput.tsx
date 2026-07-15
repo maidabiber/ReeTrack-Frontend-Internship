@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { Icon } from '../ui/Icon'
-import { OverlapConfirmModal, useOverlapConfirm } from './overlapConfirm'
+import { OverlapConfirmModal } from './overlapConfirm'
+import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { useTimer } from '../../hooks/useTimer'
 import type { Teammate } from '../../lib/mention'

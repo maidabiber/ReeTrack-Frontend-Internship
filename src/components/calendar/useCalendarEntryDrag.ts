@@ -196,7 +196,7 @@ export function useCalendarEntryDrag({
   )
 
   const attachWindowListeners = useCallback(
-    (session: PointerSession) => {
+    () => {
       removeWindowListeners()
 
       const onMove = (event: PointerEvent) => {
@@ -277,7 +277,7 @@ export function useCalendarEntryDrag({
       }, LONG_PRESS_MS)
 
       sessionRef.current = session
-      attachWindowListeners(session)
+      attachWindowListeners()
     },
     [attachWindowListeners, isEventEditable, updateDragPreview],
   )

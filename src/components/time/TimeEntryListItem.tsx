@@ -1,4 +1,5 @@
-import { EntryParticipantAvatars, getEntryMembers } from './EntryParticipantAvatars'
+import { EntryParticipantAvatars } from './EntryParticipantAvatars'
+import { getEntryMembers } from '../../lib/entryParticipants'
 import { Icon } from '../ui/Icon'
 import { Pill } from '../ui/Pill'
 import { formatDurationHms } from '../../lib/formatDuration'

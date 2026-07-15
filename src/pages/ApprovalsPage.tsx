@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { listPendingTimeEntries } from '../api/timeEntries'
-import { EntryParticipantAvatars, getEntryMembers } from '../components/time/EntryParticipantAvatars'
+import { EntryParticipantAvatars } from '../components/time/EntryParticipantAvatars'
 import { ReviewPendingEntryModal } from '../components/time/ReviewPendingEntryModal'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 import { useAuth } from '../hooks/useAuth'
+import { getEntryMembers } from '../lib/entryParticipants'
 import { formatDurationHms } from '../lib/formatDuration'
 import {
   PENDING_ENTRY_AVATAR_RING_CLASS,
@@ -19,25 +20,32 @@ import type { TimeEntry } from '../types/timeEntry'
 export default function ApprovalsPage() {
   const { user } = useAuth()
   const [entries, setEntries] = useState<TimeEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [hasFetched, setHasFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null)
 
-  const refresh = useCallback(async () => {
-    setError(null)
-    try {
-      const pending = await listPendingTimeEntries()
-      setEntries(pending)
-    } catch {
-      setError('Could not load pending entries.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const isLoading = !hasFetched
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    let cancelled = false
+
+    listPendingTimeEntries()
+      .then((pending) => {
+        if (cancelled) return
+        setError(null)
+        setEntries(pending)
+        setHasFetched(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setError('Could not load pending entries.')
+        setHasFetched(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="mx-auto w-full max-w-[980px] px-10 py-8">

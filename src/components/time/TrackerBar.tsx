@@ -5,8 +5,8 @@ import {
   TimeEntryInput,
   type TimeEntryInputHandle,
   type TemplateSeed,
-  isDurationOnlyTemplate,
 } from './TimeEntryInput'
+import { isDurationOnlyTemplate } from '../../lib/timeEntryTemplates'
 import {
   TimerModeInput,
   type TimerModeInputHandle,
