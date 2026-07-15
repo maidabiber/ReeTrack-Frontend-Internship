@@ -94,6 +94,7 @@
   --width-duration-date: 132px;
   --width-timer-cluster: 104px;
   --width-manual-feedback-min: 320px;
+  --width-template-card: 220px;
 
   /* Spacing — chrome half-steps only. Do NOT add --spacing-xs/sm/md/…;
    * those names feed max-w-* / w-* and would collapse utilities like max-w-sm

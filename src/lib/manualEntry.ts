@@ -68,6 +68,84 @@ export function createDefaultManualEntry(now = new Date()): ManualEntryState {
   }
 }
 
+/** Prefill a manual entry from a favourite template (UTC times → local Dates for today). */
+export function createManualEntryFromTemplate(
+  template: {
+    startTimeUtc: string | null
+    endTimeUtc: string | null
+    durationSeconds: number
+  },
+  now = new Date(),
+): ManualEntryState {
+  const start = utcTimeOfDayToDate(template.startTimeUtc, now)
+  let end = utcTimeOfDayToDate(template.endTimeUtc, now)
+
+  if (start && end) {
+    // Overnight range in UTC (e.g. 22:00 → 01:00): push end to the next UTC day.
+    if (end <= start) {
+      end = new Date(end.getTime() + 24 * 60 * 60 * 1000)
+    }
+
+    let durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000)
+    if (durationSeconds <= 0 && template.durationSeconds > 0) {
+      durationSeconds = template.durationSeconds
+      end = new Date(start.getTime() + durationSeconds * 1000)
+    }
+
+    if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+      durationSeconds = MAX_MANUAL_DURATION_SECONDS
+      end = new Date(start.getTime() + durationSeconds * 1000)
+    }
+
+    return { start, end, durationSeconds }
+  }
+
+  const durationSeconds = Math.max(1, Math.min(template.durationSeconds, MAX_MANUAL_DURATION_SECONDS))
+  const roundedEnd = roundToMinute(now)
+  return {
+    start: new Date(roundedEnd.getTime() - durationSeconds * 1000),
+    end: roundedEnd,
+    durationSeconds,
+  }
+}
+
+/**
+ * Format a stored UTC time-of-day (`HH:mm:ss`) for display in the user's local timezone.
+ */
+export function formatUtcTimeOfDayLocal(value: string | null, now = new Date()): string | null {
+  const date = utcTimeOfDayToDate(value, now)
+  if (!date) return null
+  return date.toLocaleString(undefined, { hour: 'numeric', minute: '2-digit' })
+}
+
+/** Interpret `HH:mm:ss` as a UTC clock time on the UTC calendar day of `now`. */
+export function utcTimeOfDayToDate(value: string | null, now = new Date()): Date | null {
+  const time = parseTimeOfDay(value)
+  if (!time) return null
+  return new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      time.hours,
+      time.minutes,
+      time.seconds,
+      0,
+    ),
+  )
+}
+
+function parseTimeOfDay(value: string | null): { hours: number; minutes: number; seconds: number } | null {
+  if (!value) return null
+  const parts = value.split(':').map((part) => Number.parseInt(part, 10))
+  if (parts.length < 2 || parts.some((part) => Number.isNaN(part) || part < 0)) return null
+  return {
+    hours: parts[0] ?? 0,
+    minutes: parts[1] ?? 0,
+    seconds: parts[2] ?? 0,
+  }
+}
+
 export function applyManualFieldChange(
   current: ManualEntryState,
   field: ManualEntryField,

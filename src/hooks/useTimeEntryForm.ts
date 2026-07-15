@@ -1,0 +1,311 @@
+import { useCallback, useState } from 'react'
+import { timeEntryApiErrorMessage } from '../api/timeEntries'
+import {
+  DURATION_LIMIT_MESSAGE,
+  isDurationLimitError,
+  useOverlapConfirm,
+} from '../components/time/overlapConfirm'
+import type { ManualFieldState } from '../components/time/ManualField'
+import { useTimer } from './useTimer'
+import type { Teammate } from '../lib/mention'
+import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
+import {
+  applyManualFieldChange,
+  createDefaultManualEntry,
+  createManualEntryFromTemplate,
+  dateInputToUtcIso,
+  formatManualDurationInput,
+  MANUAL_ENTRY_MESSAGES,
+  MAX_MANUAL_DURATION_SECONDS,
+  parseDatetimeLocal,
+  parseDurationInput,
+  toDateInputValue,
+  validateDurationOnlyEntry,
+  validateManualEntry,
+} from '../lib/manualEntry'
+
+const DEFAULT_IS_BILLABLE = true
+const DEFAULT_DURATION_ONLY_SECONDS = 60 * 60
+
+export type TimeEntryFormVariant = 'range' | 'duration'
+
+export function useTimeEntryForm({
+  variant,
+  description,
+  mentionedTeammates,
+  onShared,
+  onClearDescription,
+  onClearMentions,
+  onClearShareNotice,
+}: {
+  variant: TimeEntryFormVariant
+  description: string
+  mentionedTeammates: Teammate[]
+  onShared: (notice: string) => void
+  onClearDescription: () => void
+  onClearMentions: () => void
+  onClearShareNotice: () => void
+}) {
+  const { isInitializing, isSavingManual, addManualEntry, addDurationEntry } = useTimer()
+  const overlapConfirm = useOverlapConfirm()
+
+  // Shared range + duration-only field state (only the active variant is edited/saved).
+  const [manualEntry, setManualEntry] = useState(createDefaultManualEntry)
+  const [durationInput, setDurationInput] = useState(() =>
+    formatManualDurationInput(
+      variant === 'duration'
+        ? DEFAULT_DURATION_ONLY_SECONDS
+        : createDefaultManualEntry().durationSeconds,
+    ),
+  )
+  const [durationOnlySeconds, setDurationOnlySeconds] = useState(DEFAULT_DURATION_ONLY_SECONDS)
+  const [entryDate, setEntryDate] = useState(() => toDateInputValue(new Date()))
+  const [isBillable, setIsBillable] = useState(DEFAULT_IS_BILLABLE)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [durationParseError, setDurationParseError] = useState<string | null>(null)
+  const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
+
+  const rangeValidation = validateManualEntry(manualEntry, [], null)
+  const endOrderError =
+    manualEntry.end <= manualEntry.start ? MANUAL_ENTRY_MESSAGES.endBeforeStart : null
+  const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
+
+  const blockingError =
+    variant === 'range'
+      ? rangeValidation.error ?? durationParseError ?? localError
+      : durationOnlyValidationError ?? durationParseError ?? localError
+
+  const timeFieldState: ManualFieldState = endOrderError ? 'error' : 'default'
+  const durationFieldState: ManualFieldState = durationParseError ? 'error' : 'default'
+  const showManualFeedback = variant === 'range' && Boolean(endOrderError)
+  const showBlockingNotice = variant === 'duration' && Boolean(blockingError)
+
+  const clearFeedback = useCallback(() => {
+    setLocalError(null)
+    setDurationParseError(null)
+    setDurationLimitMessage(null)
+    overlapConfirm.clearOverlapConfirm()
+    onClearShareNotice()
+  }, [overlapConfirm, onClearShareNotice])
+
+  const reset = useCallback(() => {
+    const defaults = createDefaultManualEntry()
+    setManualEntry(defaults)
+    setDurationInput(
+      formatManualDurationInput(
+        variant === 'duration' ? DEFAULT_DURATION_ONLY_SECONDS : defaults.durationSeconds,
+      ),
+    )
+    setDurationOnlySeconds(DEFAULT_DURATION_ONLY_SECONDS)
+    setEntryDate(toDateInputValue(new Date()))
+    setIsBillable(DEFAULT_IS_BILLABLE)
+    setLocalError(null)
+    setDurationParseError(null)
+    setDurationLimitMessage(null)
+    overlapConfirm.clearOverlapConfirm()
+  }, [overlapConfirm, variant])
+
+  const resetAfterSave = useCallback(() => {
+    reset()
+    onClearMentions()
+    onClearShareNotice()
+  }, [reset, onClearMentions, onClearShareNotice])
+
+  const applyTemplate = useCallback(
+    (template: TimeEntryTemplate) => {
+      setLocalError(null)
+      setDurationParseError(null)
+      setDurationLimitMessage(null)
+      overlapConfirm.clearOverlapConfirm()
+      onClearShareNotice()
+      setIsBillable(template.isBillable)
+
+      if (variant === 'duration') {
+        const seconds = Math.max(
+          1,
+          Math.min(template.durationSeconds, MAX_MANUAL_DURATION_SECONDS),
+        )
+        setDurationOnlySeconds(seconds)
+        setDurationInput(formatManualDurationInput(seconds))
+        setEntryDate(toDateInputValue(new Date()))
+        return
+      }
+
+      const next = createManualEntryFromTemplate(template)
+      setManualEntry(next)
+      setDurationInput(formatManualDurationInput(next.durationSeconds))
+    },
+    [overlapConfirm, onClearShareNotice, variant],
+  )
+
+  const setStart = (value: string) => {
+    const parsed = parseDatetimeLocal(value)
+    if (!parsed) return
+    clearFeedback()
+    const next = applyManualFieldChange(manualEntry, 'start', parsed)
+    setManualEntry(next)
+    setDurationInput(formatManualDurationInput(next.durationSeconds))
+  }
+
+  const setEnd = (value: string) => {
+    const parsed = parseDatetimeLocal(value)
+    if (!parsed) return
+    clearFeedback()
+    const next = applyManualFieldChange(manualEntry, 'end', parsed)
+    setManualEntry(next)
+    setDurationInput(formatManualDurationInput(next.durationSeconds))
+  }
+
+  const setDuration = (value: string) => {
+    setDurationInput(value)
+    setDurationParseError(null)
+    clearFeedback()
+    const parsed = parseDurationInput(value)
+    if (parsed === null) return
+
+    if (variant === 'duration') {
+      setDurationOnlySeconds(parsed)
+      return
+    }
+
+    setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
+  }
+
+  const blurDuration = () => {
+    const parsed = parseDurationInput(durationInput)
+    if (durationInput.trim() && parsed === null) {
+      setDurationParseError('Use 1:30 or 1:30:00')
+      return
+    }
+    setDurationParseError(null)
+    const seconds =
+      variant === 'duration' ? durationOnlySeconds : manualEntry.durationSeconds
+    setDurationInput(formatManualDurationInput(seconds))
+  }
+
+  const saveRangeEntry = async (confirmOverlap = false) => {
+    setDurationLimitMessage(null)
+
+    if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+      setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+      return
+    }
+
+    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+      onClearError: () => setLocalError(null),
+      validationError: rangeValidation.error,
+      onValidationError: setLocalError,
+      save: async (confirmedOverlap) => {
+        const sharedNames = mentionedTeammates.map(
+          (teammate) => teammate.displayName ?? teammate.email,
+        )
+
+        await addManualEntry({
+          description: description.trim() || undefined,
+          startedAtUtc: manualEntry.start.toISOString(),
+          endedAtUtc: manualEntry.end.toISOString(),
+          isBillable,
+          confirmOverlap: confirmedOverlap,
+          ...(mentionedTeammates.length > 0
+            ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
+            : {}),
+        })
+
+        resetAfterSave()
+        if (sharedNames.length === 1) {
+          onShared(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
+        } else if (sharedNames.length > 1) {
+          onShared(
+            `Shared with ${sharedNames.length} teammates. They will be notified to approve it.`,
+          )
+        }
+        onClearDescription()
+      },
+      onOtherError: (err) => {
+        if (isDurationLimitError(err)) {
+          setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+          return
+        }
+
+        setLocalError(timeEntryApiErrorMessage(err, 'Could not save the manual entry.'))
+      },
+    })
+  }
+
+  const saveDurationEntry = async () => {
+    setDurationLimitMessage(null)
+
+    if (durationOnlySeconds > MAX_MANUAL_DURATION_SECONDS) {
+      setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+      return
+    }
+
+    const validationError = durationOnlyValidationError ?? durationParseError
+    if (validationError) {
+      setLocalError(validationError)
+      return
+    }
+
+    const entryDateUtc = dateInputToUtcIso(entryDate)
+    if (!entryDateUtc) {
+      setLocalError('Enter a valid date.')
+      return
+    }
+
+    setLocalError(null)
+
+    try {
+      await addDurationEntry({
+        description: description.trim() || undefined,
+        entryDateUtc,
+        durationSeconds: durationOnlySeconds,
+        isBillable,
+      })
+      onClearDescription()
+      reset()
+    } catch (err) {
+      if (isDurationLimitError(err)) {
+        setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+        return
+      }
+
+      setLocalError(timeEntryApiErrorMessage(err, 'Could not save the duration entry.'))
+    }
+  }
+
+  const saveEntry = async (confirmOverlap = false) => {
+    if (variant === 'duration') {
+      await saveDurationEntry()
+      return
+    }
+    await saveRangeEntry(confirmOverlap)
+  }
+
+  return {
+    variant,
+    manualEntry,
+    entryDate,
+    setEntryDate,
+    durationInput,
+    durationParseError,
+    durationLimitMessage,
+    setDurationLimitMessage,
+    endOrderError,
+    blockingError,
+    timeFieldState,
+    durationFieldState,
+    showManualFeedback,
+    showBlockingNotice,
+    isInitializing,
+    isSavingManual,
+    overlapConfirm,
+    setStart,
+    setEnd,
+    setDuration,
+    blurDuration,
+    clearFeedback,
+    reset,
+    applyTemplate,
+    saveEntry,
+  }
+}

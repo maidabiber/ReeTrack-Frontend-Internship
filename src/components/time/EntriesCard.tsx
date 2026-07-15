@@ -8,6 +8,11 @@ import { useAuth } from '../../hooks/useAuth'
 import { isPendingSharedWithCurrentUser, isSharedByCurrentUser } from '../../lib/entryShare'
 import { groupEntriesForDisplay } from '../../lib/displayEntries'
 import { TIME_ENTRY_LIST_CLASS } from '../../lib/pendingEntryStyles'
+import {
+  createTimeEntryTemplate,
+  notifyTimeEntryTemplatesChanged,
+  timeEntryTemplateApiErrorMessage,
+} from '../../api/timeEntryTemplates'
 import type { TimeEntry } from '../../types/timeEntry'
 
 const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
@@ -21,6 +26,8 @@ export function EntriesCard() {
     entry: TimeEntry
     groupedEntries?: TimeEntry[]
   } | null>(null)
+  const [favouriteBusyId, setFavouriteBusyId] = useState<string | null>(null)
+  const [favouriteNotice, setFavouriteNotice] = useState<string | null>(null)
 
   const handleEntryClick = (entry: TimeEntry) => {
     if (user && isPendingSharedWithCurrentUser(entry, user.id)) {
@@ -40,6 +47,24 @@ export function EntriesCard() {
   const handleApproved = () => {
     setReviewEntry(null)
     void refresh()
+  }
+
+  const handleFavouriteClick = async (entry: TimeEntry) => {
+    if (favouriteBusyId) return
+
+    setFavouriteNotice(null)
+    setFavouriteBusyId(entry.id)
+    try {
+      await createTimeEntryTemplate(entry.id)
+      setFavouriteNotice('Added to favourites.')
+      notifyTimeEntryTemplatesChanged()
+    } catch (err) {
+      setFavouriteNotice(
+        timeEntryTemplateApiErrorMessage(err, 'Could not add this entry to favourites.'),
+      )
+    } finally {
+      setFavouriteBusyId(null)
+    }
   }
 
   if (isInitializing) {
@@ -77,6 +102,11 @@ export function EntriesCard() {
   return (
     <>
       <div className={TIMER_PANEL_OVERFLOW_CLASS}>
+        {favouriteNotice ? (
+          <div className="border-b border-navy/[0.06] px-5 py-2.5 text-[12.5px] text-navy/70">
+            {favouriteNotice}
+          </div>
+        ) : null}
         <ul className={TIME_ENTRY_LIST_CLASS}>
           {displayEntries.map((displayEntry) => (
             <TimeEntryListItem
@@ -87,6 +117,8 @@ export function EntriesCard() {
               onShareClick={(entry, groupedEntries) =>
                 setShareEntry({ entry, groupedEntries })
               }
+              onFavouriteClick={handleFavouriteClick}
+              favouriteBusyId={favouriteBusyId}
             />
           ))}
         </ul>

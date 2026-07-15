@@ -21,11 +21,16 @@ import {
 } from '../../lib/pendingEntryStyles'
 import type { TimeEntry } from '../../types/timeEntry'
 
+const ACTION_BUTTON_CLASS =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-navy/10 disabled:hover:bg-white disabled:hover:text-navy/55'
+
 type TimeEntryListItemProps = {
   displayEntry: DisplayTimeEntry
   currentUserId?: string
   onEntryClick: (entry: TimeEntry) => void
   onShareClick: (entry: TimeEntry, groupedEntries?: TimeEntry[]) => void
+  onFavouriteClick?: (entry: TimeEntry) => void
+  favouriteBusyId?: string | null
 }
 
 export function TimeEntryListItem({
@@ -33,6 +38,8 @@ export function TimeEntryListItem({
   currentUserId,
   onEntryClick,
   onShareClick,
+  onFavouriteClick,
+  favouriteBusyId = null,
 }: TimeEntryListItemProps) {
   const { entry, groupedEntries } = displayEntry
   const isReviewable = currentUserId
@@ -53,11 +60,18 @@ export function TimeEntryListItem({
     : false
   const isPendingCard = isInvitation || isAwaitingApproval || isReadOnlyPending
   const canAddMembers = currentUserId ? isShareableByCurrentUser(entry, currentUserId) : false
+  const canFavourite =
+    !entry.isRunning &&
+    entry.status === 'Confirmed' &&
+    !isSubmitterConfirmedShare &&
+    !isPendingCard
+  const showActions = canFavourite || canAddMembers
+  const isFavouriteBusy = favouriteBusyId === entry.id
 
   return (
     <li className={TIME_ENTRY_ITEM_CLASS}>
       <div
-        className={`flex w-full items-center gap-4 px-5 py-4 ${
+        className={`group flex w-full items-center gap-4 px-5 py-4 ${
           isPendingCard ? PENDING_ENTRY_ROW_CLASS : TIME_ENTRY_ROW_CLASS
         }`}
       >
@@ -107,21 +121,49 @@ export function TimeEntryListItem({
           ) : null}
         </button>
 
-        {canAddMembers ? (
-          <button
-            type="button"
-            title="Share with a teammate"
-            aria-label="Share with a teammate"
-            onClick={() =>
-              onShareClick(
-                entry,
-                displayEntry.isGroupedShare ? groupedEntries : undefined,
-              )
-            }
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-plus leading-none text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
-          >
-            +
-          </button>
+        {showActions ? (
+          <div className="flex max-w-0 shrink-0 items-center gap-1.5 overflow-hidden opacity-0 transition-[max-width,opacity] duration-200 ease-out group-hover:max-w-[8.5rem] group-hover:opacity-100 group-focus-within:max-w-[8.5rem] group-focus-within:opacity-100">
+            {canFavourite ? (
+              <>
+                <button
+                  type="button"
+                  title="Add to favourites"
+                  aria-label="Add to favourites"
+                  disabled={isFavouriteBusy || !onFavouriteClick}
+                  onClick={() => onFavouriteClick?.(entry)}
+                  className={ACTION_BUTTON_CLASS}
+                >
+                  <Icon name="star" className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  title="Create entry from template (coming soon)"
+                  aria-label="Create entry from template (coming soon)"
+                  disabled
+                  className={ACTION_BUTTON_CLASS}
+                >
+                  <Icon name="plus" className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : null}
+
+            {canAddMembers ? (
+              <button
+                type="button"
+                title="Share with a teammate"
+                aria-label="Share with a teammate"
+                onClick={() =>
+                  onShareClick(
+                    entry,
+                    displayEntry.isGroupedShare ? groupedEntries : undefined,
+                  )
+                }
+                className={ACTION_BUTTON_CLASS}
+              >
+                <Icon name="share" className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </li>

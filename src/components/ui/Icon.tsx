@@ -27,6 +27,9 @@ export type IconName =
   | 'settings'
   | 'resend'
   | 'ban'
+  | 'star'
+  | 'share'
+  | 'x'
   | 'more'
 
 // Feather-style line icons (24x24, stroke-based) lifted from the mockups.
@@ -157,6 +160,24 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
     <>
       <circle cx="12" cy="12" r="10" />
       <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+    </>
+  ),
+  star: (
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  ),
+  share: (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </>
+  ),
+  x: (
+    <>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </>
   ),
 }
