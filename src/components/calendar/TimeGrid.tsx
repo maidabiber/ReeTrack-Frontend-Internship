@@ -13,12 +13,22 @@ import {
 } from './dateUtils'
 import { EventBlock } from './EventBlock'
 import { clampHourHeight, DEFAULT_HOUR_HEIGHT, stepHourHeight } from './hourZoom'
+import { useCalendarEntryCreate } from './useCalendarEntryCreate'
 import { useCalendarEntryDrag } from './useCalendarEntryDrag'
 import { useCalendarEntryResize } from './useCalendarEntryResize'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const SCROLL_TO_HOUR = 8
 const DAY_HOURS = 24
+
+const CREATE_PREVIEW_EVENT: CalendarEvent = {
+  id: 'create-preview',
+  kind: 'timeEntry',
+  title: 'New entry',
+  start: new Date(0),
+  end: new Date(0),
+  color: 'purple',
+}
 
 interface TimeGridProps {
   days: Date[]
@@ -28,6 +38,8 @@ interface TimeGridProps {
   selectedEventId?: string | null
   onEventClick?: (event: CalendarEvent) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventCreate?: (start: Date, end: Date) => void
+  pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
   allowHorizontalDrag?: boolean
 }
@@ -40,6 +52,8 @@ export function TimeGrid({
   selectedEventId,
   onEventClick,
   onEventMove,
+  onEventCreate,
+  pendingCreateRange,
   isEventEditable,
   allowHorizontalDrag = false,
 }: TimeGridProps) {
@@ -82,6 +96,16 @@ export function TimeGrid({
   })
 
   const {
+    createPreview,
+    isCreating,
+    handleColumnPointerDown,
+  } = useCalendarEntryCreate({
+    hourHeight,
+    onEventCreate,
+    disabled: isDragging,
+  })
+
+  const {
     resizePreview,
     isResizing,
     handleResizeStartPointerDown,
@@ -90,10 +114,10 @@ export function TimeGrid({
     hourHeight,
     onEventResize: onEventMove,
     isEventEditable,
-    disabled: isDragging,
+    disabled: isDragging || isCreating,
   })
 
-  const interactionActive = isDragging || isResizing
+  const interactionActive = isDragging || isResizing || isCreating
 
   useEffect(() => {
     const el = scrollRef.current
@@ -181,7 +205,8 @@ export function TimeGrid({
     },
   ) {
     const displayEvent = { ...event, start: options.start, end: options.end }
-    const canInteract = !interactionActive || options.isDragPreview || options.isResizePreview
+    const canInteract =
+      (!interactionActive || options.isDragPreview || options.isResizePreview) && !isCreating
     const editable = isEventEditable?.(event) ?? false
     const useDragInteraction = options.enablePointer && editable
 
@@ -334,6 +359,39 @@ export function TimeGrid({
               )
             }
 
+            const visibleCreatePreview =
+              createPreview ??
+              (pendingCreateRange
+                ? {
+                    day: pendingCreateRange.start,
+                    start: pendingCreateRange.start,
+                    end: pendingCreateRange.end,
+                  }
+                : null)
+
+            if (visibleCreatePreview && isSameDay(visibleCreatePreview.day, day)) {
+              blocks.push(
+                <div key={`create-preview-${day.toISOString()}`} className="pointer-events-none">
+                  <EventBlock
+                    event={{
+                      ...CREATE_PREVIEW_EVENT,
+                      start: visibleCreatePreview.start,
+                      end: visibleCreatePreview.end,
+                    }}
+                    top={eventTopPercent(visibleCreatePreview.start, day)}
+                    height={eventHeightPercent(
+                      visibleCreatePreview.start,
+                      visibleCreatePreview.end,
+                      day,
+                    )}
+                    hourHeight={hourHeight}
+                    viewportHeight={viewportHeight}
+                    isDragPreview
+                  />
+                </div>,
+              )
+            }
+
             return (
               <div
                 key={day.toISOString()}
@@ -342,6 +400,12 @@ export function TimeGrid({
                   else columnRefs.current.delete(day.toISOString())
                 }}
                 className="relative min-w-0 flex-1 border-r border-navy/6 last:border-r-0"
+                onPointerDown={(pointerEvent) => {
+                  if (isDragging || isResizing || !onEventCreate) return
+                  const columnEl = columnRefs.current.get(day.toISOString())
+                  if (!columnEl) return
+                  handleColumnPointerDown(day, columnEl, pointerEvent)
+                }}
               >
                 {HOURS.map((hour) => (
                   <div key={hour} className="relative" style={{ height: hourHeight }}>

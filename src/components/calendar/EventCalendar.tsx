@@ -48,6 +48,7 @@ export function EventCalendar() {
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
   const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
+  const [creatingRange, setCreatingRange] = useState<{ start: Date; end: Date } | null>(null)
   const [pendingDragSave, setPendingDragSave] = useState<PendingDragSave | null>(null)
 
   const overlapConfirm = useOverlapConfirm()
@@ -190,7 +191,15 @@ export function EventCalendar() {
 
   function handleCreateFromCalendarEvent(event: CalendarEvent) {
     setReadonlyCalendarEvent(null)
+    setCreatingRange(null)
     setCreatingFromEvent(event)
+  }
+
+  function handleEventCreate(start: Date, end: Date) {
+    setCreatingFromEvent(null)
+    setEditingEntry(null)
+    setReadonlyCalendarEvent(null)
+    setCreatingRange({ start, end })
   }
 
   function handleToday() {
@@ -275,6 +284,8 @@ export function EventCalendar() {
           onDateChange={handleDateChange}
           onEventSelect={handleDayEventSelect}
           onEventMove={handleEventMove}
+          onEventCreate={handleEventCreate}
+          pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
           canEditSelectedEvent={canEditSelectedEvent}
           onEditEntry={
@@ -295,6 +306,8 @@ export function EventCalendar() {
           selectedEventId={selectedEventId}
           onEventClick={handleWeekEventClick}
           onEventMove={handleEventMove}
+          onEventCreate={handleEventCreate}
+          pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
         />
       )}
@@ -315,6 +328,15 @@ export function EventCalendar() {
           initialStart={creatingFromEvent.start}
           initialEnd={creatingFromEvent.end}
           onClose={() => setCreatingFromEvent(null)}
+        />
+      ) : null}
+
+      {creatingRange ? (
+        <CreateEntryModal
+          initialDescription=""
+          initialStart={creatingRange.start}
+          initialEnd={creatingRange.end}
+          onClose={() => setCreatingRange(null)}
         />
       ) : null}
 

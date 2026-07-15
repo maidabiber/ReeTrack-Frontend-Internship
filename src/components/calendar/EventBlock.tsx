@@ -91,7 +91,10 @@ export function EventBlock({
     >
       <button
         type="button"
-        onPointerDown={onPointerDown}
+        onPointerDown={(pointerEvent) => {
+          pointerEvent.stopPropagation()
+          onPointerDown?.(pointerEvent)
+        }}
         onClick={onClick}
         className={`h-full w-full rounded-sm px-2 py-0.5 text-left ${colors.bg} ${
           isElevated ? 'overflow-visible shadow-lg' : 'overflow-hidden'
@@ -122,14 +125,20 @@ export function EventBlock({
             aria-orientation="horizontal"
             aria-label="Resize start time"
             className="absolute inset-x-0 top-0 z-10 h-2 cursor-ns-resize"
-            onPointerDown={onResizeStartPointerDown}
+            onPointerDown={(pointerEvent) => {
+              pointerEvent.stopPropagation()
+              onResizeStartPointerDown?.(pointerEvent)
+            }}
           />
           <div
             role="separator"
             aria-orientation="horizontal"
             aria-label="Resize end time"
             className="absolute inset-x-0 bottom-0 z-10 h-2 cursor-ns-resize"
-            onPointerDown={onResizeEndPointerDown}
+            onPointerDown={(pointerEvent) => {
+              pointerEvent.stopPropagation()
+              onResizeEndPointerDown?.(pointerEvent)
+            }}
           />
         </>
       ) : null}

@@ -15,6 +15,8 @@ interface DayViewProps {
   onDateChange: (date: Date) => void
   onEventSelect: (event: CalendarEvent | null) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventCreate?: (start: Date, end: Date) => void
+  pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
   canEditSelectedEvent?: boolean
   onEditEntry?: () => void
@@ -31,6 +33,8 @@ export function DayView({
   onDateChange,
   onEventSelect,
   onEventMove,
+  onEventCreate,
+  pendingCreateRange,
   isEventEditable,
   canEditSelectedEvent = false,
   onEditEntry,
@@ -59,6 +63,8 @@ export function DayView({
           selectedEventId={selectedEventId}
           onEventClick={(event) => onEventSelect(event)}
           onEventMove={onEventMove}
+          onEventCreate={onEventCreate}
+          pendingCreateRange={pendingCreateRange}
           isEventEditable={isEventEditable}
           allowHorizontalDrag={false}
         />

@@ -10,6 +10,8 @@ interface WeekViewProps {
   selectedEventId: string | null
   onEventClick: (event: CalendarEvent) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventCreate?: (start: Date, end: Date) => void
+  pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
 }
 
@@ -21,6 +23,8 @@ export function WeekView({
   selectedEventId,
   onEventClick,
   onEventMove,
+  onEventCreate,
+  pendingCreateRange,
   isEventEditable,
 }: WeekViewProps) {
   const days = getWeekDays(selectedDate)
@@ -35,6 +39,8 @@ export function WeekView({
         selectedEventId={selectedEventId}
         onEventClick={onEventClick}
         onEventMove={onEventMove}
+        onEventCreate={onEventCreate}
+        pendingCreateRange={pendingCreateRange}
         isEventEditable={isEventEditable}
         allowHorizontalDrag
       />
