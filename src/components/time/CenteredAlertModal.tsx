@@ -1,32 +1,7 @@
 import { type ReactNode } from 'react'
 import { Icon } from '../ui/Icon'
 
-function formatOverlapMessage(message: string) {
-  const match = message.match(/^This entry overlaps with:\s*(.+)\.\s*Save anyway\?$/i)
-  if (!match) return message
-
-  const labels = match[1]
-    .split(',')
-    .map((label) => label.trim())
-    .filter(Boolean)
-
-  if (labels.length === 0) return message
-
-  return (
-    <>
-      This entry overlaps with:{' '}
-      {labels.map((label, index) => (
-        <span key={`${label}-${index}`}>
-          {index > 0 ? ', ' : null}
-          <strong className="font-semibold text-navy">{label}</strong>
-        </span>
-      ))}
-      . Save anyway?
-    </>
-  )
-}
-
-function CenteredAlertModal({
+export function CenteredAlertModal({
   title,
   message,
   titleId,
@@ -100,45 +75,5 @@ function CenteredAlertModal({
         </div>
       </div>
     </div>
-  )
-}
-
-export function OverlapConfirmModal({
-  message,
-  isSaving = false,
-  onCancel,
-  onConfirm,
-}: {
-  message: string
-  isSaving?: boolean
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  return (
-    <CenteredAlertModal
-      title="Time overlap"
-      message={formatOverlapMessage(message)}
-      titleId="overlap-confirm-title"
-      messageId="overlap-confirm-message"
-      onDismiss={onCancel}
-      secondaryLabel="Cancel"
-      primaryLabel="Save anyway"
-      onPrimary={onConfirm}
-      isSaving={isSaving}
-    />
-  )
-}
-
-export function DurationLimitModal({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  return (
-    <CenteredAlertModal
-      title="Duration too long"
-      message={message}
-      titleId="duration-limit-title"
-      messageId="duration-limit-message"
-      onDismiss={onDismiss}
-      primaryLabel="Got it"
-      onPrimary={onDismiss}
-    />
   )
 }

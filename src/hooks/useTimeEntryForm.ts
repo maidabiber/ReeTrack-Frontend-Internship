@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
 import { timeEntryApiErrorMessage } from '../api/timeEntries'
-import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/overlapErrors'
-import { useOverlapConfirm } from './useOverlapConfirm'
+
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/timeEntryErrors'
+import { useOverlapAlert } from './useOverlapAlert'
+
 import type { ManualFieldState } from '../components/time/ManualField'
 import { useTimer } from './useTimer'
 import type { Teammate } from '../lib/mention'
@@ -44,7 +46,7 @@ export function useTimeEntryForm({
   onClearShareNotice: () => void
 }) {
   const { isInitializing, isSavingManual, addManualEntry, addDurationEntry } = useTimer()
-  const overlapConfirm = useOverlapConfirm()
+  const overlapAlert = useOverlapAlert()
 
   // Shared range + duration-only field state (only the active variant is edited/saved).
   const [manualEntry, setManualEntry] = useState(createDefaultManualEntry)
@@ -81,9 +83,9 @@ export function useTimeEntryForm({
     setLocalError(null)
     setDurationParseError(null)
     setDurationLimitMessage(null)
-    overlapConfirm.clearOverlapConfirm()
+    overlapAlert.clearOverlapAlert()
     onClearShareNotice()
-  }, [overlapConfirm, onClearShareNotice])
+  }, [overlapAlert, onClearShareNotice])
 
   const reset = useCallback(() => {
     const defaults = createDefaultManualEntry()
@@ -99,8 +101,8 @@ export function useTimeEntryForm({
     setLocalError(null)
     setDurationParseError(null)
     setDurationLimitMessage(null)
-    overlapConfirm.clearOverlapConfirm()
-  }, [overlapConfirm, variant])
+    overlapAlert.clearOverlapAlert()
+  }, [overlapAlert, variant])
 
   const resetAfterSave = useCallback(() => {
     reset()
@@ -113,7 +115,7 @@ export function useTimeEntryForm({
       setLocalError(null)
       setDurationParseError(null)
       setDurationLimitMessage(null)
-      overlapConfirm.clearOverlapConfirm()
+      overlapAlert.clearOverlapAlert()
       onClearShareNotice()
       setIsBillable(template.isBillable)
 
@@ -132,7 +134,7 @@ export function useTimeEntryForm({
       setManualEntry(next)
       setDurationInput(formatManualDurationInput(next.durationSeconds))
     },
-    [overlapConfirm, onClearShareNotice, variant],
+    [overlapAlert, onClearShareNotice, variant],
   )
 
   const setStart = (value: string) => {
@@ -180,7 +182,7 @@ export function useTimeEntryForm({
     setDurationInput(formatManualDurationInput(seconds))
   }
 
-  const saveRangeEntry = async (confirmOverlap = false) => {
+  const saveRangeEntry = async () => {
     setDurationLimitMessage(null)
 
     if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
@@ -188,11 +190,11 @@ export function useTimeEntryForm({
       return
     }
 
-    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+    await overlapAlert.saveOrShowOverlapAlert({
       onClearError: () => setLocalError(null),
       validationError: rangeValidation.error,
       onValidationError: setLocalError,
-      save: async (confirmedOverlap) => {
+      save: async () => {
         const sharedNames = mentionedTeammates.map(
           (teammate) => teammate.displayName ?? teammate.email,
         )
@@ -202,7 +204,6 @@ export function useTimeEntryForm({
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
           isBillable,
-          confirmOverlap: confirmedOverlap,
           ...(mentionedTeammates.length > 0
             ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
             : {}),
@@ -270,12 +271,12 @@ export function useTimeEntryForm({
     }
   }
 
-  const saveEntry = async (confirmOverlap = false) => {
+  const saveEntry = async () => {
     if (variant === 'duration') {
       await saveDurationEntry()
       return
     }
-    await saveRangeEntry(confirmOverlap)
+    await saveRangeEntry()
   }
 
   return {
@@ -295,7 +296,7 @@ export function useTimeEntryForm({
     showBlockingNotice,
     isInitializing,
     isSavingManual,
-    overlapConfirm,
+    overlapAlert,
     setStart,
     setEnd,
     setDuration,

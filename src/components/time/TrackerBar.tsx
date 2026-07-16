@@ -86,7 +86,7 @@ export function TrackerBar() {
       return
     }
     if (trackerMode === 'manual' || trackerMode === 'templates' || trackerMode === 'duration') {
-      void entryRef.current?.saveEntry(entryRef.current.pendingOverlapConfirm)
+      void entryRef.current?.saveEntry()
     }
   }
 

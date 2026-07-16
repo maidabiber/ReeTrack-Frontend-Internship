@@ -1,13 +1,13 @@
 import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { Icon } from '../ui/Icon'
-import { OverlapConfirmModal } from './overlapConfirm'
-import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
+import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { OverlapAlertModal } from './overlapAlert'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { useTimer } from '../../hooks/useTimer'
 import type { Teammate } from '../../lib/mention'
 
 export type TimerModeInputHandle = {
-  toggle: (confirmOverlap?: boolean) => void
+  toggle: () => void
 }
 
 type TimerModeInputProps = {
@@ -41,71 +41,67 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
     } = useTimer()
     const {
       overlapWarning,
-      showOverlapConfirm,
-      clearOverlapConfirm,
-      saveWithOverlapConfirm,
-    } = useOverlapConfirm()
+      showOverlapAlert,
+      clearOverlapAlert,
+      saveOrShowOverlapAlert,
+    } = useOverlapAlert()
 
-    const handleToggle = useCallback(
-      async (confirmOverlap = false) => {
-        const trimmedDescription = description.trim() || undefined
+    const handleToggle = useCallback(async () => {
+      const trimmedDescription = description.trim() || undefined
 
-        if (!isRunning) {
-          void toggle(trimmedDescription)
-          return
-        }
+      if (!isRunning) {
+        void toggle(trimmedDescription)
+        return
+      }
 
-        const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
-        if (assigneeIds.length === 0) {
-          void toggle(trimmedDescription)
-          return
-        }
+      const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
+      if (assigneeIds.length === 0) {
+        void toggle(trimmedDescription)
+        return
+      }
 
-        await saveWithOverlapConfirm(confirmOverlap, {
-          onClearError: onClearShareNotice,
-          validationError: null,
-          onValidationError: () => {},
-          save: async (confirmedOverlap) => {
-            const sharedNames = mentionedTeammates.map(
-              (teammate) => teammate.displayName ?? teammate.email,
+      await saveOrShowOverlapAlert({
+        onClearError: onClearShareNotice,
+        validationError: null,
+        onValidationError: () => {},
+        save: async () => {
+          const sharedNames = mentionedTeammates.map(
+            (teammate) => teammate.displayName ?? teammate.email,
+          )
+
+          await toggle(trimmedDescription, {
+            assigneeUserIds: assigneeIds,
+          })
+
+          setMentionedTeammates([])
+          setDescription('')
+          if (sharedNames.length === 1) {
+            onShared(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
+          } else if (sharedNames.length > 1) {
+            onShared(
+              `Shared with ${sharedNames.length} teammates. They will be notified to approve it.`,
             )
-
-            await toggle(trimmedDescription, {
-              assigneeUserIds: assigneeIds,
-              confirmOverlap: confirmedOverlap,
-            })
-
-            setMentionedTeammates([])
-            setDescription('')
-            if (sharedNames.length === 1) {
-              onShared(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
-            } else if (sharedNames.length > 1) {
-              onShared(
-                `Shared with ${sharedNames.length} teammates. They will be notified to approve it.`,
-              )
-            }
-          },
-          onOtherError: () => {},
-        })
-      },
-      [
-        description,
-        isRunning,
-        mentionedTeammates,
-        onClearShareNotice,
-        onShared,
-        saveWithOverlapConfirm,
-        setDescription,
-        setMentionedTeammates,
-        toggle,
-      ],
-    )
+          }
+        },
+        onOtherError: () => {},
+      })
+    }, [
+      description,
+      isRunning,
+      mentionedTeammates,
+      onClearShareNotice,
+      onShared,
+      saveOrShowOverlapAlert,
+      setDescription,
+      setMentionedTeammates,
+      toggle,
+    ])
 
     useImperativeHandle(
       ref,
       () => ({
-        toggle: (confirmOverlap = false) => {
-          void handleToggle(confirmOverlap)
+        toggle: () => {
+          void handleToggle()
         },
       }),
       [handleToggle],
@@ -156,12 +152,10 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
           />
         </button>
 
-        {showOverlapConfirm && overlapWarning ? (
-          <OverlapConfirmModal
+        {showOverlapAlert && overlapWarning ? (
+          <OverlapAlertModal
             message={overlapWarning}
-            isSaving={isToggling}
-            onCancel={clearOverlapConfirm}
-            onConfirm={() => void handleToggle(true)}
+            onDismiss={clearOverlapAlert}
           />
         ) : null}
       </>

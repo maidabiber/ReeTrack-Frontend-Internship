@@ -90,12 +90,11 @@ export function startTimer(description?: string, isBillable = true): Promise<Act
 export interface StopTimerParams {
   description?: string
   assigneeUserIds?: string[]
-  confirmOverlap?: boolean
 }
 
 export type StopTimerResult =
   | { kind: 'single'; entry: TimeEntry }
-  | { kind: 'shared'; entries: TimeEntry[]; overlapWarning: string | null }
+  | { kind: 'shared'; entries: TimeEntry[] }
 
 export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
   const hasAssignees = Boolean(params?.assigneeUserIds?.length)
@@ -106,7 +105,6 @@ export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
       ...(hasAssignees
         ? {
             assigneeUserIds: params!.assigneeUserIds,
-            confirmOverlap: params?.confirmOverlap ?? false,
           }
         : {}),
     })
@@ -116,10 +114,6 @@ export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
         return {
           kind: 'shared' as const,
           entries: sharedManualEntryResponses(sharedResponse).map(toTimeEntry),
-          overlapWarning:
-            (sharedResponse.overlapWarning as string | null | undefined) ??
-            (sharedResponse.OverlapWarning as string | null | undefined) ??
-            null,
         }
       }
 
@@ -135,26 +129,22 @@ export interface CreateManualEntryParams {
   startedAtUtc: string
   endedAtUtc: string
   isBillable?: boolean
-  confirmOverlap?: boolean
 }
 
 export interface CreateManualEntryResult {
   entry: TimeEntry
-  overlapWarning: string | null
 }
 
 export function createManualEntry(params: CreateManualEntryParams): Promise<CreateManualEntryResult> {
   return apiClient
-    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/manual', {
+    .post<{ entry: TimeEntryResponse }>('/time-entries/manual', {
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
       isBillable: params.isBillable ?? true,
-      confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
     }))
 }
 
@@ -169,7 +159,7 @@ export function createDurationOnlyEntry(
   params: CreateDurationOnlyEntryParams,
 ): Promise<CreateManualEntryResult> {
   return apiClient
-    .post<{ entry: TimeEntryResponse; overlapWarning?: string | null }>('/time-entries/duration', {
+    .post<{ entry: TimeEntryResponse }>('/time-entries/duration', {
       description: params.description,
       entryDateUtc: params.entryDateUtc,
       durationSeconds: params.durationSeconds,
@@ -177,7 +167,6 @@ export function createDurationOnlyEntry(
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
     }))
 }
 
@@ -186,26 +175,22 @@ export interface UpdateTimeEntryParams {
   startedAtUtc: string
   endedAtUtc: string
   isBillable?: boolean
-  confirmOverlap?: boolean
 }
 
 export interface UpdateTimeEntryResult {
   entry: TimeEntry
-  overlapWarning: string | null
 }
 
 export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Promise<UpdateTimeEntryResult> {
   return apiClient
-    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/${id}`, {
+    .put<{ entry: TimeEntryResponse }>(`/time-entries/${id}`, {
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
       isBillable: params.isBillable ?? true,
-      confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
     }))
 }
 
@@ -221,7 +206,7 @@ export function updateDurationOnlyEntry(
   params: UpdateDurationOnlyEntryParams,
 ): Promise<UpdateTimeEntryResult> {
   return apiClient
-    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/${id}/duration`, {
+    .put<{ entry: TimeEntryResponse }>(`/time-entries/${id}/duration`, {
       description: params.description,
       entryDateUtc: params.entryDateUtc,
       durationSeconds: params.durationSeconds,
@@ -229,7 +214,6 @@ export function updateDurationOnlyEntry(
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
     }))
 }
 
@@ -239,7 +223,6 @@ export interface CreateSharedManualEntryParams extends CreateManualEntryParams {
 
 export interface CreateSharedManualEntryResult {
   entries: TimeEntry[]
-  overlapWarning: string | null
 }
 
 function sharedManualEntryResponses(
@@ -264,20 +247,14 @@ export function createSharedManualEntry(
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
       isBillable: params.isBillable ?? true,
-      confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
       entries: sharedManualEntryResponses(response).map(toTimeEntry),
-      overlapWarning:
-        (response.overlapWarning as string | null | undefined) ??
-        (response.OverlapWarning as string | null | undefined) ??
-        null,
     }))
 }
 
 export interface ShareExistingEntryParams {
   assigneeUserIds: string[]
-  confirmOverlap?: boolean
 }
 
 export function shareExistingTimeEntry(
@@ -287,14 +264,9 @@ export function shareExistingTimeEntry(
   return apiClient
     .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, {
       assigneeUserIds: params.assigneeUserIds,
-      confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
       entries: sharedManualEntryResponses(response).map(toTimeEntry),
-      overlapWarning:
-        (response.overlapWarning as string | null | undefined) ??
-        (response.OverlapWarning as string | null | undefined) ??
-        null,
     }))
 }
 
@@ -309,16 +281,14 @@ export function updatePendingTimeEntry(
   params: UpdateTimeEntryParams,
 ): Promise<UpdateTimeEntryResult> {
   return apiClient
-    .put<{ entry: TimeEntryResponse; overlapWarning?: string | null }>(`/time-entries/pending/${id}`, {
+    .put<{ entry: TimeEntryResponse }>(`/time-entries/pending/${id}`, {
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
       isBillable: params.isBillable ?? true,
-      confirmOverlap: params.confirmOverlap ?? false,
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
-      overlapWarning: response.overlapWarning ?? null,
     }))
 }
 

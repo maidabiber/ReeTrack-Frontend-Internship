@@ -17,9 +17,11 @@ import {
 } from '../../lib/manualEntry'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
-import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/overlapErrors'
-import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
-import { DurationLimitModal, OverlapConfirmModal } from './overlapConfirm'
+
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
+import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { DurationLimitModal } from './durationLimitModal'
+import { OverlapAlertModal } from './overlapAlert'
 
 export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
   const isDurationOnly = entry.mode === 'DurationOnly'
@@ -45,8 +47,8 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const validation = validateManualEntry(manualEntry, [], null)
   const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
 
-  const overlapConfirm = useOverlapConfirm()
-  const { overlapWarning, showOverlapConfirm } = overlapConfirm
+  const overlapAlert = useOverlapAlert()
+  const { overlapWarning, showOverlapAlert } = overlapAlert
 
   const endOrderError =
     manualEntry.end <= manualEntry.start ? 'End must be after start' : null
@@ -100,7 +102,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
     }
   }
 
-  const handleSave = async (confirmOverlap = false) => {
+  const handleSave = async () => {
     setDurationLimitMessage(null)
 
     if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
@@ -108,18 +110,17 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
       return
     }
 
-    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+    await overlapAlert.saveOrShowOverlapAlert({
       onClearError: () => setError(null),
       validationError: validation.error,
       onValidationError: setError,
-      save: async (confirmedOverlap) => {
+      save: async () => {
         await updateEntry({
           id: entry.id,
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
           isBillable,
-          confirmOverlap: confirmedOverlap,
         })
         onClose()
       },
@@ -211,7 +212,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
                 const parsed = parseDatetimeLocal(value)
                 if (!parsed) return
                 setDurationLimitMessage(null)
-                overlapConfirm.clearOverlapConfirm()
+                overlapAlert.clearOverlapAlert()
                 setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
               }}
               hasError={Boolean(endOrderError)}
@@ -225,7 +226,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
                 const parsed = parseDatetimeLocal(value)
                 if (!parsed) return
                 setDurationLimitMessage(null)
-                overlapConfirm.clearOverlapConfirm()
+                overlapAlert.clearOverlapAlert()
                 setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
               }}
               hint={endOrderError ?? undefined}
@@ -239,7 +240,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
               onChange={(value) => {
                 setDurationDraft(value)
                 setDurationLimitMessage(null)
-                overlapConfirm.clearOverlapConfirm()
+                overlapAlert.clearOverlapAlert()
                 const parsed = parseDurationInput(value)
                 if (parsed === null) return
                 setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
@@ -279,7 +280,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
           <button
             type="button"
             disabled={isSavingEdit || Boolean(blockingError)}
-            onClick={() => void (isDurationOnly ? handleSaveDurationOnly() : handleSave(false))}
+            onClick={() => void (isDurationOnly ? handleSaveDurationOnly() : handleSave())}
             className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSavingEdit ? 'Saving…' : 'Save changes'}
@@ -294,12 +295,10 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         />
       ) : null}
 
-      {showOverlapConfirm && overlapWarning && !isDurationOnly ? (
-        <OverlapConfirmModal
+      {showOverlapAlert && overlapWarning && !isDurationOnly ? (
+        <OverlapAlertModal
           message={overlapWarning}
-          isSaving={isSavingEdit}
-          onCancel={overlapConfirm.clearOverlapConfirm}
-          onConfirm={() => void handleSave(true)}
+          onDismiss={overlapAlert.clearOverlapAlert}
         />
       ) : null}
     </>

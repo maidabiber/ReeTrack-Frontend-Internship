@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
 import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
-import { OverlapConfirmModal } from '../time/overlapConfirm'
-import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
+
+import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { OverlapAlertModal } from '../time/overlapAlert'
+
 import { useTimer } from '../../hooks/useTimer'
 import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent, CalendarViewMode } from './types'
@@ -37,7 +39,7 @@ interface PendingDragSave {
 }
 
 export function EventCalendar() {
-  const { entries, activeTimer, elapsedSeconds, updateEntry, isSavingEdit } = useTimer()
+  const { entries, activeTimer, elapsedSeconds, updateEntry } = useTimer()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
@@ -50,10 +52,9 @@ export function EventCalendar() {
   const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
   const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
   const [creatingRange, setCreatingRange] = useState<{ start: Date; end: Date } | null>(null)
-  const [pendingDragSave, setPendingDragSave] = useState<PendingDragSave | null>(null)
 
-  const overlapConfirm = useOverlapConfirm()
-  const { overlapWarning, showOverlapConfirm } = overlapConfirm
+  const overlapAlert = useOverlapAlert()
+  const { overlapWarning, showOverlapAlert } = overlapAlert
 
   const visibleRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -130,32 +131,6 @@ export function EventCalendar() {
     ? isEditableTimeEntryEvent(selectedEvent, entries, activeTimer)
     : false
 
-  const executeDragSave = useCallback(
-    async (save: PendingDragSave, confirmOverlap: boolean) => {
-      await updateEntry({
-        id: save.entryId,
-        description: save.description,
-        startedAtUtc: save.startedAtUtc,
-        endedAtUtc: save.endedAtUtc,
-        isBillable: save.isBillable,
-        confirmOverlap,
-      })
-      setPendingDragSave(null)
-      overlapConfirm.clearOverlapConfirm()
-    },
-    [overlapConfirm, updateEntry],
-  )
-
-  const handleDragMoveConfirm = useCallback(async () => {
-    if (!pendingDragSave) return
-
-    await overlapConfirm.saveWithOverlapConfirm(true, {
-      validationError: null,
-      onValidationError: () => undefined,
-      save: async (confirmed) => executeDragSave(pendingDragSave, confirmed),
-    })
-  }, [pendingDragSave, overlapConfirm, executeDragSave])
-
   const handleEventMove = useCallback(
     async (event: CalendarEvent, newStart: Date, newEnd: Date) => {
       if (!isEventEditable(event)) return
@@ -178,16 +153,22 @@ export function EventCalendar() {
         isBillable: entry.isBillable,
       }
 
-      setPendingDragSave(save)
-
-      await overlapConfirm.saveWithOverlapConfirm(false, {
+      await overlapAlert.saveOrShowOverlapAlert({
         validationError: null,
         onValidationError: () => undefined,
-        save: async (confirmed) => executeDragSave(save, confirmed),
-        onOtherError: () => setPendingDragSave(null),
+        save: async () => {
+          await updateEntry({
+            id: save.entryId,
+            description: save.description,
+            startedAtUtc: save.startedAtUtc,
+            endedAtUtc: save.endedAtUtc,
+            isBillable: save.isBillable,
+          })
+          overlapAlert.clearOverlapAlert()
+        },
       })
     },
-    [executeDragSave, isEventEditable, overlapConfirm, resolveEntry],
+    [isEventEditable, overlapAlert, resolveEntry, updateEntry],
   )
 
   function handleCreateFromCalendarEvent(event: CalendarEvent) {
@@ -349,15 +330,10 @@ export function EventCalendar() {
         />
       ) : null}
 
-      {showOverlapConfirm && overlapWarning && pendingDragSave ? (
-        <OverlapConfirmModal
+      {showOverlapAlert && overlapWarning ? (
+        <OverlapAlertModal
           message={overlapWarning}
-          isSaving={isSavingEdit}
-          onCancel={() => {
-            overlapConfirm.clearOverlapConfirm()
-            setPendingDragSave(null)
-          }}
-          onConfirm={() => void handleDragMoveConfirm()}
+          onDismiss={overlapAlert.clearOverlapAlert}
         />
       ) : null}
     </div>

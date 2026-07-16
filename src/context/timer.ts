@@ -15,29 +15,26 @@ export interface TimerContextValue {
   stop: (options?: {
     description?: string
     assigneeUserIds?: string[]
-    confirmOverlap?: boolean
-  }) => Promise<{ overlapWarning: string | null }>
+  }) => Promise<void>
   toggle: (
     description?: string,
     options?: {
       assigneeUserIds?: string[]
-      confirmOverlap?: boolean
     },
-  ) => Promise<{ overlapWarning: string | null }>
+  ) => Promise<void>
   addManualEntry: (params: {
     description?: string
     startedAtUtc: string
     endedAtUtc: string
     isBillable?: boolean
-    confirmOverlap?: boolean
     assigneeUserIds?: string[]
-  }) => Promise<{ overlapWarning: string | null }>
+  }) => Promise<void>
   addDurationEntry: (params: {
     description?: string
     entryDateUtc: string
     durationSeconds: number
     isBillable?: boolean
-  }) => Promise<{ overlapWarning: string | null }>
+  }) => Promise<void>
   updateEntry: (params: {
     id: string
     description?: string
@@ -45,8 +42,7 @@ export interface TimerContextValue {
     endedAtUtc?: string
     durationSeconds?: number
     isBillable?: boolean
-    confirmOverlap?: boolean
-  }) => Promise<{ overlapWarning: string | null }>
+  }) => Promise<void>
   refresh: () => Promise<void>
 }
 

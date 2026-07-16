@@ -12,10 +12,11 @@ import {
   validateManualEntry,
 } from '../../lib/manualEntry'
 import { Modal } from '../ui/Modal'
-import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/overlapErrors'
-import { useOverlapConfirm } from '../../hooks/useOverlapConfirm'
-import { DurationLimitModal, OverlapConfirmModal } from './overlapConfirm'
 
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
+import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { DurationLimitModal } from './durationLimitModal'
+import { OverlapAlertModal } from './overlapAlert'
 interface CreateEntryModalProps {
   initialDescription: string
   initialStart: Date
@@ -43,14 +44,14 @@ export function CreateEntryModal({
     durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
 
   const validation = validateManualEntry(manualEntry, [], null)
-  const overlapConfirm = useOverlapConfirm()
-  const { overlapWarning, showOverlapConfirm } = overlapConfirm
+  const overlapAlert = useOverlapAlert()
+  const { overlapWarning, showOverlapAlert } = overlapAlert
 
   const endOrderError =
     manualEntry.end <= manualEntry.start ? 'End must be after start' : null
   const blockingError = validation.error ?? error
 
-  const handleSave = async (confirmOverlap = false) => {
+  const handleSave = async () => {
     setDurationLimitMessage(null)
 
     if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
@@ -58,17 +59,16 @@ export function CreateEntryModal({
       return
     }
 
-    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+    await overlapAlert.saveOrShowOverlapAlert({
       onClearError: () => setError(null),
       validationError: validation.error,
       onValidationError: setError,
-      save: async (confirmedOverlap) => {
+      save: async () => {
         await addManualEntry({
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
           isBillable,
-          confirmOverlap: confirmedOverlap,
         })
         onClose()
       },
@@ -112,7 +112,7 @@ export function CreateEntryModal({
               const parsed = parseDatetimeLocal(value)
               if (!parsed) return
               setDurationLimitMessage(null)
-              overlapConfirm.clearOverlapConfirm()
+              overlapAlert.clearOverlapAlert()
               setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
             }}
             hasError={Boolean(endOrderError)}
@@ -126,7 +126,7 @@ export function CreateEntryModal({
               const parsed = parseDatetimeLocal(value)
               if (!parsed) return
               setDurationLimitMessage(null)
-              overlapConfirm.clearOverlapConfirm()
+              overlapAlert.clearOverlapAlert()
               setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
             }}
             hint={endOrderError ?? undefined}
@@ -140,7 +140,7 @@ export function CreateEntryModal({
             onChange={(value) => {
               setDurationDraft(value)
               setDurationLimitMessage(null)
-              overlapConfirm.clearOverlapConfirm()
+              overlapAlert.clearOverlapAlert()
               const parsed = parseDurationInput(value)
               if (parsed === null) return
               setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
@@ -179,7 +179,7 @@ export function CreateEntryModal({
           <button
             type="button"
             disabled={isSavingManual || Boolean(blockingError)}
-            onClick={() => void handleSave(false)}
+            onClick={() => void handleSave()}
             className="flex-1 rounded-full bg-brand py-2.5 font-display text-[13px] font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSavingManual ? 'Saving…' : 'Save'}
@@ -194,12 +194,10 @@ export function CreateEntryModal({
         />
       ) : null}
 
-      {showOverlapConfirm && overlapWarning ? (
-        <OverlapConfirmModal
+      {showOverlapAlert && overlapWarning ? (
+        <OverlapAlertModal
           message={overlapWarning}
-          isSaving={isSavingManual}
-          onCancel={overlapConfirm.clearOverlapConfirm}
-          onConfirm={() => void handleSave(true)}
+          onDismiss={overlapAlert.clearOverlapAlert}
         />
       ) : null}
     </>

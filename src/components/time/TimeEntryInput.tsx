@@ -1,10 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { Icon } from '../ui/Icon'
 import { ManualField, ManualFormNotice } from './ManualField'
-import {
-  DurationLimitModal,
-  OverlapConfirmModal,
-} from './overlapConfirm'
+import { DurationLimitModal } from './durationLimitModal'
+import { OverlapAlertModal } from './overlapAlert'
 import {
   useTimeEntryForm,
   type TimeEntryFormVariant,
@@ -14,8 +12,7 @@ import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import { toDatetimeLocalValue } from '../../lib/manualEntry'
 
 export type TimeEntryInputHandle = {
-  saveEntry: (confirmOverlap?: boolean) => Promise<void>
-  pendingOverlapConfirm: boolean
+  saveEntry: () => Promise<void>
 }
 
 export type TemplateSeed = {
@@ -70,17 +67,11 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
       ref,
       () => ({
         saveEntry: form.saveEntry,
-        pendingOverlapConfirm:
-          variant === 'range' ? form.overlapConfirm.pendingOverlapConfirm : false,
       }),
-      [
-        form.saveEntry,
-        form.overlapConfirm.pendingOverlapConfirm,
-        variant,
-      ],
+      [form.saveEntry],
     )
 
-    const { overlapWarning, showOverlapConfirm, clearOverlapConfirm } = form.overlapConfirm
+    const { overlapWarning, showOverlapAlert, clearOverlapAlert } = form.overlapAlert
     const isBusy = form.isInitializing || form.isSavingManual
 
     return (
@@ -145,7 +136,7 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
               type="button"
               aria-label={variant === 'range' ? 'Add manual entry' : 'Add duration entry'}
               disabled={isBusy || Boolean(form.blockingError)}
-              onClick={() => void form.saveEntry(false)}
+              onClick={() => void form.saveEntry()}
               className="mb-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icon name="plus" className="size-icon-md" />
@@ -172,12 +163,10 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
           />
         ) : null}
 
-        {variant === 'range' && showOverlapConfirm && overlapWarning ? (
-          <OverlapConfirmModal
+        {variant === 'range' && showOverlapAlert && overlapWarning ? (
+          <OverlapAlertModal
             message={overlapWarning}
-            isSaving={form.isSavingManual}
-            onCancel={clearOverlapConfirm}
-            onConfirm={() => void form.saveEntry(true)}
+            onDismiss={clearOverlapAlert}
           />
         ) : null}
       </>

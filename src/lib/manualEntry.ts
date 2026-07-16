@@ -4,8 +4,6 @@ export const MAX_MANUAL_DURATION_SECONDS = 24 * 60 * 60
 
 export const MANUAL_ENTRY_MESSAGES = {
   endBeforeStart: 'End time must be later than the start time.',
-  durationOver24Hours:
-    'Are you sure? This entry is longer than 24 hours. Please double-check your times.',
   overlap: 'Note: This time entry overlaps with an existing record.',
 } as const
 
@@ -226,10 +224,7 @@ interface OverlapEntry {
 export function validateDurationOnlyEntry(durationSeconds: number): string | null {
   if (durationSeconds <= 0) return 'Duration must be greater than zero'
 
-  if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
-    return MANUAL_ENTRY_MESSAGES.durationOver24Hours
-  }
-
+  // Over-24h is blocked on save via DurationLimitModal (same as manual range).
   return null
 }
 
@@ -289,10 +284,8 @@ export function validateManualEntry(
     }
   }
 
-  const durationWarning =
-    state.durationSeconds > MAX_MANUAL_DURATION_SECONDS
-      ? MANUAL_ENTRY_MESSAGES.durationOver24Hours
-      : null
+  // Over-24h is blocked on save via DurationLimitModal, not an inline warning.
+  const durationWarning = null
 
   const isScheduledFuture = state.start.getTime() > now.getTime()
   const overlapWarning = detectOverlapWarning(state, existingEntries, activeTimer, now, excludeEntryId)

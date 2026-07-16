@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { timeEntryApiErrorMessage } from '../api/timeEntries'
-import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/overlapErrors'
-import { useOverlapConfirm } from './useOverlapConfirm'
+
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/timeEntryErrors'
+import { useOverlapAlert } from './useOverlapAlert'
+
 import type { ManualFieldState } from '../components/time/ManualField'
 import { useTimer } from './useTimer'
 import type { Teammate } from '../lib/mention'
@@ -32,7 +34,7 @@ export function useManualEntryForm({
   onClearShareNotice: () => void
 }) {
   const { isInitializing, isSavingManual, addManualEntry } = useTimer()
-  const overlapConfirm = useOverlapConfirm()
+  const overlapAlert = useOverlapAlert()
 
   const [manualEntry, setManualEntry] = useState(createDefaultManualEntry)
   const [durationInput, setDurationInput] = useState(() =>
@@ -54,7 +56,7 @@ export function useManualEntryForm({
     setLocalError(null)
     setDurationParseError(null)
     setDurationLimitMessage(null)
-    overlapConfirm.clearOverlapConfirm()
+    overlapAlert.clearOverlapAlert()
     onClearShareNotice()
   }
 
@@ -65,7 +67,7 @@ export function useManualEntryForm({
     setLocalError(null)
     setDurationParseError(null)
     setDurationLimitMessage(null)
-    overlapConfirm.clearOverlapConfirm()
+    overlapAlert.clearOverlapAlert()
   }
 
   const resetAfterSave = () => {
@@ -111,7 +113,7 @@ export function useManualEntryForm({
     setDurationInput(formatManualDurationInput(manualEntry.durationSeconds))
   }
 
-  const saveEntry = async (confirmOverlap = false) => {
+  const saveEntry = async () => {
     setDurationLimitMessage(null)
 
     if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
@@ -119,18 +121,17 @@ export function useManualEntryForm({
       return
     }
 
-    await overlapConfirm.saveWithOverlapConfirm(confirmOverlap, {
+    await overlapAlert.saveOrShowOverlapAlert({
       onClearError: () => setLocalError(null),
       validationError: validation.error,
       onValidationError: setLocalError,
-      save: async (confirmedOverlap) => {
+      save: async () => {
         const sharedNames = mentionedTeammates.map((teammate) => teammate.displayName ?? teammate.email)
 
         await addManualEntry({
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
-          confirmOverlap: confirmedOverlap,
           ...(mentionedTeammates.length > 0
             ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
             : {}),
@@ -168,7 +169,7 @@ export function useManualEntryForm({
     showManualFeedback,
     isInitializing,
     isSavingManual,
-    overlapConfirm,
+    overlapAlert,
     setStart,
     setEnd,
     setDuration,

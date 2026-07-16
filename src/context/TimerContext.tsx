@@ -131,7 +131,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stop = useCallback(async (options?: {
     description?: string
     assigneeUserIds?: string[]
-    confirmOverlap?: boolean
   }) => {
     setIsToggling(true)
     setError(null)
@@ -152,10 +151,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         }
         return next
       })
-
-      return {
-        overlapWarning: result.kind === 'shared' ? result.overlapWarning : null,
-      }
     } catch (err) {
       if (timerSnapshot) {
         setActiveTimer(timerSnapshot)
@@ -173,15 +168,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       description?: string,
       options?: {
         assigneeUserIds?: string[]
-        confirmOverlap?: boolean
       },
     ) => {
       if (activeTimer) {
-        return await stop({ description, ...options })
+        await stop({ description, ...options })
+        return
       }
 
       await start(description)
-      return { overlapWarning: null }
     },
     [activeTimer, start, stop],
   )
@@ -192,7 +186,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       startedAtUtc: string
       endedAtUtc: string
       isBillable?: boolean
-      confirmOverlap?: boolean
       assigneeUserIds?: string[]
     }) => {
       setIsSavingManual(true)
@@ -206,7 +199,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               startedAtUtc: params.startedAtUtc,
               endedAtUtc: params.endedAtUtc,
               isBillable: params.isBillable,
-              confirmOverlap: params.confirmOverlap,
             })
           : await createManualEntry(params)
 
@@ -218,8 +210,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           }
           return next
         })
-
-        return { overlapWarning: result.overlapWarning }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           throw err
@@ -248,7 +238,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       try {
         const result = await createDurationOnlyEntry(params)
         setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
-        return { overlapWarning: null }
       } catch (err) {
         const message = timeEntryApiErrorMessage(err, 'Could not save the duration entry.')
         setError(message)
@@ -268,7 +257,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       endedAtUtc?: string
       durationSeconds?: number
       isBillable?: boolean
-      confirmOverlap?: boolean
     }) => {
       setIsSavingEdit(true)
       setError(null)
@@ -287,7 +275,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
                 startedAtUtc: params.startedAtUtc!,
                 endedAtUtc: params.endedAtUtc!,
                 isBillable: params.isBillable,
-                confirmOverlap: params.confirmOverlap,
               })
         setEntries((current) =>
           current
@@ -298,7 +285,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               return bTime - aTime
             }),
         )
-        return { overlapWarning: result.overlapWarning }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           throw err
