@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
@@ -15,6 +15,12 @@ import {
   type InvitationListItem,
   type Member,
 } from '../api/members'
+import {
+  downloadInviteCsvTemplate,
+  MAX_INVITE_BATCH,
+  parseEmails,
+  parseInviteCsv,
+} from '../lib/parseInviteCsv'
 import { ROLE_IDS, type InvitationStatus, type Role, type UserStatus } from '../types/user'
 
 type RoleFilter = 'all' | Role
@@ -55,7 +61,8 @@ const INVITE_GRID =
  * access via GET /api/members with working role change and (de)activation
  * (PATCH /api/members/{id}); the Invitations view shows the full invitation
  * history (GET /api/invitations) with resend and revoke. Invites accept
- * multiple comma-separated emails via POST /api/invitations/batch (RT-275).
+ * multiple comma-separated emails or a CSV upload via POST /api/invitations/batch
+ * (RT-275 / CSV batch invite).
  */
 export default function MembersPage() {
   const [view, setView] = useState<View>('members')
@@ -721,32 +728,34 @@ function formatDate(iso: string): string {
   })
 }
 
-/** Splits comma/semicolon/whitespace-separated input into unique addresses. */
-function parseEmails(input: string): string[] {
-  const seen = new Set<string>()
-  const emails: string[] = []
-  for (const part of input.split(/[\s,;]+/)) {
-    const email = part.trim()
-    if (!email) continue
-    const key = email.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    emails.push(email)
-  }
-  return emails
-}
-
 const ROW_STATUS_DISPLAY: Record<BatchInviteRow['status'], string> = {
   Invited: 'Invite sent',
   AlreadyActive: 'Already a member',
   Invalid: 'Invalid address',
-  EmailFailed: 'Saved, but the email failed — use resend',
-  Duplicate: 'Duplicate',
+  EmailFailed: 'Email failed — use resend',
+  Duplicate: 'Duplicate in this list',
+}
+
+const ROW_STATUS_CLASS: Record<BatchInviteRow['status'], string> = {
+  Invited: 'text-[#1E8A57]',
+  AlreadyActive: 'text-navy/55',
+  Invalid: 'text-red',
+  EmailFailed: 'text-red',
+  Duplicate: 'text-navy/55',
+}
+
+function inviteResultsSubtitle(rows: BatchInviteRow[]): string {
+  const invited = rows.filter((row) => row.status === 'Invited').length
+  const skipped = rows.length - invited
+  if (invited === 0) return 'None of these invites could be sent.'
+  if (skipped === 0) return 'All invites were sent.'
+  return `${invited} sent · ${skipped} need${skipped === 1 ? 's' : ''} a look`
 }
 
 /**
  * RT-275 — invite one or many people at once: emails are comma (or newline)
- * separated and submitted as a single batch with per-address results.
+ * separated, or loaded from a CSV, and submitted as a single batch with
+ * per-address results.
  */
 function InviteModal({
   onClose,
@@ -759,12 +768,15 @@ function InviteModal({
   const [role, setRole] = useState<Role>('Member')
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [csvNotice, setCsvNotice] = useState<string | null>(null)
+  const [csvFileName, setCsvFileName] = useState<string | null>(null)
   const [results, setResults] = useState<BatchInviteRow[] | null>(null)
   const [allowedDomains, setAllowedDomains] = useState<string[]>([])
   const [domain, setDomain] = useState('')
   // Whether the domain warning has been triggered by a send attempt. Kept out of
   // the live typing path so the warning only appears once the user clicks Send.
   const [attemptedSend, setAttemptedSend] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let active = true
@@ -801,9 +813,35 @@ function InviteModal({
       return !allowedDomains.includes(emailDomain)
     })
   }, [resolvedEmails, allowedDomains])
+  const overBatchLimit = resolvedEmails.length > MAX_INVITE_BATCH
+
+  const loadCsvFile = (file: File) => {
+    setError(null)
+    setCsvNotice(null)
+    setCsvFileName(null)
+    setAttemptedSend(false)
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : ''
+      const parsed = parseInviteCsv(text)
+      if (parsed.length === 0) {
+        setCsvNotice('No email addresses found in that CSV.')
+        return
+      }
+      setEmailsInput(parsed.join('\n'))
+      if (parsed.length <= MAX_INVITE_BATCH) {
+        setCsvFileName(file.name)
+      }
+    }
+    reader.onerror = () => {
+      setCsvNotice('Could not read that file. Try exporting again as CSV.')
+    }
+    reader.readAsText(file)
+  }
 
   const send = () => {
-    if (resolvedEmails.length === 0 || invalidEmails.length > 0 || isSending) return
+    if (resolvedEmails.length === 0 || invalidEmails.length > 0 || overBatchLimit || isSending) return
 
     // Block send on off-domain addresses and surface the warning; the user fixes
     // them and clicks again rather than creating invites that can never sign in.
@@ -833,25 +871,21 @@ function InviteModal({
 
   if (results) {
     return (
-      <Modal title="Invite results" subtitle="Some addresses need attention." onClose={onClose}>
-        <div className="mb-3 max-h-[260px] overflow-y-auto rounded-md border-control border-navy/[0.08]">
+      <Modal title="Invite results" subtitle={inviteResultsSubtitle(results)} onClose={onClose}>
+        <ul className="mb-3 max-h-[260px] space-y-2 overflow-y-auto">
           {results.map((row, index) => (
-            <div
+            <li
               key={`${row.email}-${index}`}
-              className="flex items-start justify-between gap-3 border-b border-navy/[0.08] px-3 py-2 text-sm last:border-b-0"
+              className="rounded-md bg-surface-muted px-3 py-2.5"
+              title={row.message ?? undefined}
             >
-              <span className="truncate font-medium text-navy">{row.email}</span>
-              <span
-                className={`flex-shrink-0 text-right ${
-                  row.status === 'Invited' ? 'text-[#1E8A57]' : 'text-red'
-                }`}
-                title={row.message ?? undefined}
-              >
+              <p className="truncate font-mono text-sm text-navy">{row.email}</p>
+              <p className={`mt-0.5 text-sm ${ROW_STATUS_CLASS[row.status]}`}>
                 {ROW_STATUS_DISPLAY[row.status]}
-              </span>
-            </div>
+              </p>
+            </li>
           ))}
-        </div>
+        </ul>
         <button
           type="button"
           onClick={onClose}
@@ -866,21 +900,50 @@ function InviteModal({
   return (
     <Modal
       title="Invite members"
-      subtitle="They'll get an email invite to join this workspace. Separate multiple emails with commas."
+      subtitle="They'll get an email invite to join this workspace. Paste emails or upload a CSV."
       onClose={onClose}
     >
       <div className="mb-3">
-        <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">
-          Email addresses
-        </label>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <label className="font-display text-label font-semibold text-navy/70">Email addresses</label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={downloadInviteCsvTemplate}
+              className="font-display text-label font-semibold text-navy/55 transition-colors hover:text-navy"
+            >
+              Download template
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="font-display text-label font-semibold text-brand transition-colors hover:text-brand-deep"
+            >
+              Upload CSV
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                if (file) loadCsvFile(file)
+              }}
+            />
+          </div>
+        </div>
         <textarea
-          rows={3}
-          className="w-full resize-none rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
+          rows={Math.min(8, Math.max(3, resolvedEmails.length || 3))}
+          className="w-full resize-y rounded-md border-control border-navy/[0.08] px-3 py-field font-mono text-sm text-navy outline-none focus:border-brand"
           placeholder={domain ? `alice, bob (adds @${domain})` : 'name@company.com, other@company.com'}
           value={emailsInput}
           onChange={(event) => {
             setEmailsInput(event.target.value)
             setAttemptedSend(false)
+            setCsvNotice(null)
+            setCsvFileName(null)
           }}
         />
         {allowedDomains.length > 0 && (
@@ -903,13 +966,20 @@ function InviteModal({
             <span className="text-xs text-navy/45">added to names without an @</span>
           </div>
         )}
-        <div className="mt-1 min-h-[16px] text-sm">
+        <div className="mt-1.5 min-h-[16px] text-sm">
           {invalidEmails.length > 0 ? (
+            <span className="text-red">Not a valid email: {invalidEmails.join(', ')}</span>
+          ) : overBatchLimit ? (
             <span className="text-red">
-              Not a valid email: {invalidEmails.join(', ')}
+              You can invite up to {MAX_INVITE_BATCH} people at a time. Remove a few and try again.
             </span>
-          ) : tokens.length > 1 ? (
-            <span className="text-navy/50">{tokens.length} addresses</span>
+          ) : csvNotice ? (
+            <span className="text-red">{csvNotice}</span>
+          ) : tokens.length > 0 ? (
+            <span className="text-navy/50">
+              {tokens.length} address{tokens.length === 1 ? '' : 'es'}
+              {csvFileName ? ` from ${csvFileName}` : ''}
+            </span>
           ) : null}
         </div>
         {attemptedSend && disallowedEmails.length > 0 && (
@@ -948,7 +1018,7 @@ function InviteModal({
         </button>
         <button
           type="button"
-          disabled={isSending || tokens.length === 0 || invalidEmails.length > 0}
+          disabled={isSending || tokens.length === 0 || invalidEmails.length > 0 || overBatchLimit}
           onClick={send}
           className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
         >
