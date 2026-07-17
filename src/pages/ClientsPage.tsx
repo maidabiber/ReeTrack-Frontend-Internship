@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
-import { Pill } from '../components/ui/Pill'
+import {
+  DirectoryHeader,
+  DirectorySearch,
+  LoadErrorState,
+  NoticeBanner,
+  SegmentedTabs,
+} from '../components/directory/DirectoryControls'
+import {
+  HeaderCell,
+  RowMenu,
+  RowMenuItem,
+  SkeletonRow,
+  StatusMark,
+} from '../components/directory/DirectoryTable'
+import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
 import {
   clientApiErrorMessage,
   createClient,
@@ -10,14 +25,13 @@ import {
   updateClient,
   type ClientStatusFilter,
 } from '../api/clients'
+import { listProjects } from '../api/projects'
+import { clientCoverUrl, projectCoverUrl } from '../lib/projectCover'
+import { formatBillingSummary } from '../lib/projectFormat'
 import type { Client } from '../types/client'
+import type { Project } from '../types/project'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; client: Client } | null
-
-const STATUS_DOT: Record<'active' | 'archived', string> = {
-  active: 'bg-[#1E8A57]',
-  archived: 'bg-navy/35',
-}
 
 const GRID = 'grid grid-cols-[2.4fr_0.9fr_0.9fr_32px] items-center gap-2.5 px-3.5 py-2'
 
@@ -34,6 +48,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<ClientStatusFilter>('active')
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null)
+  const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -112,62 +127,32 @@ export default function ClientsPage() {
   return (
     <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-xl font-bold text-navy">Clients</h1>
-            <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
-              The companies and people you work for. Projects (and their tracked time) are grouped
-              under a client.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setModal({ mode: 'create' })
-            }}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
-          >
-            <Icon name="plus" className="size-icon-sm" />
-            New client
-          </button>
-        </header>
+        <DirectoryHeader
+          title="Clients"
+          count={!isLoading && !loadError ? filtered.length : null}
+          actionLabel="New client"
+          onAction={(event) => {
+            event.stopPropagation()
+            setModal({ mode: 'create' })
+          }}
+        />
 
-        {notice && (
-          <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
-            <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
-            {notice}
-          </div>
-        )}
+        {notice && <NoticeBanner>{notice}</NoticeBanner>}
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-full bg-surface-muted p-segment">
-            {(['active', 'archived', 'all'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => changeTab(option)}
-                className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold capitalize ${
-                  tab === option ? 'bg-navy text-cream' : 'text-navy/55'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <SegmentedTabs
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'archived', label: 'Archived' },
+              { value: 'all', label: 'All' },
+            ]}
+            value={tab}
+            onChange={changeTab}
+          />
 
           <span className="flex-1" />
 
-          <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
-            <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
-            <input
-              className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
-              placeholder="Search clients..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-            />
-          </label>
+          <DirectorySearch placeholder="Search clients..." value={search} onChange={setSearch} />
         </div>
 
         <div className="rounded-2xl bg-white shadow-card">
@@ -179,31 +164,30 @@ export default function ClientsPage() {
           </div>
 
           <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <LoadingRow />}
+            {isLoading && <SkeletonRows />}
 
             {!isLoading && loadError && (
-              <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="text-body text-red">{loadError}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLoading(true)
-                    setLoadError(null)
-                    refresh()
-                  }}
-                  className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
-                >
-                  Try again
-                </button>
-              </div>
+              <LoadErrorState
+                message={loadError}
+                onRetry={() => {
+                  setIsLoading(true)
+                  setLoadError(null)
+                  refresh()
+                }}
+              />
             )}
 
             {!isLoading &&
               !loadError &&
-              filtered.map((client) => (
+              filtered.map((client, index) => (
                 <ClientRow
                   key={client.id}
                   client={client}
+                  index={index}
+                  expanded={expandedClientId === client.id}
+                  onToggleExpand={() =>
+                    setExpandedClientId(expandedClientId === client.id ? null : client.id)
+                  }
                   menuOpen={openRowMenuId === client.id}
                   onToggleMenu={(event) => {
                     event.stopPropagation()
@@ -246,25 +230,30 @@ export default function ClientsPage() {
   )
 }
 
-function LoadingRow() {
+/** Ghost rows while clients load, matching the real grid's geometry. */
+function SkeletonRows() {
   return (
-    <div className="flex items-center justify-center px-5 py-10">
-      <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
-    </div>
-  )
-}
-
-function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 py-1.5 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/60 uppercase">
-      <Icon name={icon} className="h-3 w-3 text-brand" />
-      {label}
-    </div>
+    <>
+      {Array.from({ length: 5 }, (_, index) => (
+        <SkeletonRow key={index} gridClassName={GRID} index={index}>
+          <div className="flex items-center gap-2.5">
+            <span className="h-[26px] w-[26px] flex-shrink-0 rounded-sm bg-surface-muted" />
+            <span className="h-3 w-28 rounded-full bg-navy/10" />
+          </div>
+          <span className="h-3 w-8 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-14 rounded-full bg-navy/[0.07]" />
+          <span />
+        </SkeletonRow>
+      ))}
+    </>
   )
 }
 
 function ClientRow({
   client,
+  index,
+  expanded,
+  onToggleExpand,
   menuOpen,
   onToggleMenu,
   onEdit,
@@ -272,102 +261,163 @@ function ClientRow({
   onDelete,
 }: {
   client: Client
+  index: number
+  expanded: boolean
+  onToggleExpand: () => void
   menuOpen: boolean
   onToggleMenu: (event: React.MouseEvent) => void
   onEdit: () => void
   onToggleArchived: () => void
   onDelete: () => void
 }) {
-  const initial = client.name.trim().charAt(0).toUpperCase() || '?'
   const canDelete = client.projectCount === 0
 
   return (
-    <div className={`${GRID} hover:bg-surface-muted`}>
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-sm bg-surface-muted font-mono text-xs font-medium text-navy">
-          {initial}
-        </span>
-        <span className="truncate text-md font-semibold">{client.name}</span>
-      </div>
-
-      <span
-        className={`font-mono text-caption tabular-nums ${
-          client.projectCount > 0 ? 'font-medium' : 'font-normal opacity-40'
-        }`}
+    <div className="motion-safe:animate-rise" style={riseDelay(index)}>
+      {/* Clicking anywhere on the row toggles the project list (mouse
+          convenience); the name cell's real <button> is the accessible
+          toggle, so the row itself carries no button semantics and the
+          row-actions menu isn't nested inside an interactive element. */}
+      <div
+        onClick={onToggleExpand}
+        className={`${GRID} cursor-pointer transition-colors hover:bg-surface-muted/60`}
       >
-        {client.projectCount}
-      </span>
-
-      <Pill
-        label={client.isActive ? 'Active' : 'Archived'}
-        dotClassName={STATUS_DOT[client.isActive ? 'active' : 'archived']}
-      />
-
-      <div className="relative flex justify-end">
         <button
           type="button"
-          onClick={onToggleMenu}
-          aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
+          aria-expanded={expanded}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleExpand()
+          }}
+          className="flex min-w-0 items-center gap-2.5 text-left"
         >
-          <Icon name="more" className="h-[15px] w-[15px]" />
+          <img
+            src={clientCoverUrl(client)}
+            alt=""
+            loading="lazy"
+            className={`h-[26px] w-[26px] flex-shrink-0 rounded-sm ${
+              client.isActive ? '' : 'opacity-50 grayscale'
+            }`}
+          />
+          <span className="truncate font-display text-md font-semibold text-navy">
+            {client.name}
+          </span>
+          <Icon
+            name="chevron-down"
+            className={`h-3 w-3 flex-shrink-0 text-navy/35 transition-transform duration-200 ${
+              expanded ? 'rotate-180' : ''
+            }`}
+          />
         </button>
-        {menuOpen && (
-          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
-            <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-            <RowMenuItem
-              icon="check-badge"
-              label={client.isActive ? 'Archive' : 'Restore'}
-              onClick={onToggleArchived}
-            />
-            <RowMenuItem
-              icon="ban"
-              label="Delete"
-              danger
-              disabled={!canDelete}
-              title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
-              onClick={onDelete}
-            />
-          </div>
-        )}
+
+        <span
+          className={`font-mono text-caption tabular-nums ${
+            client.projectCount > 0 ? 'font-medium' : 'font-normal opacity-40'
+          }`}
+        >
+          {client.projectCount}
+        </span>
+
+        <StatusMark
+          label={client.isActive ? 'Active' : 'Archived'}
+          colorClassName={STATUS_COLOR[client.isActive ? 'active' : 'archived']}
+        />
+
+        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+          <RowMenuItem
+            icon="check-badge"
+            label={client.isActive ? 'Archive' : 'Restore'}
+            onClick={onToggleArchived}
+          />
+          <RowMenuItem
+            icon="ban"
+            label="Delete"
+            danger
+            disabled={!canDelete}
+            title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
+            onClick={onDelete}
+          />
+        </RowMenu>
       </div>
+
+      {expanded && <ClientProjects clientId={client.id} />}
     </div>
   )
 }
 
-function RowMenuItem({
-  icon,
-  label,
-  danger,
-  disabled,
-  title,
-  onClick,
-}: {
-  icon: Parameters<typeof Icon>[0]['name']
-  label: string
-  danger?: boolean
-  disabled?: boolean
-  title?: string
-  onClick?: () => void
-}) {
+/**
+ * Inline project list under an expanded client row. Fetched lazily per
+ * expansion; each project links to its dashboard.
+ */
+function ClientProjects({ clientId }: { clientId: string }) {
+  const [projects, setProjects] = useState<Project[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    listProjects('all', clientId)
+      .then((loaded) => {
+        if (!cancelled) setProjects(loaded)
+      })
+      .catch(() => {
+        if (!cancelled) setError('Could not load projects.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
+
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      title={title}
-      onClick={(event) => {
-        event.stopPropagation()
-        onClick?.()
-      }}
-      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium ${
-        disabled
-          ? 'cursor-not-allowed text-navy/35'
-          : `hover:bg-surface-muted ${danger ? 'text-red' : 'text-navy'}`
-      }`}
-    >
-      <Icon name={icon} className={`size-icon-sm ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
-      {label}
-    </button>
+    <div className="border-t border-navy/[0.06] bg-canvas/60">
+      {error && <p className="py-2.5 pl-[50px] text-caption text-red">{error}</p>}
+
+      {!error && projects === null && (
+        <div className="flex items-center gap-2.5 py-2.5 pl-[50px] motion-safe:animate-pulse">
+          <span className="h-[22px] w-[22px] rounded-xs bg-surface-muted" />
+          <span className="h-3 w-32 rounded-full bg-navy/10" />
+        </div>
+      )}
+
+      {!error && projects !== null && projects.length === 0 && (
+        <p className="py-2.5 pl-[50px] text-caption text-navy/45">No projects yet.</p>
+      )}
+
+      {!error &&
+        projects !== null &&
+        projects.map((project, index) => (
+          <Link
+            key={project.id}
+            to={`/projects/${project.id}`}
+            onClick={(event) => event.stopPropagation()}
+            className="flex items-center gap-2.5 py-2 pr-10 pl-[50px] transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise"
+            style={riseDelay(index, 9)}
+          >
+            <img
+              src={projectCoverUrl(project)}
+              alt=""
+              loading="lazy"
+              className={`h-[22px] w-[22px] flex-shrink-0 rounded-xs ${
+                project.status === 'active' ? '' : 'opacity-50 grayscale'
+              }`}
+            />
+            <span className="min-w-0 flex-1 truncate font-display text-caption font-semibold text-navy">
+              {project.name}
+            </span>
+            {project.status === 'archived' && (
+              <span className="flex-shrink-0 font-mono text-micro tracking-[0.08em] text-navy/40 uppercase">
+                Archived
+              </span>
+            )}
+            <span className="hidden flex-shrink-0 font-mono text-sm text-navy/60 sm:block">
+              {formatBillingSummary(project)}
+            </span>
+            <span className="w-16 flex-shrink-0 text-right font-mono text-sm tabular-nums text-navy/50">
+              {project.taskCount} {project.taskCount === 1 ? 'task' : 'tasks'}
+            </span>
+          </Link>
+        ))}
+    </div>
   )
 }
 

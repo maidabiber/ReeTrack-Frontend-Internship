@@ -12,8 +12,19 @@ import type { BillingType, Project } from '../../types/project'
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'BAM', 'CHF'] as const
 
 const LABEL = 'mb-1.5 block font-display text-label font-semibold text-navy/70'
+/* Fields sit on the modal's glass: translucent at rest, solid when focused. */
 const FIELD =
-  'w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand'
+  'w-full rounded-md border-control border-navy/10 bg-white/70 px-3 py-field text-body text-navy outline-none transition-colors focus:border-brand focus:bg-white'
+/* Amounts are data: mono + tabular so digits align and don't jitter. */
+const AMOUNT_FIELD = `${FIELD} font-mono tabular-nums`
+
+/** Staggered entrance for the form groups, following the dialog's pop. */
+function rise(step: number, base: string) {
+  return {
+    className: `${base} motion-safe:animate-rise`,
+    style: { animationDelay: `${step * 45}ms` },
+  }
+}
 
 /** Empty string → null; otherwise the parsed number (may be negative — backend validates). */
 function parseAmount(value: string): number | null {
@@ -131,7 +142,7 @@ export function ProjectModal({
           save()
         }}
       >
-        <div className="mb-3">
+        <div {...rise(1, 'mb-3')}>
           <label className={LABEL}>Project name</label>
           <input
             autoFocus
@@ -142,7 +153,7 @@ export function ProjectModal({
           />
         </div>
 
-        <div className="mb-3">
+        <div {...rise(2, 'mb-3')}>
           <label className={LABEL}>Client</label>
           <SearchSelect
             ariaLabel="Client"
@@ -158,16 +169,18 @@ export function ProjectModal({
           />
         </div>
 
-        <div className="mb-3">
+        <div {...rise(3, 'mb-3')}>
           <label className={LABEL}>Billing</label>
-          <div className="flex rounded-full bg-surface-muted p-segment">
+          <div className="flex rounded-full bg-navy/[0.06] p-segment">
             {(['hourly', 'fixedFee'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => setBillingType(option)}
-                className={`flex-1 rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
-                  billingType === option ? 'bg-navy text-cream' : 'text-navy/55'
+                className={`flex-1 rounded-full px-3.5 py-compact font-display text-sm font-semibold transition-colors ${
+                  billingType === option
+                    ? 'bg-brand text-white'
+                    : 'text-navy/55 hover:text-navy'
                 }`}
               >
                 {option === 'hourly' ? 'Hourly' : 'Fixed fee'}
@@ -176,11 +189,11 @@ export function ProjectModal({
           </div>
         </div>
 
-        <div className="mb-3 flex gap-2.5">
+        <div {...rise(4, 'mb-3 flex gap-2.5')}>
           <div className="w-[110px] flex-shrink-0">
             <label className={LABEL}>Currency</label>
             <select
-              className={`${FIELD} bg-white`}
+              className={AMOUNT_FIELD}
               value={currencyCode}
               onChange={(event) => setCurrencyCode(event.target.value)}
             >
@@ -201,7 +214,7 @@ export function ProjectModal({
                 type="number"
                 min="0"
                 step="0.01"
-                className={FIELD}
+                className={AMOUNT_FIELD}
                 placeholder="90"
                 value={hourlyRate}
                 onChange={(event) => setHourlyRate(event.target.value)}
@@ -211,7 +224,7 @@ export function ProjectModal({
                 type="number"
                 min="0"
                 step="0.01"
-                className={FIELD}
+                className={AMOUNT_FIELD}
                 placeholder="12000"
                 value={fixedFeeAmount}
                 onChange={(event) => setFixedFeeAmount(event.target.value)}
@@ -220,14 +233,14 @@ export function ProjectModal({
           </div>
         </div>
 
-        <div className="mb-3 flex gap-2.5">
+        <div {...rise(5, 'mb-3 flex gap-2.5')}>
           <div className="flex-1">
             <label className={LABEL}>Budget ({currencyCode})</label>
             <input
               type="number"
               min="0"
               step="0.01"
-              className={FIELD}
+              className={AMOUNT_FIELD}
               placeholder="Optional"
               value={budgetAmount}
               onChange={(event) => setBudgetAmount(event.target.value)}
@@ -239,7 +252,7 @@ export function ProjectModal({
               type="number"
               min="0"
               step="0.25"
-              className={FIELD}
+              className={AMOUNT_FIELD}
               placeholder="Optional"
               value={timeEstimateHours}
               onChange={(event) => setTimeEstimateHours(event.target.value)}
@@ -247,7 +260,7 @@ export function ProjectModal({
           </div>
         </div>
 
-        <div className="mb-3">
+        <div {...rise(6, 'mb-3')}>
           <label className={LABEL}>Colour</label>
           <ColorSwatchPicker value={color} onChange={setColor} />
         </div>
@@ -258,11 +271,11 @@ export function ProjectModal({
           </div>
         )}
 
-        <div className="mt-4.5 flex gap-2">
+        <div {...rise(7, 'mt-4.5 flex gap-2')}>
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
+            className="flex-1 rounded-full border-control border-navy/20 bg-transparent py-2.5 font-display text-body font-semibold text-navy/70 transition-colors hover:border-navy hover:text-navy"
           >
             Cancel
           </button>

@@ -19,6 +19,10 @@
   --color-cream: #fbf6ec;
   --color-cream-card: #f1ead9;
   --color-surface-muted: #f2f4f9;
+  /* App-shell canvas behind every routed page: a whisper off white, so white
+   * cards separate from the background and the ink sidebar meets a softer
+   * edge. Standalone auth screens stay pure white. */
+  --color-canvas: #f7f8fb;
 
   /* Ink — technical dark chrome (sidebar) and primary text */
   --color-navy: #1b2540;
@@ -114,6 +118,34 @@
   /* Control chrome */
   --border-width-control: 1.5px;
 
+  /* Entrance for grid items (project cards) — pair with motion-safe: and a
+   * per-item animation-delay so the grid settles in a quick stagger. */
+  --animate-rise: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  /* Modal entrances: the scrim fades, the dialog pops up into place. */
+  --animate-fade: fade 0.2s ease-out;
+  --animate-pop: pop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+    }
+  }
+
   --shadow-soft: 0 2px 8px rgba(20, 29, 51, 0.06);
   --shadow-float: 0 8px 22px rgba(20, 29, 51, 0.1);
   --shadow-card: 0 10px 28px rgba(20, 29, 51, 0.08);
@@ -131,6 +163,16 @@
 @layer components {
   .bg-brand-gradient {
     background-image: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-hi) 100%);
+  }
+
+  /* Soft-alpha variant for the active sidebar item on ink: same angle and
+   * stops as the trademark gradient, washed to a dusk blue-purple. */
+  .bg-brand-gradient-soft {
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-brand) 32%, transparent) 0%,
+      color-mix(in srgb, var(--color-brand-hi) 32%, transparent) 100%
+    );
   }
 
   /* Tabular figures for timers / durations / totals so digits never jitter. */

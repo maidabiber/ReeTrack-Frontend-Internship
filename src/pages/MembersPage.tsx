@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/ui/Icon'
+import { UserAvatar } from '../components/ui/UserAvatar'
 import { Modal } from '../components/ui/Modal'
-import { Pill } from '../components/ui/Pill'
+import {
+  DirectoryHeader,
+  DirectorySearch,
+  LoadErrorState,
+  NoticeBanner,
+  SegmentedTabs,
+} from '../components/directory/DirectoryControls'
+import {
+  HeaderCell,
+  RowMenu,
+  RowMenuItem,
+  SkeletonRow,
+  StatusMark,
+} from '../components/directory/DirectoryTable'
+import { riseDelay } from '../components/directory/directoryChrome'
 import {
   inviteMembers,
   listAllowedDomains,
@@ -34,22 +49,24 @@ const STATUS_DISPLAY: Record<UserStatus, string> = {
   Disabled: 'Deactivated',
 }
 
-const ROLE_DOT: Record<Role, string> = {
-  Admin: 'bg-brand',
-  Member: 'bg-navy/45',
+/* Role/status are plain text, told apart by colour and weight only — no
+ * badge chrome. Admin carries weight; statuses carry a quiet semantic hue. */
+const ROLE_COLOR: Record<Role, string> = {
+  Admin: 'font-semibold text-brand-hi',
+  Member: 'text-navy/60',
 }
 
-const STATUS_DOT: Record<UserStatus, string> = {
-  Active: 'bg-[#1E8A57]',
-  Invited: 'bg-[#B8860B]',
-  Disabled: 'bg-navy/35',
+const STATUS_COLOR: Record<UserStatus, string> = {
+  Active: 'text-[#1E8A57]',
+  Invited: 'text-brand',
+  Disabled: 'text-navy/45',
 }
 
-const INVITE_STATUS_DOT: Record<InvitationStatus, string> = {
-  Pending: 'bg-[#B8860B]',
-  Accepted: 'bg-[#1E8A57]',
-  Revoked: 'bg-navy/35',
-  Expired: 'bg-red/70',
+const INVITE_STATUS_COLOR: Record<InvitationStatus, string> = {
+  Pending: 'text-brand',
+  Accepted: 'text-[#1E8A57]',
+  Revoked: 'text-navy/45',
+  Expired: 'text-red/80',
 }
 
 const GRID = 'grid grid-cols-[2fr_2.2fr_0.9fr_0.9fr_0.7fr_32px] items-center gap-2.5 px-3.5 py-2'
@@ -213,48 +230,27 @@ export default function MembersPage() {
   return (
     <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-xl font-bold text-navy">Members</h1>
-          <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
-            See everyone with access to this workspace, their role, and account status.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            setInviteOpen(true)
-          }}
-          className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
-        >
-          <Icon name="plus" className="size-icon-sm" />
-          Invite members
-        </button>
-      </header>
+      <DirectoryHeader
+        title="Members"
+        count={view === 'members' && !isLoading && !loadError ? filtered.length : null}
+        actionLabel="Invite members"
+        onAction={(event) => {
+          event.stopPropagation()
+          setInviteOpen(true)
+        }}
+      />
 
-      {notice && (
-        <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
-          <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
-          {notice}
-        </div>
-      )}
+      {notice && <NoticeBanner>{notice}</NoticeBanner>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-full bg-surface-muted p-segment">
-          {(['members', 'invitations'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setView(option)}
-              className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
-                view === option ? 'bg-navy text-cream' : 'text-navy/55'
-              }`}
-            >
-              {option === 'members' ? 'Members' : 'Invitations'}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          options={[
+            { value: 'members', label: 'Members' },
+            { value: 'invitations', label: 'Invitations' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
 
         {view === 'members' && (
           <>
@@ -292,16 +288,7 @@ export default function MembersPage() {
 
             <span className="flex-1" />
 
-            <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
-              <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
-              <input
-                className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
-                placeholder="Search members..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onClick={(event) => event.stopPropagation()}
-              />
-            </label>
+            <DirectorySearch placeholder="Search members..." value={search} onChange={setSearch} />
           </>
         )}
       </div>
@@ -318,31 +305,26 @@ export default function MembersPage() {
           </div>
 
           <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <LoadingRow />}
+            {isLoading && <SkeletonRows />}
 
             {!isLoading && loadError && (
-              <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="text-body text-red">{loadError}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLoading(true)
-                    setLoadError(null)
-                    setReloadKey((key) => key + 1)
-                  }}
-                  className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
-                >
-                  Try again
-                </button>
-              </div>
+              <LoadErrorState
+                message={loadError}
+                onRetry={() => {
+                  setIsLoading(true)
+                  setLoadError(null)
+                  setReloadKey((key) => key + 1)
+                }}
+              />
             )}
 
             {!isLoading &&
               !loadError &&
-              filtered.map((member) => (
+              filtered.map((member, index) => (
                 <MemberRow
                   key={member.id}
                   member={member}
+                  index={index}
                   menuOpen={openRowMenuId === member.id}
                   onToggleMenu={(event) => {
                     event.stopPropagation()
@@ -390,20 +372,43 @@ export default function MembersPage() {
   )
 }
 
-function LoadingRow() {
+/** Ghost rows while members load, matching the real grid's geometry. */
+function SkeletonRows() {
   return (
-    <div className="flex items-center justify-center px-5 py-10">
-      <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
-    </div>
+    <>
+      {Array.from({ length: 6 }, (_, index) => (
+        <SkeletonRow key={index} gridClassName={GRID} index={index}>
+          <div className="flex items-center gap-2.5">
+            <span className="h-[26px] w-[26px] flex-shrink-0 rounded-full bg-surface-muted" />
+            <span className="h-3 w-24 rounded-full bg-navy/10" />
+          </div>
+          <span className="h-3 w-40 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-14 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-14 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-10 rounded-full bg-navy/[0.07]" />
+          <span />
+        </SkeletonRow>
+      ))}
+    </>
   )
 }
 
-function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
+/** Ghost rows while invitations load, matching the invitation grid. */
+function InvitationSkeletonRows() {
   return (
-    <div className="flex items-center gap-1.5 py-1.5 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/60 uppercase">
-      <Icon name={icon} className="h-3 w-3 text-brand" />
-      {label}
-    </div>
+    <>
+      {Array.from({ length: 4 }, (_, index) => (
+        <SkeletonRow key={index} gridClassName={INVITE_GRID} index={index}>
+          <span className="h-3 w-40 rounded-full bg-navy/10" />
+          <span className="h-3 w-12 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-14 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-24 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-16 rounded-full bg-navy/[0.07]" />
+          <span className="h-3 w-16 rounded-full bg-navy/[0.07]" />
+          <span />
+        </SkeletonRow>
+      ))}
+    </>
   )
 }
 
@@ -427,6 +432,7 @@ function FilterDropdown({
   onToggle: () => void
   onSelect: (value: string) => void
 }) {
+  const isFiltering = value !== 'all'
   return (
     <div className="relative">
       <button
@@ -435,13 +441,15 @@ function FilterDropdown({
           event.stopPropagation()
           onToggle()
         }}
-        className="flex items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact font-display text-sm font-semibold text-navy hover:border-brand"
+        className={`flex items-center gap-1.5 rounded-full px-3.5 py-compact font-mono text-eyebrow font-medium tracking-[0.12em] uppercase shadow-soft transition-colors ${
+          isFiltering ? 'bg-navy text-cream' : 'bg-white text-navy/55 hover:text-navy'
+        }`}
       >
         {label}
         <Icon name="chevron-down" className="h-3 w-3 opacity-60" />
       </button>
       {isOpen && (
-        <div className="absolute top-[calc(100%+4px)] left-0 z-20 min-w-[140px] rounded-xl bg-white p-menu shadow-dropdown">
+        <div className="absolute top-[calc(100%+4px)] left-0 z-20 min-w-[140px] rounded-xl bg-white/80 p-menu shadow-dropdown backdrop-blur-xl">
           {options.map((option) => (
             <button
               key={option.value}
@@ -465,6 +473,7 @@ function FilterDropdown({
 
 function MemberRow({
   member,
+  index,
   menuOpen,
   onToggleMenu,
   onResend,
@@ -473,6 +482,7 @@ function MemberRow({
   onToggleActive,
 }: {
   member: Member
+  index: number
   menuOpen: boolean
   onToggleMenu: (event: React.MouseEvent) => void
   onResend: () => void
@@ -480,28 +490,29 @@ function MemberRow({
   onToggleRole: () => void
   onToggleActive: () => void
 }) {
-  const initials = (member.displayName ?? member.email)
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-
   const hasPendingInvite = member.status === 'Invited' && member.pendingInvitationId !== null
 
   return (
-    <div className={`${GRID} hover:bg-surface-muted`}>
+    <div
+      className={`${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+      style={riseDelay(index)}
+    >
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-sm bg-surface-muted font-mono text-xs font-medium text-navy">
-          {initials}
+        <UserAvatar
+          name={member.displayName ?? member.email}
+          size={26}
+          aria-hidden="true"
+          className={`flex-shrink-0 ${member.status === 'Disabled' ? 'opacity-50 grayscale' : ''}`}
+        />
+        <span className="truncate font-display text-md font-semibold text-navy">
+          {member.displayName ?? '—'}
         </span>
-        <span className="truncate text-md font-semibold">{member.displayName}</span>
       </div>
 
-      <div className="truncate font-mono text-sm text-navy/65">{member.email}</div>
+      <div className="truncate text-caption text-navy/60">{member.email}</div>
 
-      <Pill label={member.role} dotClassName={ROLE_DOT[member.role]} />
-      <Pill label={STATUS_DISPLAY[member.status]} dotClassName={STATUS_DOT[member.status]} />
+      <StatusMark label={member.role} colorClassName={ROLE_COLOR[member.role]} />
+      <StatusMark label={STATUS_DISPLAY[member.status]} colorClassName={STATUS_COLOR[member.status]} />
 
       {/* Rates wait on RT-61; display-only until then. */}
       <span
@@ -511,70 +522,25 @@ function MemberRow({
         {member.rate !== null ? `$${member.rate}/hr` : '—'}
       </span>
 
-      <div className="relative flex justify-end">
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
-        >
-          <Icon name="more" className="h-[15px] w-[15px]" />
-        </button>
-        {menuOpen && (
-          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
-            {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
-            <RowMenuItem
-              icon="settings"
-              label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
-              onClick={onToggleRole}
-            />
-            {hasPendingInvite ? (
-              <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
-            ) : (
-              <RowMenuItem
-                icon="ban"
-                label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
-                danger
-                onClick={onToggleActive}
-              />
-            )}
-          </div>
+      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+        {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
+        <RowMenuItem
+          icon="settings"
+          label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
+          onClick={onToggleRole}
+        />
+        {hasPendingInvite ? (
+          <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
+        ) : (
+          <RowMenuItem
+            icon="ban"
+            label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
+            danger
+            onClick={onToggleActive}
+          />
         )}
-      </div>
+      </RowMenu>
     </div>
-  )
-}
-
-function RowMenuItem({
-  icon,
-  label,
-  danger,
-  disabled,
-  onClick,
-}: {
-  icon: Parameters<typeof Icon>[0]['name']
-  label: string
-  danger?: boolean
-  disabled?: boolean
-  onClick?: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={(event) => {
-        event.stopPropagation()
-        onClick?.()
-      }}
-      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium ${
-        disabled
-          ? 'cursor-not-allowed text-navy/35'
-          : `hover:bg-surface-muted ${danger ? 'text-red' : 'text-navy'}`
-      }`}
-    >
-      <Icon name={icon} className={`size-icon-sm ${danger && !disabled ? 'opacity-80' : 'opacity-65'}`} />
-      {label}
-    </button>
   )
 }
 
@@ -662,7 +628,7 @@ function InvitationsCard({
       </div>
 
       <div className="divide-y divide-navy/[0.08]">
-        {isLoading && <LoadingRow />}
+        {isLoading && <InvitationSkeletonRows />}
 
         {!isLoading && loadError && (
           <div className="px-5 py-10 text-center text-body text-red">{loadError}</div>
@@ -670,13 +636,20 @@ function InvitationsCard({
 
         {!isLoading &&
           !loadError &&
-          invitations.map((invitation) => {
+          invitations.map((invitation, index) => {
             const isActionable = invitation.status === 'Pending' || invitation.status === 'Expired'
             return (
-              <div key={invitation.id} className={`${INVITE_GRID} hover:bg-surface-muted`}>
+              <div
+                key={invitation.id}
+                className={`${INVITE_GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+                style={riseDelay(index)}
+              >
                 <div className="truncate text-md font-semibold">{invitation.email}</div>
-                <Pill label={invitation.role} dotClassName={ROLE_DOT[invitation.role]} />
-                <Pill label={invitation.status} dotClassName={INVITE_STATUS_DOT[invitation.status]} />
+                <StatusMark label={invitation.role} colorClassName={ROLE_COLOR[invitation.role]} />
+                <StatusMark
+                  label={invitation.status}
+                  colorClassName={INVITE_STATUS_COLOR[invitation.status]}
+                />
                 <div className="truncate text-caption text-navy/65">{invitation.invitedByName}</div>
                 <div className="text-sm text-navy/65">{formatDate(invitation.createdAtUtc)}</div>
                 <div className="text-sm text-navy/65">
@@ -685,27 +658,21 @@ function InvitationsCard({
                     : formatDate(invitation.expiresAtUtc)}
                 </div>
 
-                <div className="relative flex justify-end">
-                  {isActionable && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onToggleRowMenu(invitation.id)
-                      }}
-                      aria-label="Invitation actions"
-                      className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
-                    >
-                      <Icon name="more" className="h-[15px] w-[15px]" />
-                    </button>
-                  )}
-                  {isActionable && openRowMenuId === invitation.id && (
-                    <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
-                      <RowMenuItem icon="resend" label="Resend invite" onClick={() => handleResend(invitation)} />
-                      <RowMenuItem icon="ban" label="Revoke invite" danger onClick={() => handleRevoke(invitation)} />
-                    </div>
-                  )}
-                </div>
+                {isActionable ? (
+                  <RowMenu
+                    open={openRowMenuId === invitation.id}
+                    onToggle={(event) => {
+                      event.stopPropagation()
+                      onToggleRowMenu(invitation.id)
+                    }}
+                    ariaLabel="Invitation actions"
+                  >
+                    <RowMenuItem icon="resend" label="Resend invite" onClick={() => handleResend(invitation)} />
+                    <RowMenuItem icon="ban" label="Revoke invite" danger onClick={() => handleRevoke(invitation)} />
+                  </RowMenu>
+                ) : (
+                  <span />
+                )}
               </div>
             )
           })}

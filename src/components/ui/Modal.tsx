@@ -1,8 +1,12 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { Icon } from './Icon'
 
 /**
- * Centered modal dialog with a dimmed overlay. Clicking the overlay (but not the
- * card) closes it via onClose.
+ * Glass modal dialog: the page frosts behind an ink scrim, and the dialog is
+ * a translucent white panel framed by the brand-gradient hairline (the same
+ * treatment as the standalone auth card), with soft brand blobs behind the
+ * glass. Clicking the scrim, the close button, or pressing Escape closes it.
  */
 export function Modal({
   title,
@@ -18,21 +22,52 @@ export function Modal({
   /** Tailwind width class for the dialog card. Defaults to the narrow 360px form. */
   widthClassName?: string
 }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   return (
     <div
-      className="fixed inset-0 z-100 flex items-center justify-center bg-navy/35 p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-md motion-safe:animate-fade"
       onClick={onClose}
     >
       <div
-        className={`${widthClassName} max-w-full rounded-3xl bg-white p-modal shadow-modal`}
+        className={`${widthClassName} max-w-full rounded-3xl bg-brand-gradient p-px shadow-modal motion-safe:animate-pop`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <h2 className="font-display text-base font-bold text-navy">{title}</h2>
-        {subtitle && <p className="mt-1 mb-4.5 text-sm text-navy/60">{subtitle}</p>}
-        {children}
+        <div className="relative overflow-hidden rounded-3xl bg-canvas p-modal">
+          {/* Hand-placed brand washes behind the glass (auth-screen character),
+              kept faint so the panel stays the site's neutral paper tone. */}
+          <span
+            aria-hidden="true"
+            className="absolute -top-16 -right-14 h-40 w-40 rounded-full bg-brand-veil/50"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-brand-tint/50"
+          />
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full text-navy/45 transition-colors hover:bg-navy/[0.06] hover:text-navy"
+            >
+              <Icon name="x" className="h-3.5 w-3.5" />
+            </button>
+            <h2 className="pr-8 font-display text-base font-bold text-navy">{title}</h2>
+            {subtitle && <p className="mt-1 mb-4.5 text-sm text-navy/60">{subtitle}</p>}
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   )

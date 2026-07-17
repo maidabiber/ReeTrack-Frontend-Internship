@@ -1,6 +1,8 @@
 import type { Project } from '../types/project'
 
 /** Formats an amount with thousands separators and its currency code, e.g. "12,000 EUR". */
+export function formatMoney(amount: number, currencyCode: string): string
+export function formatMoney(amount: number | null, currencyCode: string): string | null
 export function formatMoney(amount: number | null, currencyCode: string): string | null {
   if (amount === null) return null
   const formatted = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(amount)

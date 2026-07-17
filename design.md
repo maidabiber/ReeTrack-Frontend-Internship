@@ -8,27 +8,28 @@ contract behind the tokens in `src/index.css`; read it before adding a page.
 ## 1. The identity in one paragraph
 
 ReeTrack is a **tool for people who track their work precisely** — developers,
-agencies, technical teams. So the app chrome reads like a developer tool:
-a deep "ink" sidebar, monospace for anything that is *data* (timers, durations,
-rates, emails, IDs), generous whitespace, and **solid, quiet buttons**. The one
-piece of brand flourish is the **trademark line**: a hairline (`h-px`) of the
-**#4366E2 → #BF6DE6** gradient, used under the `LogoMark` (sidebar and
-standalone auth screens) and under the timer input. The standalone auth screens are the human counterweight: white
-paper with a few hand-placed blobs in the brand blue/purple family, and the
-one card on screen framed in a hairline of the same gradient.
+agencies, technical teams. The app chrome reads like a developer tool: a deep
+"ink" sidebar, monospace for anything that is *data* (timers, durations,
+rates, counts, IDs), generous whitespace, and **solid, quiet buttons**. Pages
+sit on a soft near-white **canvas** so white cards lift off the background and
+the ink chrome meets a gentle edge. Color comes from *data*, not decoration:
+every project, tag and client carries its own accent, shown as **pastel
+"glass" cover art** at card scale and as tints and marks at row scale. Motion
+is calm and purposeful — things settle into place; nothing glows or bounces.
 
-Three rules keep it from looking like every AI-generated gradient dashboard:
+Four rules keep it from looking like every AI-generated gradient dashboard:
 
-1. **The gradient only ever appears hairline-thin.** Two places: the trademark
-   line under a wordmark/logo, and the 1px frame around a standalone auth
-   card. Never as a button fill, a panel background, or a glow. If you want
-   brand color on a solid element, use the flat `brand` blue — not the gradient.
-2. **Buttons are simple.** Solid `brand` blue (`hover:bg-brand-deep`) for
-   primary, outlined navy for secondary. No colored glows, no lift-on-hover
-   theatrics, no gradients.
-3. **Data is monospace.** Numbers and identifiers in `DM Mono` with
-   tabular figures is the single strongest "this is a technical tool" signal,
-   and it's the opposite of the soft, all-sans AI look.
+1. **The brand gradient is a frame, not a fill.** It appears hairline-thin
+   (trademark line, auth-card and modal frames) or as a barely-there wash
+   (active sidebar item). Never as a button fill or a panel background.
+2. **Buttons are simple.** Solid `brand` blue for primary (or an icon-only
+   blue circle), quiet ghost outline for secondary. No gradients, no glows,
+   no lift-on-hover.
+3. **Data is monospace.** Numbers, durations, rates, counts and uppercase
+   eyebrows in `DM Mono` with tabular figures.
+4. **Statuses are words, not badges.** Role/status render as plain coloured
+   text — no chips, no dots, no uppercase-tracking badge chrome. That badge
+   look is the fastest way to make a screen read as generated.
 
 ---
 
@@ -40,239 +41,286 @@ All colors are Tailwind tokens (defined in `@theme`). Use the token utilities
 ### Brand (the gradient)
 | Token | Hex | Use |
 |---|---|---|
-| `brand` | `#4366E2` | Solid brand blue: dots, icons, focus borders, links, active text |
-| `brand-hi` | `#BF6DE6` | Gradient terminus only — rarely used as a solid |
+| `brand` | `#4366E2` | Solid brand blue: primary buttons, icons, focus borders, links, "invited/pending" status text |
+| `brand-hi` | `#BF6DE6` | Gradient terminus; also the "admin" role text |
 | `brand-deep` | `#3552C4` | Hover for a *solid* brand fill (not the gradient) |
-| `brand-tint` | `#EEF1FD` | Light indigo wash: notices, soft chips, "coming soon" pills |
-| `brand-veil` | `#F6EEFB` | Light violet wash: large decorative auth blobs |
+| `brand-tint` | `#EEF1FD` | Light indigo wash: notices, soft chips, decorative blobs |
+| `brand-veil` | `#F6EEFB` | Light violet wash: decorative blobs (auth, modal corners) |
 
-**The gradient** is applied with the helper class `bg-brand-gradient` (135°,
-brand → brand-hi) — never hand-roll `bg-gradient-to-br from-... to-...`, because
-a consistent angle is what makes it look intentional.
+**The gradient** is applied with `bg-brand-gradient` (135°, brand → brand-hi)
+or its soft-alpha sibling `bg-brand-gradient-soft` — never hand-roll
+`bg-gradient-to-br`; one angle everywhere is what makes it look intentional.
 
 Where the gradient is allowed — the entire list:
-- A full-width `h-px` (or at most `h-[2px]`) trademark line under the
-  `LogoMark` (sidebar, and auth screens with no card, e.g. the onboarding
-  welcome step) and under the timer input.
-- A 1px frame around the standalone auth card: an outer `p-px` wrapper in
-  `bg-brand-gradient` holding the white card, in place of a solid border.
+- A full-width `h-px` trademark line under the `LogoMark` on standalone auth
+  screens, and under the timer input.
+- A 1px frame (`p-px` wrapper) around the standalone auth card **and around
+  every modal dialog** — the app's two "special surface" frames.
+- `bg-brand-gradient-soft` (≈32% alpha wash) as the **active sidebar item**
+  background on ink.
 
-Anywhere else that needs brand color uses the solid `brand` blue.
+Anywhere else that needs brand color uses the solid `brand` blue. Never a
+button fill.
 
-### Ink & paper
+### Ink, paper, canvas
 | Token | Hex | Use |
 |---|---|---|
-| `ink` | `#0E1526` | Sidebar / dark chrome background |
-| `ink-raised` | `#18213A` | Raised surfaces on ink (reserved) |
+| `canvas` | `#F7F8FB` | App-shell background behind every routed page; also the modal panel fill |
+| `ink` | `#0E1526` | Sidebar / dark chrome background; modal scrim (`bg-ink/50`) |
 | `navy` | `#1B2540` | Primary text on light surfaces |
-| `surface-muted` | `#F2F4F9` | Segmented controls, avatar chips, hover fills, auth-screen info panels |
+| `surface-muted` | `#F2F4F9` | Hover fills, skeleton bones, avatar chips |
 | `cream` / `cream-card` | `#FBF6EC` / `#F1EAD9` | Active segmented-toggle text on navy (`text-cream`); reserved otherwise |
 
-On the ink sidebar, tint with white alpha (`text-white/55`, `hover:bg-white/[0.06]`),
-not with gray tokens.
+Cards are `bg-white` on the canvas. Standalone auth screens stay pure white
+paper. On ink, tint with white alpha (`text-white/70`, `hover:bg-white/[0.06]`).
 
-### Crayon accents (semantic)
-`orange`, `yellow`, `green`, `red` and their `-tint` variants are for
-**status/semantics only:** green = active/success, red = error/danger, yellow =
-pending. Use the `-tint` behind text of the same hue (e.g. `bg-red-tint text-red`).
+### Entity accents (the crayon energy)
+`PROJECT_COLORS` (`src/lib/projectColors.ts`) is the shared accent palette for
+projects and tags; clients derive a stable accent from it by hash. Accents
+appear:
+- **As pastel cover art** — DiceBear `glass` tiles via `projectCoverUrl`,
+  with the accent blended **50% toward white** (`COVER_TINT`) so a grid of
+  covers never shouts over the brand. Small identity tiles
+  (`rounded-sm`/`rounded-xs`) on project, client and inline-project rows.
+- **As row tints** — tag rows wash the tag colour into white
+  (`.tag-tint-row`, `color-mix` 10% → 18% on hover).
+- **Pure** only at small scale: swatch pickers, the tag diamond swatch.
 
-### Auth-screen blobs (character)
-The tilted decorative shapes on standalone auth screens (`SignInPage`,
-`OnboardingPage`) use the brand blue/purple family only — `brand`, `brand-hi`,
-`brand-tint`, `brand-veil` — never the crayon colors above. Mix a couple of
-large soft washes (`brand-tint`/`brand-veil`) with several smaller solid or
-rotated shapes (`brand`/`brand-hi`) for depth. Keep them hand-placed and
-slightly rotated — never centered or evenly spaced. This is the human touch;
-don't sand it off.
+### Semantic status text
+Status words are coloured plain text (see §5): active/accepted = deep green,
+invited/pending = `brand`, admin = `brand-hi`, archived/disabled/revoked =
+`text-navy/45`, expired/error = `red`. The crayon `-tint` tokens
+(`bg-red-tint text-red`, …) remain for notices and error surfaces.
+
+### Decorative blobs (character)
+Tilted brand-family shapes (`brand`, `brand-hi`, `brand-tint`, `brand-veil` —
+never crayon colors) give standalone auth screens, first-run empty states and
+modal corners a human touch. Hand-placed, slightly rotated, never centered or
+evenly spaced. Keep them faint inside modals (≤ 50% opacity washes).
 
 ---
 
-## 3. Typography
+## 3. Glass
 
-Three families, each with a job. Don't reach outside these.
+Glass is the app's **elevation language**: a surface goes translucent-and-
+blurred only when it floats above live content that can melt through it.
+
+| Surface | Treatment |
+|---|---|
+| Dropdowns / row menus / pickers | `bg-white/80 backdrop-blur-xl shadow-dropdown` |
+| Modal scrim | `bg-ink/50 backdrop-blur-md` (the page visibly frosts) |
+| Card footers over cover art | `bg-white/75 backdrop-blur-xl border-t border-white/50` |
+| Buttons/chips floating on imagery | white glass circle (e.g. the card kebab) |
+
+**Solid surfaces stay solid**: the sidebar, resting cards, buttons and the
+modal panel itself (opaque `canvas` — a translucent panel over the dark scrim
+turns muddy blue). Glass over a flat background is indistinguishable from a
+tint; don't add decoration behind a surface just to justify blurring it.
+
+---
+
+## 4. Typography
+
+Three families, each with a job. Don't reach outside these — when a screen
+looks "cheap", the fix is almost always that structural text isn't using
+`font-display`, not a missing fourth font.
 
 | Family | Token | Use it for |
 |---|---|---|
-| **Space Grotesk** | `font-display` | Headings, nav labels, button text, table headers — anything structural/UI |
-| **Manrope** | `font-sans` (default) | Body copy, descriptions, paragraphs |
-| **DM Mono** | `font-mono` | **Data:** timers, durations, totals, rates, emails, IDs, initials, uppercase eyebrows |
+| **Space Grotesk** | `font-display` | Headings, nav labels, button text, card/row titles — anything structural |
+| **Manrope** | `font-sans` (default) | Body copy, descriptions, quiet secondary columns |
+| **DM Mono** | `font-mono` | **Data:** timers, durations, rates, counts, IDs, uppercase eyebrows, mono toolbar labels |
 
-**Type scale** (rem tokens in `@theme` — prefer these over `text-[Npx]`).
-Even steps (`xs`/`sm`/`md`/`lg`/…) plus the half-steps dense chrome needs:
+**Type scale** (rem tokens in `@theme` — prefer these over `text-[Npx]`):
 
 | Utility | Size | Use |
 |---|---|---|
 | `text-xs` | 0.625rem (10px) | Tiny hints / field footnotes |
-| `text-eyebrow` | 0.65625rem (10.5px) | Uppercase table/section eyebrows |
-| `text-micro` | 0.6875rem (11px) | Micro labels, step badges |
+| `text-eyebrow` | 0.65625rem (10.5px) | Uppercase eyebrows, mono toolbar labels |
+| `text-micro` | 0.6875rem (11px) | Micro labels ("ARCHIVED" inline marks) |
 | `text-label` | 0.71875rem (11.5px) | Form field labels |
 | `text-sm` | 0.75rem (12px) | Compact chrome / dense secondary UI |
-| `text-caption` | 0.78125rem (12.5px) | Secondary labels, menu rows |
+| `text-caption` | 0.78125rem (12.5px) | Secondary labels, menu rows, status words, table emails |
 | `text-body` | 0.8125rem (13px) | Dense in-app body copy and controls |
 | `text-notice` | 0.84375rem (13.5px) | Auth notices / soft callouts |
-| `text-md` | 0.875rem (14px) | Entry titles, mid-weight list text |
+| `text-md` | 0.875rem (14px) | Card/row titles, mid-weight list text |
 | `text-body-lg` | 0.9375rem (15px) | Auth body / section titles |
 | `text-lg` | 1rem (16px) | Large free-text inputs |
 | `text-xl` | 1.1875rem (19px) | In-app page titles |
 | `text-timer` | 1.375rem (22px) | Live timer digits |
-| `text-plus` | 1.125rem (18px) | List-item + glyph |
 | `text-2xl` | 1.75rem (28px) | Auth card headings |
 | `text-3xl` | 3.5rem (56px) | Onboarding welcome hero |
 
 Rules:
-- Any **number a user reads as a value** (0:00:00, $120/hr) is `font-mono` +
-  `tabular-nums` so digits don't jitter as they change.
-- DM Mono is a modern, light monospace — lean into it. The hero timer digit is
-  `font-light` (300); secondary values (totals, rates, initials) are
-  `font-normal`/`font-medium`. Never `font-bold` — heavy numerals kill the look.
-- Uppercase micro-labels ("COMING SOON", step badges) are `font-mono`,
-  `text-xs`–`text-eyebrow`, `tracking-[0.12em]`, low-contrast color.
-- Form labels: `font-display text-label font-semibold`.
-- Headings: `font-display font-bold` with `text-xl` / `text-2xl` /
-  `text-3xl` as appropriate.
-- Body: `text-body` in dense app UI, `text-body-lg` on auth screens,
-  `leading-[1.5]–[1.6]`.
-- Weights available: display 400–700, sans 400–800, mono 300–500. Don't fake
-  weights the font doesn't ship.
-
----
-
-## 4. Spacing, radius, shadow
-
-**Spacing** — chrome half-steps as named tokens, plus Tailwind’s numeric scale
-(`p-1` = 4px, `p-2` = 8px, …). **Do not** add `--spacing-xs` / `--spacing-sm`
-etc. — in Tailwind v4 those names also drive `max-w-sm` / `w-sm`, so a 0.5rem
-`--spacing-sm` collapses `max-w-sm` to 8px and text wraps one character per line.
-
-| Utility | Size | Use |
-|---|---|---|
-| `p-segment` / `mt-segment` | 0.1875rem (3px) | Segmented-toggle track inset, title→lede gap |
-| `p-menu` / `ml-menu` | 0.3125rem (5px) | Dropdown inset, tight inline gaps |
-| `py-compact` | 0.4375rem (7px) | Search bars, compact pills / toggles |
-| `py-field` | 0.5625rem (9px) | Form inputs / primary CTA vertical padding |
-| `p-modal` | 1.625rem (26px) | Modal dialog padding |
-| `size-control` | 2.125rem (34px) | Tracker toolbar icon buttons |
-| `size-icon-sm` / `size-icon-play` / `size-icon-md` | 0.8125rem / 0.9375rem / 1.125rem | Inline icons (13 / 15 / 18px) |
-
-**Radius** — rem scale (overrides Tailwind defaults — use consistently):
-- Pills / buttons / toggles: `rounded-full`
-- Menu rows / tight controls: `rounded-xs` (6px)
-- Small fields / calendar blocks: `rounded-sm` (8px)
-- Inputs & form controls: `rounded-md` (10px)
-- Soft panels / mention menus: `rounded-lg` (12px)
-- Chips, notices, dropdowns: `rounded-xl` (14px)
-- Cards & panels: `rounded-2xl` (18px)
-- Modals / timer panel: `rounded-3xl` (20px)
-- Auth cards: `rounded-4xl` (24px) for both frame and inner card
-- One-off decorative tiles (auth blobs): keep arbitrary `rounded-[Npx]`
-
-**Shadow** — tokens for resting and elevated surfaces:
-- `shadow-soft` — light chrome (icon buttons, tiny chips)
-- `shadow-float` — floating toolbars / segmented chrome
-- `shadow-card` — every resting card on white
-- `shadow-panel` — timer / raised panels
-- `shadow-dropdown` — menus and pickers
-- `shadow-modal` — modal dialogs
-- `shadow-auth` — standalone auth card
-Buttons and brand elements stay **flat** — no glow, colored or otherwise.
-
-**Measure**
-- Page column: `max-w-page` (1340px)
-- Page subtitle: `max-w-lede` (560px)
-- Auth card: `w-auth` (460px)
-- Timer field columns: `w-manual-time` (92px), `w-duration-value` / `min-w-timer-cluster` (104px), `w-duration-date` (132px)
-- Manual feedback: `min-w-manual-feedback-min` (320px), `max-w-manual-feedback` (520px)
-- Timer error hint: `max-w-error-hint` (180px)
+- Any **number a user reads as a value** (0:00:00, 95 EUR/h, task counts,
+  the page-header count) is `font-mono tabular-nums`.
+- **Mono toolbar labels** — segmented toggles and filter pills use
+  `font-mono text-eyebrow font-medium tracking-[0.12em] uppercase`. This is
+  the "status is data" signal that ties toolbars to the rest of the system.
+- Sidebar section labels: same mono treatment at `tracking-[0.16em]`,
+  `text-white/40`.
+- Card/row titles: `font-display font-semibold text-md` (or `text-caption`
+  for nested rows). Headings: `font-display font-bold`.
+- Emails: mono by default (they're identifiers), but a dense table column of
+  emails may drop to quiet `text-caption` sans for readability — Members does.
+- DM Mono is light — hero digits `font-light`, secondary values
+  `font-normal`/`font-medium`, never `font-bold`.
 
 ---
 
 ## 5. Component patterns
 
 - **Primary button:** solid `bg-brand text-white rounded-full`,
-  `hover:bg-brand-deep`, `transition-colors`. No shadow, no lift. Icon-only
-  primary actions (e.g. the timer Start) are a `rounded-full` blue circle.
-- **Secondary button:** `border-control border-navy text-navy bg-transparent`,
-  `rounded-full`. Cancel/neutral actions.
-- **Card:** `rounded-2xl bg-white shadow-card`.
-- **Trademark line:** `block h-px w-full bg-brand-gradient` under a wordmark,
-  `LogoMark`, or a primary input.
-- **Auth card frame:** `rounded-4xl bg-brand-gradient p-px` outer wrapper
-  around the white `rounded-4xl` card, in place of a solid border. The only
-  two places the gradient appears — see §1.
-- **Segmented toggle:** `rounded-full bg-surface-muted p-segment`; active segment
-  `bg-navy text-cream`, inactive `text-navy/55`.
-- **Input / focus:** `rounded-md border-control border-navy/[0.08] py-field`,
-  focus → `focus:border-brand` (or `focus-within:border-brand` on a wrapping label).
-- **Status pill:** colored dot + label (`components/ui/Pill.tsx`); dot uses the
-  semantic crayon color.
-- **Sidebar nav item:** inactive `text-white/70 hover:bg-white/[0.06]`, active
-  solid `bg-brand text-white` (`components/layout/NavItem.tsx`).
+  `hover:bg-brand-deep`, `transition-colors`. Page headers use the icon-only
+  form: a `size-9 rounded-full bg-brand` circle with a plus, labelled via
+  `aria-label`/`title`.
+- **Secondary / cancel:** ghost `border-control border-navy/20 text-navy/70`,
+  sharpening to `border-navy text-navy` on hover.
+- **Card:** `rounded-2xl bg-white shadow-card`. Cover cards (projects) are
+  full-bleed art with a glass footer; hover deepens the shadow
+  (`hover:shadow-panel`), zooms the art slightly and unfolds extra meta
+  (`grid-rows-[0fr] → [1fr]`).
+- **Modal:** ink-frosted scrim → gradient hairline frame (`rounded-3xl
+  bg-brand-gradient p-px shadow-modal`) → opaque `bg-canvas` panel with faint
+  corner blobs, an ✕ button and Escape-to-close. Scrim `animate-fade`, panel
+  `animate-pop`, form groups stagger in with `animate-rise`. Fields on the
+  panel are translucent `bg-white/70` and turn solid white on focus.
+- **Segmented toggle (views/status tabs):** white track
+  (`bg-white p-segment shadow-soft`), mono uppercase labels, active segment
+  `bg-navy text-cream`.
+- **Filter pill (dropdown):** same mono uppercase language; **unfiltered** is
+  white with `text-navy/55`, **applied** flips to `bg-navy text-cream` and
+  shows the chosen value.
+- **Status / role text:** plain `text-caption font-medium` words coloured per
+  §2 — no chips, dots or badge chrome. Admin adds `font-semibold`.
+- **Row identity visuals:** people get `UserAvatar` (boring-avatars, brand
+  palette); entities (clients, inline projects) get small glass cover tiles.
+  Archived/disabled anything: `opacity-50 grayscale`.
+- **Tag rows:** `.tag-tint-row` with `--tag-color` set inline; the leading
+  diamond (`rotate-45 rounded-[2px]`) is the tag's colour swatch.
+- **Expandable rows (clients):** the row toggles (`aria-expanded`, chevron
+  rotates), the expansion sits on `bg-canvas/60` behind a hairline top border
+  and lazily fetches; nested rows are real `Link`s.
+- **Column headers:** icon-only — `h-4 w-4 text-brand` icons with
+  `title` tooltip + `sr-only` label.
+- **Skeletons:** every list/grid loads as ghost rows/cards matching the real
+  geometry (`bg-surface-muted` bones, `animate-pulse`, ~100ms stagger) — never
+  a lone spinner.
+- **Status notice:** `rounded-xl bg-brand-tint` bar with a brand dot.
+- **Sidebar (216px ink):** `LogoMark h-7` on top (no underline here — the
+  trademark line lives on auth screens and under the timer input), a Profile
+  row beneath it (avatar in the icon slot), mono section labels, then nav.
+  Rows share `sidebarRow.ts` chrome: active = `bg-brand-gradient-soft
+  text-white`, hover = a vertical inflate (`py-2 → hover:py-3`, padding
+  transition — never `scale`, which warps glyphs).
 
-Reuse `components/ui/*` (Icon, Modal, Pill, LogoMark, Fineprint) rather than
-re-styling their patterns inline.
+Reuse `components/ui/*` (Icon, Modal, Pill, LogoMark, UserAvatar, Fineprint)
+rather than re-styling their patterns inline.
 
 ---
 
-## 6. Page width — never fill the whole viewport
+## 6. Motion
 
-In-app screens do **not** stretch edge to edge. Content sits in a **centered
-column** with a max width, so it stays comfortable to read on wide monitors and
-the app feels composed rather than sprawling.
+Animation tokens live in `@theme`; every entrance/transform is gated behind
+`motion-safe:`.
 
-- **Max width: `max-w-page`**, centered with `mx-auto w-full`.
-- **Outer padding: `px-10 py-8`.**
-- This applies to every in-app screen (Timer, Members, …) so they share the same
-  measure. Only the persistent sidebar is full-height; the content column is not.
+| Token | Use |
+|---|---|
+| `animate-rise` | Staggered entrances: grid cards, list rows, modal form groups. Delay ≈ 30–45ms per item, capped (~12 items) so long lists don't trickle |
+| `animate-fade` | Modal scrim |
+| `animate-pop` | Modal panel (springs up into place) |
 
-If a screen needs full-area click behaviour (e.g. click-anywhere-to-close menus),
-keep the padded, full-width wrapper for the handler and put the `max-w-page`
-column *inside* it — see `MembersPage.tsx`.
+Plus transition patterns: `transition-colors` on everything interactive,
+slow image zoom on card hover (`scale-105`, 500ms), `grid-template-rows`
+unfold for hover-expand meta, padding inflate on sidebar rows, rotating
+chevrons on expanders.
 
-### Scaffolding a new in-app page
+**Content may move; controls stay planted.** No lift, glow or scale on
+buttons. Motion should read as things settling into place, not as showing off.
+
+---
+
+## 7. Spacing, radius, shadow
+
+**Spacing** — chrome half-steps as named tokens, plus Tailwind's numeric
+scale. **Do not** add `--spacing-xs/sm/md` — those names feed `max-w-*`/`w-*`
+and would collapse them.
+
+| Utility | Size | Use |
+|---|---|---|
+| `p-segment` | 0.1875rem (3px) | Segmented-toggle track inset |
+| `p-menu` | 0.3125rem (5px) | Dropdown inset |
+| `py-compact` | 0.4375rem (7px) | Search bars, toolbar pills |
+| `py-field` | 0.5625rem (9px) | Form inputs / primary CTA vertical padding |
+| `p-modal` | 1.625rem (26px) | Modal dialog padding |
+| `size-control` | 2.125rem (34px) | Toolbar icon buttons |
+| `size-icon-sm` / `size-icon-play` / `size-icon-md` | 13 / 15 / 18px | Inline icons |
+
+**Radius** — rem scale (overrides Tailwind defaults):
+pills/buttons `rounded-full` · menu rows `rounded-xs` · small tiles
+`rounded-sm` · inputs `rounded-md` · soft panels `rounded-lg` · chips,
+notices, dropdowns `rounded-xl` · cards `rounded-2xl` · modals `rounded-3xl` ·
+auth cards `rounded-4xl`.
+
+**Shadow** — `shadow-soft` (toolbar pills/tracks) · `shadow-float` (floating
+toolbars) · `shadow-card` (resting cards; hover may deepen to `shadow-panel`)
+· `shadow-dropdown` · `shadow-modal` · `shadow-auth`. Buttons stay flat.
+
+**Measure** — page column `max-w-page` (1340px) · lede `max-w-lede` · auth
+card `w-auth` · timer field widths per token list in `index.css`.
+
+---
+
+## 8. Page scaffolding
+
+In-app screens sit on the shell's `canvas` in a **centered column**
+(`max-w-page`, `px-10 py-8`); only the sidebar is full-height. Directory
+pages (Projects, Members, Tags, Clients) share this skeleton:
 
 ```tsx
-export default function ThingPage() {
+export default function ThingsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-10 py-8">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-xl font-bold text-navy">Thing</h1>
-          <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
-            One line on what this screen is for.
-          </p>
-        </div>
-        {/* one solid-blue primary action, if any */}
-      </header>
+    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+      <div className="mx-auto flex w-full max-w-page flex-col gap-4">
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex items-baseline gap-2">
+            <h1 className="font-display text-xl font-bold text-navy">Things</h1>
+            {/* zero-padded mono count: 07 */}
+            <span className="font-mono text-sm text-navy/40 tabular-nums">07</span>
+          </div>
+          {/* icon-only blue circle: aria-label="New thing" */}
+        </header>
 
-      {/* content in rounded-2xl bg-white shadow-card cards */}
+        {/* toolbar: mono segmented toggle · filter pills · search pill */}
+        {/* content: cards/rows with skeleton loaders and rise entrances */}
+      </div>
     </div>
   )
 }
 ```
 
-The page renders inside `AppLayout` (persistent `Sidebar` + `<Outlet />`), so it
-owns only its own padding and content. Register it in `config/navigation.ts` so
-the sidebar and router pick it up automatically.
+No lede paragraph under the title — the screen should explain itself.
+Register the page in `config/navigation.ts`.
 
-Auth-style (standalone, no shell) screens instead go on `bg-white`, centered,
-with several tilted brand-blue/purple blobs behind it (§2). Where there's a
-card (sign-in, invite, the onboarding admin step), frame it in the gradient
-hairline (`rounded-4xl bg-brand-gradient p-px` wrapping a white
-`rounded-4xl` inner card) and put the `LogoMark` inside it, above the
-heading. Where there's no card (the onboarding welcome step), put `LogoMark`
-directly on the page with the trademark hairline underneath it, same as in
-the sidebar. Mirror `pages/SignInPage.tsx`.
+Standalone auth screens are unchanged: white paper, tilted brand blobs, the
+gradient-framed card (or `LogoMark` + trademark hairline when there's no
+card). Mirror `pages/SignInPage.tsx`.
 
 ---
 
-## 7. Quick do / don't
+## 9. Quick do / don't
 
-**Do** — keep the gradient hairline-thin (wordmark underline or auth-card frame)
-· solid `brand` blue for buttons/active nav · mono + tabular for every value ·
-keep sidebar text readable (`text-white/70`+) · reuse `ui/*` · tilt the
-auth-screen blobs.
+**Do** — gradient only as hairline frames + the sidebar's soft active wash ·
+solid blue for buttons (icon-only circle in page headers) · mono + tabular
+for every value, mono uppercase for toolbar labels · pastel glass cover art
+for entity identity · glass only on floating surfaces · skeletons that match
+real geometry · staggered `animate-rise` entrances behind `motion-safe:` ·
+plain coloured words for status · reuse `ui/*`.
 
-**Don't** — gradient on any button, fill, or background · a second gradient
-angle · colored glows or lift-on-hover on buttons · sans-serif for timers or
-rates · faint low-opacity sidebar text · new color hexes in components (add a
-token instead) · evenly-spaced, centered blobs.
+**Don't** — gradient on any button or panel fill · glows or lift on buttons ·
+badge/chip/dot chrome on statuses (the "AI dashboard" tell) · translucent
+modal panels over the dark scrim · glass on surfaces with nothing behind
+them · sans-serif timers or rates · new hexes in components (add a token —
+the deep green `#1E8A57` and amber `#B8860B` status hues are the known
+stragglers to tokenize) · uncapped stagger delays on long lists · a second
+gradient angle.

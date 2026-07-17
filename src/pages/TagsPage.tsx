@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import { ColorSwatchPicker } from '../components/ui/ColorSwatchPicker'
+import {
+  DirectoryHeader,
+  DirectorySearch,
+  LoadErrorState,
+  NoticeBanner,
+} from '../components/directory/DirectoryControls'
+import {
+  HeaderCell,
+  RowMenu,
+  RowMenuItem,
+  SkeletonRow,
+} from '../components/directory/DirectoryTable'
+import { riseDelay } from '../components/directory/directoryChrome'
 import { apiErrorMessage } from '../api/client'
 import { createTag, deleteTag, listTags, updateTag } from '../api/tags'
 import type { Tag } from '../types/tag'
@@ -78,49 +90,24 @@ export default function TagsPage() {
   return (
     <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-xl font-bold text-navy">Tags</h1>
-            <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">
-              Reusable labels you can attach to time entries to slice reports any way you like —
-              independent of client and project.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setModal({ mode: 'create' })
-            }}
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
-          >
-            <Icon name="plus" className="size-icon-sm" />
-            New tag
-          </button>
-        </header>
+        <DirectoryHeader
+          title="Tags"
+          count={!isLoading && !loadError ? filtered.length : null}
+          actionLabel="New tag"
+          onAction={(event) => {
+            event.stopPropagation()
+            setModal({ mode: 'create' })
+          }}
+        />
 
-        {notice && (
-          <div className="flex items-center gap-2 rounded-xl bg-brand-tint px-4 py-3 text-body font-medium text-navy">
-            <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
-            {notice}
-          </div>
-        )}
+        {notice && <NoticeBanner>{notice}</NoticeBanner>}
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex-1" />
-          <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
-            <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
-            <input
-              className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"
-              placeholder="Search tags..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-            />
-          </label>
+          <DirectorySearch placeholder="Search tags..." value={search} onChange={setSearch} />
         </div>
 
-        <div className="rounded-2xl bg-white shadow-card">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-card">
           <div className={`${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="tags" label="Name" />
             <HeaderCell icon="reports" label="Usage" />
@@ -128,31 +115,26 @@ export default function TagsPage() {
           </div>
 
           <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <LoadingRow />}
+            {isLoading && <SkeletonRows />}
 
             {!isLoading && loadError && (
-              <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="text-body text-red">{loadError}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLoading(true)
-                    setLoadError(null)
-                    refresh()
-                  }}
-                  className="rounded-full border-control border-navy px-4 py-1.5 font-display text-sm font-semibold text-navy"
-                >
-                  Try again
-                </button>
-              </div>
+              <LoadErrorState
+                message={loadError}
+                onRetry={() => {
+                  setIsLoading(true)
+                  setLoadError(null)
+                  refresh()
+                }}
+              />
             )}
 
             {!isLoading &&
               !loadError &&
-              filtered.map((tag) => (
+              filtered.map((tag, index) => (
                 <TagRow
                   key={tag.id}
                   tag={tag}
+                  index={index}
                   menuOpen={openRowMenuId === tag.id}
                   onToggleMenu={(event) => {
                     event.stopPropagation()
@@ -203,45 +185,51 @@ export default function TagsPage() {
   )
 }
 
-function LoadingRow() {
+/** Ghost rows while tags load, matching the real grid's geometry. */
+function SkeletonRows() {
   return (
-    <div className="flex items-center justify-center px-5 py-10">
-      <span className="h-6 w-6 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
-    </div>
-  )
-}
-
-function HeaderCell({ icon, label }: { icon: Parameters<typeof Icon>[0]['name']; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 py-1.5 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/60 uppercase">
-      <Icon name={icon} className="h-3 w-3 text-brand" />
-      {label}
-    </div>
+    <>
+      {Array.from({ length: 5 }, (_, index) => (
+        <SkeletonRow key={index} gridClassName={GRID} index={index}>
+          <div className="flex items-center gap-2.5">
+            <span className="h-2.5 w-2.5 flex-shrink-0 rotate-45 rounded-[2px] bg-surface-muted" />
+            <span className="h-3 w-28 rounded-full bg-navy/10" />
+          </div>
+          <span className="h-3 w-8 rounded-full bg-navy/[0.07]" />
+          <span />
+        </SkeletonRow>
+      ))}
+    </>
   )
 }
 
 function TagRow({
   tag,
+  index,
   menuOpen,
   onToggleMenu,
   onEdit,
   onDelete,
 }: {
   tag: Tag
+  index: number
   menuOpen: boolean
   onToggleMenu: (event: React.MouseEvent) => void
   onEdit: () => void
   onDelete: () => void
 }) {
   return (
-    <div className={`${GRID} hover:bg-surface-muted`}>
+    <div
+      className={`${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+      style={riseDelay(index)}
+    >
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           aria-hidden="true"
-          className="h-3 w-3 flex-shrink-0 rounded-full ring-1 ring-navy/10"
+          className="h-2.5 w-2.5 flex-shrink-0 rotate-45 rounded-[2px] ring-1 ring-navy/10"
           style={{ backgroundColor: tag.color ?? '#E4E7EF' }}
         />
-        <span className="truncate text-md font-semibold">{tag.name}</span>
+        <span className="truncate font-display text-md font-semibold text-navy">{tag.name}</span>
       </div>
 
       <span
@@ -252,51 +240,11 @@ function TagRow({
         {tag.usageCount}
       </span>
 
-      <div className="relative flex justify-end">
-        <button
-          type="button"
-          onClick={onToggleMenu}
-          aria-label="Row actions"
-          className="flex h-6 w-6 items-center justify-center rounded-xs text-navy/50 hover:bg-surface-muted hover:text-navy"
-        >
-          <Icon name="more" className="h-[15px] w-[15px]" />
-        </button>
-        {menuOpen && (
-          <div className="absolute top-[calc(100%+4px)] right-0 z-30 min-w-[170px] rounded-xl bg-white p-menu shadow-dropdown">
-            <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-            <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
-          </div>
-        )}
-      </div>
+      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+        <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+        <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
+      </RowMenu>
     </div>
-  )
-}
-
-function RowMenuItem({
-  icon,
-  label,
-  danger,
-  onClick,
-}: {
-  icon: Parameters<typeof Icon>[0]['name']
-  label: string
-  danger?: boolean
-  onClick?: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation()
-        onClick?.()
-      }}
-      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-2 text-left text-caption font-medium hover:bg-surface-muted ${
-        danger ? 'text-red' : 'text-navy'
-      }`}
-    >
-      <Icon name={icon} className={`size-icon-sm ${danger ? 'opacity-80' : 'opacity-65'}`} />
-      {label}
-    </button>
   )
 }
 
@@ -341,6 +289,7 @@ function TagModal({
       title={tag ? 'Edit tag' : 'New tag'}
       subtitle={tag ? undefined : 'Tags label time entries across clients and projects.'}
       onClose={onClose}
+      widthClassName="w-[420px]"
     >
       <form
         onSubmit={(event) => {
