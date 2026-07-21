@@ -89,7 +89,44 @@ export function TimeEntryListItem({
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
               {isInvitation ? <Pill label="Invitation" dotClassName="bg-brand" /> : null}
               {isAwaitingApproval ? <Pill label="Pending" dotClassName="bg-brand/50" /> : null}
-              {(isInvitation || isAwaitingApproval) &&
+              {entry.projectName ? (
+                <span className="inline-flex max-w-[16rem] items-center gap-1.5 truncate font-medium text-navy/70">
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: entry.projectColor ?? '#C7CDDB' }}
+                  />
+                  <span className="truncate">
+                    {entry.projectTaskName
+                      ? `${entry.projectName} · ${entry.projectTaskName}`
+                      : entry.projectName}
+                  </span>
+                </span>
+              ) : null}
+              {entry.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1.5 font-medium text-navy/70"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: tag.color ?? '#C7CDDB' }}
+                  />
+                  {tag.name}
+                </span>
+              ))}
+              {entry.isBillable ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-navy/70">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green" />
+                  Billable
+                </span>
+              ) : null}
+              {(isInvitation ||
+                isAwaitingApproval ||
+                entry.projectName ||
+                entry.tags.length > 0 ||
+                entry.isBillable) &&
               (entry.mode === 'Manual' || entry.startedAtUtc) ? (
                 <span aria-hidden="true">·</span>
               ) : null}

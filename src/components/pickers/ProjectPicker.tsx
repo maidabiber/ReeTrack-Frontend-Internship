@@ -1,33 +1,71 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Icon } from '../ui/Icon'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getProject, listProjects, type ProjectStatusFilter } from '../../api/projects'
+import { usePaginatedList } from '../../hooks/usePaginatedList'
 import type { Project } from '../../types/project'
+import { Icon } from '../ui/Icon'
 
 /**
  * Single-select project dropdown, grouped by client, with each project's accent
- * colour as a leading dot (RT-44). Deliberately props-driven and fetch-free so
- * the timer bar and manual-entry form (owned by other tickets) can feed it their
- * own already-loaded project list and control the selection.
+ * colour as a leading dot (RT-44). Fetches projects lazily when opened with
+ * server-side search and infinite scroll.
  */
 export function ProjectPicker({
-  projects,
   value,
   onChange,
   placeholder = 'Select a project…',
   disabled = false,
   allowClear = false,
+  statusFilter = 'active',
 }: {
-  projects: Project[]
   value: string | null
   onChange: (projectId: string | null) => void
   placeholder?: string
   disabled?: boolean
   allowClear?: boolean
+  statusFilter?: ProjectStatusFilter
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [resolvedProject, setResolvedProject] = useState<Project | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
-  const selected = useMemo(() => projects.find((p) => p.id === value) ?? null, [projects, value])
+  const fetchPage = useCallback(
+    (page: number, pageSize: number, q: string) =>
+      listProjects(statusFilter, { page, pageSize, q: q || undefined }),
+    [statusFilter],
+  )
+
+  const { items: projects, loading, loadingMore, hasMore, handleScroll } = usePaginatedList({
+    fetchPage,
+    enabled: open,
+    query,
+  })
+
+  const selectedFromList = useMemo(
+    () => projects.find((p) => p.id === value) ?? null,
+    [projects, value],
+  )
+  const selected =
+    !value
+      ? null
+      : (selectedFromList ?? (resolvedProject?.id === value ? resolvedProject : null))
+
+  useEffect(() => {
+    if (!value || selectedFromList) return
+
+    let cancelled = false
+    void getProject(value)
+      .then((project) => {
+        if (!cancelled) setResolvedProject(project)
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedProject(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [value, selectedFromList])
 
   useEffect(() => {
     if (!open) return
@@ -38,18 +76,9 @@ export function ProjectPicker({
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [open])
 
-  // Filter, then group by client name (groups sorted alphabetically, projects
-  // within a group by name).
   const groups = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const matched = q
-      ? projects.filter(
-          (p) => p.name.toLowerCase().includes(q) || p.clientName.toLowerCase().includes(q),
-        )
-      : projects
-
     const byClient = new Map<string, Project[]>()
-    for (const project of matched) {
+    for (const project of projects) {
       const list = byClient.get(project.clientName)
       if (list) list.push(project)
       else byClient.set(project.clientName, [project])
@@ -61,7 +90,7 @@ export function ProjectPicker({
         projects: [...list].sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .sort((a, b) => a.clientName.localeCompare(b.clientName))
-  }, [projects, query])
+  }, [projects])
 
   const close = () => {
     setOpen(false)
@@ -107,7 +136,7 @@ export function ProjectPicker({
             />
           </label>
 
-          <div className="max-h-[228px] overflow-y-auto">
+          <div className="max-h-[228px] overflow-y-auto" onScroll={handleScroll}>
             {allowClear && (
               <button
                 type="button"
@@ -122,37 +151,49 @@ export function ProjectPicker({
               </button>
             )}
 
-            {groups.map((group) => (
-              <div key={group.clientName} className="pt-1">
-                <div className="px-2.5 py-1 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/45 uppercase">
-                  {group.clientName}
+            {loading && projects.length === 0 ? (
+              <div className="px-2.5 py-3 text-center text-sm text-navy/45">Loading…</div>
+            ) : (
+              groups.map((group) => (
+                <div key={group.clientName} className="pt-1">
+                  <div className="px-2.5 py-1 font-display text-eyebrow font-bold tracking-[0.05em] text-navy/45 uppercase">
+                    {group.clientName}
+                  </div>
+                  {group.projects.map((project) => (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onChange(project.id)
+                        close()
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-compact text-left text-caption hover:bg-surface-muted ${
+                        project.id === value ? 'font-bold text-navy' : 'font-medium text-navy'
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: project.color ?? '#C7CDDB' }}
+                      />
+                      <span className="flex-1 truncate">{project.name}</span>
+                    </button>
+                  ))}
                 </div>
-                {group.projects.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onChange(project.id)
-                      close()
-                    }}
-                    className={`flex w-full items-center gap-2 rounded-xs px-2.5 py-compact text-left text-caption hover:bg-surface-muted ${
-                      project.id === value ? 'font-bold text-navy' : 'font-medium text-navy'
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: project.color ?? '#C7CDDB' }}
-                    />
-                    <span className="flex-1 truncate">{project.name}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
+              ))
+            )}
 
-            {groups.length === 0 && (
+            {!loading && groups.length === 0 && (
               <div className="px-2.5 py-3 text-center text-sm text-navy/45">No projects.</div>
+            )}
+
+            {loadingMore && (
+              <div className="px-2.5 py-2 text-center text-sm text-navy/45">Loading more…</div>
+            )}
+
+            {!loading && !loadingMore && hasMore && projects.length > 0 && (
+              <div className="px-2.5 py-2 text-center text-sm text-navy/45">Scroll for more…</div>
             )}
           </div>
         </div>

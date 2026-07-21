@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   createManualEntry,
@@ -14,9 +14,14 @@ import {
 } from '../api/timeEntries'
 import { ApiError } from '../api/client'
 import { elapsedSecondsSince } from '../lib/formatDuration'
-import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
+import type { ActiveTimer, TimeEntry, TimeEntryAssociations, TimeEntryTag } from '../types/timeEntry'
 import { useAuth } from '../hooks/useAuth'
 import { TimerContext } from './timer'
+import {
+  initialTimeEntryDraft,
+  timeEntryDraftReducer,
+} from './timerDraftReducer'
+import type { Teammate } from '../lib/mention'
 
 export function TimerProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isInitializing: isAuthInitializing } = useAuth()
@@ -29,6 +34,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const activeTimerRef = useRef<ActiveTimer | null>(null)
+  const [draft, dispatchDraft] = useReducer(timeEntryDraftReducer, initialTimeEntryDraft)
+  const hadActiveTimerRef = useRef(false)
 
   const requestKey = isAuthInitializing
     ? null
@@ -110,15 +117,83 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(intervalId)
   }, [activeTimer])
 
+  useEffect(() => {
+    // or started elsewhere) so the tracker bar reflects it. Deliberately
+    // does not fire on every activeTimer update so in-flight edits to the
+    // draft (e.g. changing the project while the timer runs) are not
+    // clobbered by our own start()/refresh() responses.
+    if (activeTimer && !hadActiveTimerRef.current) {
+      dispatchDraft({ type: 'SYNC_FROM_TIMER', timer: activeTimer })
+    }
+    hadActiveTimerRef.current = activeTimer !== null
+  }, [activeTimer])
+
+  const setDraftDescription = useCallback((description: string) => {
+    dispatchDraft({ type: 'SET_DESCRIPTION', description })
+  }, [])
+
+  const setDraftMentionedTeammates = useCallback((mentionedTeammates: Teammate[]) => {
+    dispatchDraft({ type: 'SET_MENTIONED_TEAMMATES', mentionedTeammates })
+  }, [])
+
+  const setDraftProject = useCallback(
+    (project: {
+      projectId: string | null
+      projectTaskId: string | null
+      projectName: string | null
+      projectColor: string | null
+      projectTaskName: string | null
+    }) => {
+      dispatchDraft({ type: 'SET_PROJECT', ...project })
+    },
+    [],
+  )
+
+  const clearDraftProject = useCallback(() => {
+    console.log('Clearing draft project')
+    dispatchDraft({ type: 'CLEAR_PROJECT' })
+  }, [])
+
+  const setDraftTags = useCallback((tagIds: string[], knownTags: TimeEntryTag[]) => {
+    dispatchDraft({ type: 'SET_TAGS', tagIds, knownTags })
+  }, [])
+
+  const removeDraftTag = useCallback((tagId: string) => {
+    dispatchDraft({ type: 'REMOVE_TAG', tagId })
+  }, [])
+
+  const setDraftBillable = useCallback((isBillable: boolean) => {
+    dispatchDraft({ type: 'SET_BILLABLE', isBillable })
+  }, [])
+
+  const applyDraftTemplate = useCallback(
+    (template: {
+      description: string
+      projectId: string | null
+      projectTaskId: string | null
+      projectName: string | null
+      projectColor: string | null
+      projectTaskName: string | null
+      isBillable: boolean
+    }) => {
+      dispatchDraft({ type: 'APPLY_TEMPLATE', ...template })
+    },
+    [],
+  )
+
+  const clearDraft = useCallback(() => {
+    dispatchDraft({ type: 'RESET' })
+  }, [])
+
   const elapsedSeconds =
     tick >= 0 && activeTimer ? elapsedSecondsSince(activeTimer.startedAtUtc) : 0
 
-  const start = useCallback(async (description?: string) => {
+  const start = useCallback(async (description?: string, associations?: TimeEntryAssociations) => {
     setIsToggling(true)
     setError(null)
 
     try {
-      const timer = await startTimer(description)
+      const timer = await startTimer(description, associations)
       setActiveTimer(timer)
     } catch (err) {
       setError(timeEntryApiErrorMessage(err, 'Could not start the timer.'))
@@ -131,6 +206,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stop = useCallback(async (options?: {
     description?: string
     assigneeUserIds?: string[]
+    associations?: TimeEntryAssociations
   }) => {
     setIsToggling(true)
     setError(null)
@@ -151,6 +227,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         }
         return next
       })
+
+      dispatchDraft({ type: 'RESET' })
     } catch (err) {
       if (timerSnapshot) {
         setActiveTimer(timerSnapshot)
@@ -168,6 +246,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       description?: string,
       options?: {
         assigneeUserIds?: string[]
+        associations?: TimeEntryAssociations
       },
     ) => {
       if (activeTimer) {
@@ -175,7 +254,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      await start(description)
+      await start(description, options?.associations)
     },
     [activeTimer, start, stop],
   )
@@ -187,6 +266,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       endedAtUtc: string
       isBillable?: boolean
       assigneeUserIds?: string[]
+      projectId?: string | null
+      projectTaskId?: string | null
+      tagIds?: string[]
     }) => {
       setIsSavingManual(true)
       setError(null)
@@ -199,6 +281,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               startedAtUtc: params.startedAtUtc,
               endedAtUtc: params.endedAtUtc,
               isBillable: params.isBillable,
+              projectId: params.projectId,
+              projectTaskId: params.projectTaskId,
+              tagIds: params.tagIds,
             })
           : await createManualEntry(params)
 
@@ -210,6 +295,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           }
           return next
         })
+
+        dispatchDraft({ type: 'RESET' })
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           throw err
@@ -231,6 +318,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       entryDateUtc: string
       durationSeconds: number
       isBillable?: boolean
+      projectId?: string | null
+      projectTaskId?: string | null
+      tagIds?: string[]
     }) => {
       setIsSavingManual(true)
       setError(null)
@@ -238,6 +328,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       try {
         const result = await createDurationOnlyEntry(params)
         setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
+        dispatchDraft({ type: 'RESET' })
       } catch (err) {
         const message = timeEntryApiErrorMessage(err, 'Could not save the duration entry.')
         setError(message)
@@ -257,6 +348,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       endedAtUtc?: string
       durationSeconds?: number
       isBillable?: boolean
+      projectId?: string | null
+      projectTaskId?: string | null
+      tagIds?: string[]
     }) => {
       setIsSavingEdit(true)
       setError(null)
@@ -269,12 +363,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
                 entryDateUtc: params.startedAtUtc!,
                 durationSeconds: params.durationSeconds,
                 isBillable: params.isBillable,
+                projectId: params.projectId,
+                projectTaskId: params.projectTaskId,
+                tagIds: params.tagIds,
               })
             : await updateTimeEntry(params.id, {
                 description: params.description,
                 startedAtUtc: params.startedAtUtc!,
                 endedAtUtc: params.endedAtUtc!,
                 isBillable: params.isBillable,
+                projectId: params.projectId,
+                projectTaskId: params.projectTaskId,
+                tagIds: params.tagIds,
               })
         setEntries((current) =>
           current
@@ -311,6 +411,16 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       isSavingManual,
       isSavingEdit,
       error,
+      draft,
+      setDraftDescription,
+      setDraftMentionedTeammates,
+      setDraftProject,
+      clearDraftProject,
+      setDraftTags,
+      removeDraftTag,
+      setDraftBillable,
+      applyDraftTemplate,
+      clearDraft,
       start,
       stop,
       toggle,
@@ -329,6 +439,16 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       isSavingManual,
       isSavingEdit,
       error,
+      draft,
+      setDraftDescription,
+      setDraftMentionedTeammates,
+      setDraftProject,
+      clearDraftProject,
+      setDraftTags,
+      removeDraftTag,
+      setDraftBillable,
+      applyDraftTemplate,
+      clearDraft,
       start,
       stop,
       toggle,

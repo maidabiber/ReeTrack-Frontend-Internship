@@ -1,5 +1,11 @@
 import type { BillingType, Project, ProjectStatus } from '../types/project'
+import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
+import {
+  appendListQueryParams,
+  type ListQueryOptions,
+  toPagedResult,
+} from './pagination'
 
 /**
  * Projects API (ProjectsController, RT-37/RT-38). Reads are member-accessible;
@@ -7,6 +13,10 @@ import { apiClient } from './client'
  */
 
 export type ProjectStatusFilter = 'active' | 'archived' | 'all'
+
+export interface ListProjectsOptions extends ListQueryOptions {
+  clientId?: string
+}
 
 /** Mirrors backend ProjectResponse. */
 interface ProjectResponse {
@@ -47,13 +57,15 @@ function toProject(response: ProjectResponse): Project {
 
 export function listProjects(
   status: ProjectStatusFilter = 'active',
-  clientId?: string,
-): Promise<Project[]> {
+  options: ListProjectsOptions = {},
+): Promise<PagedResult<Project>> {
   const params = new URLSearchParams({ status })
-  if (clientId) params.set('clientId', clientId)
+  if (options.clientId) params.set('clientId', options.clientId)
+  appendListQueryParams(params, options)
+
   return apiClient
-    .get<ProjectResponse[]>(`/projects?${params.toString()}`)
-    .then((projects) => projects.map(toProject))
+    .get<PagedResult<ProjectResponse>>(`/projects?${params.toString()}`)
+    .then((result) => toPagedResult(result, toProject))
 }
 
 export function getProject(projectId: string): Promise<Project> {

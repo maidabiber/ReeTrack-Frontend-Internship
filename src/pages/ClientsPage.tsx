@@ -356,9 +356,9 @@ function ClientProjects({ clientId }: { clientId: string }) {
 
   useEffect(() => {
     let cancelled = false
-    listProjects('all', clientId)
+    listProjects('all', { clientId })
       .then((loaded) => {
-        if (!cancelled) setProjects(loaded)
+        if (!cancelled) setProjects(loaded.items)
       })
       .catch(() => {
         if (!cancelled) setError('Could not load projects.')

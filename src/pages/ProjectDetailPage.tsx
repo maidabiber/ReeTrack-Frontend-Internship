@@ -7,6 +7,7 @@ import { ProjectModal } from '../components/projects/ProjectModal'
 import { apiErrorMessage } from '../api/client'
 import { getProject, updateProject } from '../api/projects'
 import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
+import { fetchAllPages } from '../api/pagination'
 import { listMembers, type Member } from '../api/members'
 import { formatBillingSummary, formatMoney } from '../lib/projectFormat'
 import type { Project } from '../types/project'
@@ -65,7 +66,10 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getProject(id), listTasks(id, 'all')])
+    Promise.all([
+      getProject(id),
+      fetchAllPages((page, pageSize) => listTasks(id, 'all', { page, pageSize })),
+    ])
       .then(([loadedProject, loadedTasks]) => {
         if (cancelled) return
         setProject(loadedProject)

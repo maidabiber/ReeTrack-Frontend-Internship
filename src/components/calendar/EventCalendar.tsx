@@ -36,6 +36,9 @@ interface PendingDragSave {
   startedAtUtc: string
   endedAtUtc: string
   isBillable: boolean
+  projectId?: string | null
+  projectTaskId?: string | null
+  tagIds?: string[]
 }
 
 export function EventCalendar() {
@@ -151,6 +154,9 @@ export function EventCalendar() {
         startedAtUtc: newStart.toISOString(),
         endedAtUtc: newEnd.toISOString(),
         isBillable: entry.isBillable,
+        projectId: entry.projectId,
+        projectTaskId: entry.projectTaskId,
+        tagIds: entry.tags.map((tag) => tag.id),
       }
 
       await overlapAlert.saveOrShowOverlapAlert({

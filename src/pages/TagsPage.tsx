@@ -16,6 +16,7 @@ import {
 import { riseDelay } from '../components/directory/directoryChrome'
 import { apiErrorMessage } from '../api/client'
 import { createTag, deleteTag, listTags, updateTag } from '../api/tags'
+import { fetchAllPages } from '../api/pagination'
 import type { Tag } from '../types/tag'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; tag: Tag } | null
@@ -44,7 +45,7 @@ export default function TagsPage() {
   useEffect(() => {
     let cancelled = false
 
-    listTags()
+    fetchAllPages((page, pageSize) => listTags({ page, pageSize }))
       .then((loaded) => {
         if (cancelled) return
         setTags(loaded)

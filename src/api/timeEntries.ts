@@ -1,4 +1,10 @@
-import type { ActiveTimer, TimeEntry, TimeEntryParticipant } from '../types/timeEntry'
+import type {
+  ActiveTimer,
+  TimeEntry,
+  TimeEntryAssociations,
+  TimeEntryParticipant,
+  TimeEntryTag,
+} from '../types/timeEntry'
 import { apiClient } from './client'
 
 interface TimeEntryParticipantResponse {
@@ -6,6 +12,12 @@ interface TimeEntryParticipantResponse {
   displayName: string
   email: string
   role: string
+}
+
+interface TimeEntryTagResponse {
+  id: string
+  name: string
+  color: string | null
 }
 
 interface TimeEntryResponse {
@@ -24,6 +36,12 @@ interface TimeEntryResponse {
   assigneeDisplayName: string | null
   shareGroupId: string | null
   participants: TimeEntryParticipantResponse[]
+  projectId?: string | null
+  projectName?: string | null
+  projectColor?: string | null
+  projectTaskId?: string | null
+  projectTaskName?: string | null
+  tags?: TimeEntryTagResponse[]
 }
 
 function toParticipant(response: TimeEntryParticipantResponse): TimeEntryParticipant {
@@ -32,6 +50,14 @@ function toParticipant(response: TimeEntryParticipantResponse): TimeEntryPartici
     displayName: response.displayName,
     email: response.email,
     role: response.role as TimeEntryParticipant['role'],
+  }
+}
+
+function toTag(response: TimeEntryTagResponse): TimeEntryTag {
+  return {
+    id: response.id,
+    name: response.name,
+    color: response.color,
   }
 }
 
@@ -52,7 +78,21 @@ function toTimeEntry(response: TimeEntryResponse): TimeEntry {
     assigneeDisplayName: response.assigneeDisplayName,
     shareGroupId: response.shareGroupId,
     participants: (response.participants ?? []).map(toParticipant),
-    projectId: null, 
+    projectId: response.projectId ?? null,
+    projectName: response.projectName ?? null,
+    projectColor: response.projectColor ?? null,
+    projectTaskId: response.projectTaskId ?? null,
+    projectTaskName: response.projectTaskName ?? null,
+    tags: (response.tags ?? []).map(toTag),
+  }
+}
+
+function associationBody(params?: TimeEntryAssociations) {
+  return {
+    ...(params?.projectId !== undefined ? { projectId: params.projectId } : {}),
+    ...(params?.projectTaskId !== undefined ? { projectTaskId: params.projectTaskId } : {}),
+    ...(params?.tagIds !== undefined ? { tagIds: params.tagIds } : {}),
+    isBillable: params?.isBillable ?? true,
   }
 }
 
@@ -81,15 +121,22 @@ export async function getActiveTimer(): Promise<ActiveTimer | null> {
   return toActiveTimer(response)
 }
 
-export function startTimer(description?: string, isBillable = true): Promise<ActiveTimer> {
+export function startTimer(
+  description?: string,
+  associations?: TimeEntryAssociations,
+): Promise<ActiveTimer> {
   return apiClient
-    .post<TimeEntryResponse>('/time-entries/timer/start', { description, isBillable })
+    .post<TimeEntryResponse>('/time-entries/timer/start', {
+      description,
+      ...associationBody(associations),
+    })
     .then(toActiveTimer)
 }
 
 export interface StopTimerParams {
   description?: string
   assigneeUserIds?: string[]
+  associations?: TimeEntryAssociations
 }
 
 export type StopTimerResult =
@@ -102,6 +149,7 @@ export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
   return apiClient
     .post<TimeEntryResponse | Record<string, unknown>>('/time-entries/timer/stop', {
       description: params?.description,
+      ...associationBody(params?.associations),
       ...(hasAssignees
         ? {
             assigneeUserIds: params!.assigneeUserIds,
@@ -124,11 +172,10 @@ export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
     })
 }
 
-export interface CreateManualEntryParams {
+export interface CreateManualEntryParams extends TimeEntryAssociations {
   description?: string
   startedAtUtc: string
   endedAtUtc: string
-  isBillable?: boolean
 }
 
 export interface CreateManualEntryResult {
@@ -141,18 +188,17 @@ export function createManualEntry(params: CreateManualEntryParams): Promise<Crea
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
     }))
 }
 
-export interface CreateDurationOnlyEntryParams {
+export interface CreateDurationOnlyEntryParams extends TimeEntryAssociations {
   description?: string
   entryDateUtc: string
   durationSeconds: number
-  isBillable?: boolean
 }
 
 export function createDurationOnlyEntry(
@@ -163,18 +209,17 @@ export function createDurationOnlyEntry(
       description: params.description,
       entryDateUtc: params.entryDateUtc,
       durationSeconds: params.durationSeconds,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
     }))
 }
 
-export interface UpdateTimeEntryParams {
+export interface UpdateTimeEntryParams extends TimeEntryAssociations {
   description?: string
   startedAtUtc: string
   endedAtUtc: string
-  isBillable?: boolean
 }
 
 export interface UpdateTimeEntryResult {
@@ -187,18 +232,17 @@ export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Prom
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
     }))
 }
 
-export interface UpdateDurationOnlyEntryParams {
+export interface UpdateDurationOnlyEntryParams extends TimeEntryAssociations {
   description?: string
   entryDateUtc: string
   durationSeconds: number
-  isBillable?: boolean
 }
 
 export function updateDurationOnlyEntry(
@@ -210,7 +254,7 @@ export function updateDurationOnlyEntry(
       description: params.description,
       entryDateUtc: params.entryDateUtc,
       durationSeconds: params.durationSeconds,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),
@@ -246,7 +290,31 @@ export function createSharedManualEntry(
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
+    })
+    .then((response) => ({
+      entries: sharedManualEntryResponses(response).map(toTimeEntry),
+      overlapWarning:
+        (response.overlapWarning as string | null | undefined) ??
+        (response.OverlapWarning as string | null | undefined) ??
+        null,
+    }))
+}
+
+export interface CreateSharedDurationOnlyEntryParams extends CreateDurationOnlyEntryParams {
+  assigneeUserIds: string[]
+}
+
+export function createSharedDurationOnlyEntry(
+  params: CreateSharedDurationOnlyEntryParams,
+): Promise<CreateSharedManualEntryResult> {
+  return apiClient
+    .post<Record<string, unknown>>('/time-entries/shared/duration', {
+      assigneeUserIds: params.assigneeUserIds,
+      description: params.description,
+      entryDateUtc: params.entryDateUtc,
+      durationSeconds: params.durationSeconds,
+      ...associationBody(params),
     })
     .then((response) => ({
       entries: sharedManualEntryResponses(response).map(toTimeEntry),
@@ -285,7 +353,7 @@ export function updatePendingTimeEntry(
       description: params.description,
       startedAtUtc: params.startedAtUtc,
       endedAtUtc: params.endedAtUtc,
-      isBillable: params.isBillable ?? true,
+      ...associationBody(params),
     })
     .then((response) => ({
       entry: toTimeEntry(response.entry),

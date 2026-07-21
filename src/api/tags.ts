@@ -1,11 +1,19 @@
 import type { Tag } from '../types/tag'
+import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
+import {
+  appendListQueryParams,
+  type ListQueryOptions,
+  toPagedResult,
+} from './pagination'
 
 /**
  * Tags API (TagsController, RT-44). Reads are member-accessible; mutations are
  * trust-based (any authenticated user). Deletes are soft-deletes allowed even
  * while a tag is in use, so the name can be reused immediately.
  */
+
+export type ListTagsOptions = ListQueryOptions
 
 /** Mirrors backend TagResponse. */
 interface TagResponse {
@@ -26,8 +34,14 @@ function toTag(response: TagResponse): Tag {
   }
 }
 
-export function listTags(): Promise<Tag[]> {
-  return apiClient.get<TagResponse[]>('/tags').then((tags) => tags.map(toTag))
+export function listTags(options: ListTagsOptions = {}): Promise<PagedResult<Tag>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, options)
+  const qs = params.toString()
+
+  return apiClient
+    .get<PagedResult<TagResponse>>(`/tags${qs ? `?${qs}` : ''}`)
+    .then((result) => toPagedResult(result, toTag))
 }
 
 export function createTag(name: string, color: string | null): Promise<Tag> {

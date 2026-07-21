@@ -23,6 +23,7 @@ import {
   updateProject,
   type ProjectStatusFilter,
 } from '../api/projects'
+import { fetchAllPages } from '../api/pagination'
 import { formatBillingSummary, formatMoney } from '../lib/projectFormat'
 import { projectCoverUrl } from '../lib/projectCover'
 import type { Project } from '../types/project'
@@ -59,7 +60,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     let cancelled = false
 
-    listProjects(tab)
+    fetchAllPages((page, pageSize) => listProjects(tab, { page, pageSize }))
       .then((loaded) => {
         if (cancelled) return
         setProjects(loaded)

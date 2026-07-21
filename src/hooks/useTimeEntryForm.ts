@@ -7,6 +7,7 @@ import { useOverlapAlert } from './useOverlapAlert'
 import type { ManualFieldState } from '../components/time/ManualField'
 import { useTimer } from './useTimer'
 import type { Teammate } from '../lib/mention'
+import type { TimeEntryAssociations } from '../types/timeEntry'
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
 import {
   applyManualFieldChange,
@@ -23,7 +24,6 @@ import {
   validateManualEntry,
 } from '../lib/manualEntry'
 
-const DEFAULT_IS_BILLABLE = true
 const DEFAULT_DURATION_ONLY_SECONDS = 60 * 60
 
 export type TimeEntryFormVariant = 'range' | 'duration'
@@ -36,6 +36,7 @@ export function useTimeEntryForm({
   onClearDescription,
   onClearMentions,
   onClearShareNotice,
+  associations,
 }: {
   variant: TimeEntryFormVariant
   description: string
@@ -44,6 +45,7 @@ export function useTimeEntryForm({
   onClearDescription: () => void
   onClearMentions: () => void
   onClearShareNotice: () => void
+  associations: TimeEntryAssociations
 }) {
   const { isInitializing, isSavingManual, addManualEntry, addDurationEntry } = useTimer()
   const overlapAlert = useOverlapAlert()
@@ -59,7 +61,6 @@ export function useTimeEntryForm({
   )
   const [durationOnlySeconds, setDurationOnlySeconds] = useState(DEFAULT_DURATION_ONLY_SECONDS)
   const [entryDate, setEntryDate] = useState(() => toDateInputValue(new Date()))
-  const [isBillable, setIsBillable] = useState(DEFAULT_IS_BILLABLE)
   const [localError, setLocalError] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
@@ -97,7 +98,6 @@ export function useTimeEntryForm({
     )
     setDurationOnlySeconds(DEFAULT_DURATION_ONLY_SECONDS)
     setEntryDate(toDateInputValue(new Date()))
-    setIsBillable(DEFAULT_IS_BILLABLE)
     setLocalError(null)
     setDurationParseError(null)
     setDurationLimitMessage(null)
@@ -117,7 +117,6 @@ export function useTimeEntryForm({
       setDurationLimitMessage(null)
       overlapAlert.clearOverlapAlert()
       onClearShareNotice()
-      setIsBillable(template.isBillable)
 
       if (variant === 'duration') {
         const seconds = Math.max(
@@ -203,7 +202,10 @@ export function useTimeEntryForm({
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
-          isBillable,
+          isBillable: associations.isBillable ?? true,
+          projectId: associations.projectId,
+          projectTaskId: associations.projectTaskId,
+          tagIds: associations.tagIds,
           ...(mentionedTeammates.length > 0
             ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
             : {}),
@@ -257,7 +259,10 @@ export function useTimeEntryForm({
         description: description.trim() || undefined,
         entryDateUtc,
         durationSeconds: durationOnlySeconds,
-        isBillable,
+        isBillable: associations.isBillable ?? true,
+        projectId: associations.projectId,
+        projectTaskId: associations.projectTaskId,
+        tagIds: associations.tagIds,
       })
       onClearDescription()
       reset()

@@ -1,10 +1,12 @@
 import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { Icon } from '../ui/Icon'
+import { TrackerModeMenu, type TrackerMode } from './TrackerModeMenu'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { OverlapAlertModal } from './overlapAlert'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { useTimer } from '../../hooks/useTimer'
 import type { Teammate } from '../../lib/mention'
+import type { TimeEntryAssociations } from '../../types/timeEntry'
 
 export type TimerModeInputHandle = {
   toggle: () => void
@@ -17,6 +19,9 @@ type TimerModeInputProps = {
   setMentionedTeammates: (teammates: Teammate[]) => void
   onShared: (notice: string) => void
   onClearShareNotice: () => void
+  associations: TimeEntryAssociations
+  mode: TrackerMode
+  onModeChange: (mode: TrackerMode) => void
 }
 
 export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputProps>(
@@ -28,6 +33,9 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       setMentionedTeammates,
       onShared,
       onClearShareNotice,
+      associations,
+      mode,
+      onModeChange,
     },
     ref,
   ) {
@@ -50,13 +58,13 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       const trimmedDescription = description.trim() || undefined
 
       if (!isRunning) {
-        void toggle(trimmedDescription)
+        void toggle(trimmedDescription, { associations })
         return
       }
 
       const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
       if (assigneeIds.length === 0) {
-        void toggle(trimmedDescription)
+        void toggle(trimmedDescription, { associations })
         return
       }
 
@@ -71,6 +79,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
 
           await toggle(trimmedDescription, {
             assigneeUserIds: assigneeIds,
+              associations,
           })
 
           setMentionedTeammates([])
@@ -86,6 +95,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
         onOtherError: () => {},
       })
     }, [
+        associations,
       description,
       isRunning,
       mentionedTeammates,
@@ -106,6 +116,11 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       }),
       [handleToggle],
     )
+
+    const primaryTone = isRunning
+      ? 'bg-navy hover:bg-navy/90'
+      : 'bg-brand hover:bg-brand-deep'
+    const busy = isInitializing || isToggling
 
     return (
       <>
@@ -136,21 +151,28 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
           </div>
         </div>
 
-        <button
-          type="button"
-          aria-label={isRunning ? 'Stop timer' : 'Start timer'}
-          aria-pressed={isRunning}
-          disabled={isInitializing || isToggling}
-          onClick={() => void handleToggle()}
-          className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-            isRunning ? 'bg-navy hover:bg-navy/90' : 'bg-brand hover:bg-brand-deep'
-          }`}
-        >
-          <Icon
-            name={isRunning ? 'stop' : 'play'}
-            className={isRunning ? 'size-3.5' : 'size-icon-play translate-x-px'}
+        <div className={`flex flex-shrink-0 text-white shadow-soft ${primaryTone} rounded-full`}>
+          <button
+            type="button"
+            aria-label={isRunning ? 'Stop timer' : 'Start timer'}
+            aria-pressed={isRunning}
+            disabled={busy}
+            onClick={() => void handleToggle()}
+            className="flex h-11 w-11 items-center justify-center rounded-l-full transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Icon
+              name={isRunning ? 'stop' : 'play'}
+              className={isRunning ? 'size-3.5' : 'size-icon-play translate-x-px'}
+            />
+          </button>
+          <span aria-hidden="true" className="my-2 w-px flex-shrink-0 bg-white/25" />
+          <TrackerModeMenu
+            mode={mode}
+            onModeChange={onModeChange}
+            disabled={isRunning || busy}
+            buttonClassName="flex h-11 w-9 items-center justify-center rounded-r-full transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-60"
           />
-        </button>
+        </div>
 
         {showOverlapAlert && overlapWarning ? (
           <OverlapAlertModal

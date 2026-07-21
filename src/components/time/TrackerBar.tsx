@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MentionDescriptionField } from './MentionDescriptionField'
 import { TimeEntryTemplatesPanel } from './TimeEntryTemplatesPanel'
 import {
@@ -11,21 +11,38 @@ import {
   TimerModeInput,
   type TimerModeInputHandle,
 } from './TimerModeInput'
+import type { TrackerMode } from './TrackerModeMenu'
 import { Icon } from '../ui/Icon'
+import { MetadataBubble } from '../ui/MetadataBubble'
+import { ProjectTaskPicker } from '../pickers/ProjectTaskPicker'
+import { TagMultiSelect } from '../pickers/TagMultiSelect'
 import { useTimer } from '../../hooks/useTimer'
-import type { Teammate } from '../../lib/mention'
+import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 
 const TIMER_PANEL_CLASS = 'timer-panel'
 
-type TrackerMode = 'timer' | 'manual' | 'duration' | 'templates'
-
-function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; title: string }) {
+function IconButton({
+  name,
+  title,
+  active = false,
+  onClick,
+}: {
+  name: 'projects' | 'tags' | 'billable'
+  title: string
+  active?: boolean
+  onClick?: () => void
+}) {
   return (
     <button
       type="button"
       title={title}
-      className="flex size-control flex-shrink-0 items-center justify-center rounded-md border border-navy/[0.06] bg-white text-navy/55 shadow-soft transition-colors hover:border-brand/20 hover:text-navy"
+      onClick={onClick}
+      className={`flex size-control flex-shrink-0 items-center justify-center rounded-md border shadow-soft transition-colors ${
+        active
+          ? 'border-brand/40 bg-brand-tint text-navy'
+          : 'border-navy/[0.06] bg-white text-navy/55 hover:border-brand/20 hover:text-navy'
+      }`}
     >
       <Icon name={name} className="h-4 w-4" />
     </button>
@@ -34,33 +51,59 @@ function IconButton({ name, title }: { name: 'projects' | 'tags' | 'billable'; t
 
 export function TrackerBar() {
   const {
-    activeTimer,
     isRunning,
     isInitializing,
     isToggling,
     isSavingManual,
+    draft,
+    setDraftDescription,
+    setDraftMentionedTeammates,
+    setDraftProject,
+    clearDraftProject,
+    setDraftTags,
+    removeDraftTag,
+    setDraftBillable,
+    applyDraftTemplate,
+    clearDraft,
   } = useTimer()
 
   const [trackerMode, setTrackerMode] = useState<TrackerMode>('timer')
-  const [description, setDescription] = useState('')
-  const [mentionedTeammates, setMentionedTeammates] = useState<Teammate[]>([])
   const [shareNotice, setShareNotice] = useState<string | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [templateSeed, setTemplateSeed] = useState<TemplateSeed | null>(null)
   const templateNonceRef = useRef(0)
 
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false)
+  const [tagsPickerOpen, setTagsPickerOpen] = useState(false)
+
   const timerRef = useRef<TimerModeInputHandle>(null)
   const entryRef = useRef<TimeEntryInputHandle>(null)
+  const projectButtonRef = useRef<HTMLDivElement>(null)
+  const tagsButtonRef = useRef<HTMLDivElement>(null)
 
-  // Keep the description field aligned with the running timer from TimerContext.
+  const {
+    description,
+    mentionedTeammates,
+    projectId,
+    projectTaskId,
+    projectName,
+    projectColor,
+    projectTaskName,
+    tagIds,
+    knownTags,
+    isBillable,
+  } = draft
+
   useEffect(() => {
-    if (activeTimer?.description) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync from TimerContext
-      setDescription(activeTimer.description)
-    } else if (!activeTimer && trackerMode === 'timer') {
-      setDescription('')
+    if (!tagsPickerOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (tagsButtonRef.current && !tagsButtonRef.current.contains(event.target as Node)) {
+        setTagsPickerOpen(false)
+      }
     }
-  }, [activeTimer, trackerMode])
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [tagsPickerOpen])
 
   const clearShareNotice = () => setShareNotice(null)
 
@@ -92,20 +135,45 @@ export function TrackerBar() {
 
   const handleSelectTemplate = (template: TimeEntryTemplate) => {
     templateNonceRef.current += 1
-    setDescription(template.description ?? '')
-    setMentionedTeammates([])
     clearShareNotice()
     setSelectedTemplateId(template.id)
     setTemplateSeed({
       template,
       nonce: templateNonceRef.current,
     })
+    applyDraftTemplate({
+      description: template.description ?? '',
+      projectId: template.projectId,
+      projectTaskId: template.projectTaskId,
+      projectName: template.projectName,
+      projectColor: template.projectColor,
+      projectTaskName: template.taskName,
+      isBillable: template.isBillable,
+    })
   }
 
-  const handleClearDescription = () => {
-    setDescription('')
+  const handleClearDescriptionAndAssociations = () => {
+    clearDraft()
     clearTemplateSelection()
   }
+
+  const associations: TimeEntryAssociations = useMemo(
+    () => ({
+      projectId,
+      projectTaskId,
+      tagIds,
+      isBillable,
+    }),
+    [projectId, projectTaskId, tagIds, isBillable],
+  )
+
+  const projectTaskLabel = projectName
+    ? projectTaskName
+      ? `${projectName} · ${projectTaskName}`
+      : projectName
+    : null
+
+  const selectedTags = knownTags.filter((tag) => tagIds.includes(tag.id))
 
   const entryVariant =
     trackerMode === 'timer'
@@ -125,7 +193,7 @@ export function TrackerBar() {
             className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
             placeholder="What did you work on?"
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => setDraftDescription(event.target.value)}
             disabled={isInitializing || isSavingManual}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -139,9 +207,9 @@ export function TrackerBar() {
             className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
             placeholder="What are you working on? Type @ to share with a teammate"
             value={description}
-            onChange={setDescription}
+            onChange={setDraftDescription}
             selectedTeammates={mentionedTeammates}
-            onMentionChange={setMentionedTeammates}
+            onMentionChange={setDraftMentionedTeammates}
             disabled={isInitializing || isToggling || isSavingManual}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -161,60 +229,91 @@ export function TrackerBar() {
         <span aria-hidden="true" className="block h-px w-full bg-brand-gradient" />
 
         <div className="flex min-h-[5.5rem] flex-wrap items-center gap-x-2 gap-y-3 border-t border-navy/[0.06] bg-surface-muted/25 px-4 py-3.5">
-          <IconButton name="projects" title="Project" />
-          <IconButton name="tags" title="Tags" />
-          <IconButton name="billable" title="Billable" />
-
-          <div className="mx-1 h-5.5 w-px flex-shrink-0 bg-navy/10" />
-
-          <div className="flex flex-shrink-0 rounded-full border border-navy/[0.06] bg-white p-segment shadow-soft">
-            <button
-              type="button"
-              onClick={() => switchMode('timer')}
-              className={`rounded-full px-4 py-compact font-display text-sm font-semibold ${
-                trackerMode === 'timer' ? 'bg-navy text-cream' : 'text-navy/55'
-              }`}
-            >
-              Timer
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('manual')}
-              disabled={isRunning}
-              title={isRunning ? 'Stop the running timer before adding a manual entry' : undefined}
-              className={`rounded-full px-4 py-compact font-display text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                trackerMode === 'manual' ? 'bg-navy text-cream' : 'text-navy/55'
-              }`}
-            >
-              Manual
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('duration')}
-              disabled={isRunning}
-              title={isRunning ? 'Stop the running timer before adding a duration entry' : undefined}
-              className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                trackerMode === 'duration' ? 'bg-navy text-cream' : 'text-navy/55'
-              }`}
-            >
-              Duration
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('templates')}
-              disabled={isRunning}
-              title={
-                isRunning
-                  ? 'Stop the running timer before opening templates'
-                  : undefined
-              }
-              className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
-                trackerMode === 'templates' ? 'bg-navy text-cream' : 'text-navy/55'
-              }`}
-            >
-              Templates
-            </button>
+          <div ref={projectButtonRef} className="relative">
+            <IconButton
+              name="projects"
+              title="Project & task"
+              active={Boolean(projectId) || projectPickerOpen}
+              onClick={() => {
+                setTagsPickerOpen(false)
+                setProjectPickerOpen((v) => !v)
+              }}
+            />
+            <ProjectTaskPicker
+              key={projectPickerOpen ? 'open' : 'closed'}
+              open={projectPickerOpen}
+              onOpenChange={setProjectPickerOpen}
+              projectId={projectId}
+              projectTaskId={projectTaskId}
+              onChange={(next) => {
+                setDraftProject({
+                  projectId: next.projectId,
+                  projectTaskId: next.projectTaskId,
+                  projectName: next.projectName ?? null,
+                  projectColor: next.projectColor ?? null,
+                  projectTaskName: next.taskName ?? null,
+                })
+              }}
+            />
           </div>
+
+          <div ref={tagsButtonRef} className="relative">
+            <IconButton
+              name="tags"
+              title="Tags"
+              active={tagIds.length > 0 || tagsPickerOpen}
+              onClick={() => {
+                setProjectPickerOpen(false)
+                setTagsPickerOpen((v) => !v)
+              }}
+            />
+            {tagsPickerOpen ? (
+              <div className="absolute top-[calc(100%+6px)] left-0 z-40 w-[min(100vw-2rem,18rem)]">
+                <TagMultiSelect
+                  variant="popover"
+                  knownTags={knownTags}
+                  selectedIds={tagIds}
+                  onChange={(ids, tags) => {
+                    setDraftTags(ids, tags)
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <IconButton
+            name="billable"
+            title={isBillable ? 'Billable' : 'Non-billable'}
+            active={isBillable}
+            onClick={() => setDraftBillable(!isBillable)}
+          />
+
+          {(projectTaskLabel || selectedTags.length > 0 || isBillable) && (
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              {projectTaskLabel ? (
+                <MetadataBubble
+                  label={projectTaskLabel}
+                  color={projectColor}
+                  onRemove={clearDraftProject}
+                />
+              ) : null}
+              {selectedTags.map((tag) => (
+                <MetadataBubble
+                  key={tag.id}
+                  label={tag.name}
+                  color={tag.color}
+                  onRemove={() => removeDraftTag(tag.id)}
+                />
+              ))}
+              {isBillable ? (
+                <MetadataBubble
+                  label="Billable"
+                  color="#22C55E"
+                  onRemove={() => setDraftBillable(false)}
+                />
+              ) : null}
+            </div>
+          )}
 
           <div className="flex-1" />
 
@@ -222,11 +321,14 @@ export function TrackerBar() {
             <TimerModeInput
               ref={timerRef}
               description={description}
-              setDescription={setDescription}
+              setDescription={setDraftDescription}
               mentionedTeammates={mentionedTeammates}
-              setMentionedTeammates={setMentionedTeammates}
+              setMentionedTeammates={setDraftMentionedTeammates}
               onShared={setShareNotice}
               onClearShareNotice={clearShareNotice}
+              associations={associations}
+              mode={trackerMode}
+              onModeChange={switchMode}
             />
           ) : entryVariant ? (
             <TimeEntryInput
@@ -236,13 +338,13 @@ export function TrackerBar() {
               description={description}
               mentionedTeammates={mentionedTeammates}
               onShared={setShareNotice}
-              onClearDescription={
-                trackerMode === 'templates' || trackerMode === 'manual'
-                  ? handleClearDescription
-                  : () => setDescription('')
-              }
-              onClearMentions={() => setMentionedTeammates([])}
+              onClearDescription={handleClearDescriptionAndAssociations}
+              onClearMentions={() => setDraftMentionedTeammates([])}
               onClearShareNotice={clearShareNotice}
+              associations={associations}
+              mode={trackerMode}
+              onModeChange={switchMode}
+              modeMenuDisabled={isRunning}
               templateSeed={trackerMode === 'templates' ? templateSeed : null}
             />
           ) : null}

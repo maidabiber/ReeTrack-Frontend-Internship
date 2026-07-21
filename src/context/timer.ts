@@ -1,5 +1,7 @@
 import { createContext } from 'react'
-import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
+import type { ActiveTimer, TimeEntry, TimeEntryAssociations, TimeEntryTag } from '../types/timeEntry'
+import type { Teammate } from '../lib/mention'
+import type { TimeEntryDraft } from './timerDraftReducer'
 
 export interface TimerContextValue {
   activeTimer: ActiveTimer | null
@@ -11,15 +13,41 @@ export interface TimerContextValue {
   isSavingManual: boolean
   isSavingEdit: boolean
   error: string | null
-  start: (description?: string) => Promise<void>
+  draft: TimeEntryDraft
+  setDraftDescription: (description: string) => void
+  setDraftMentionedTeammates: (mentionedTeammates: Teammate[]) => void
+  setDraftProject: (project: {
+    projectId: string | null
+    projectTaskId: string | null
+    projectName: string | null
+    projectColor: string | null
+    projectTaskName: string | null
+  }) => void
+  clearDraftProject: () => void
+  setDraftTags: (tagIds: string[], knownTags: TimeEntryTag[]) => void
+  removeDraftTag: (tagId: string) => void
+  setDraftBillable: (isBillable: boolean) => void
+  applyDraftTemplate: (template: {
+    description: string
+    projectId: string | null
+    projectTaskId: string | null
+    projectName: string | null
+    projectColor: string | null
+    projectTaskName: string | null
+    isBillable: boolean
+  }) => void
+  clearDraft: () => void
+  start: (description?: string, associations?: TimeEntryAssociations) => Promise<void>
   stop: (options?: {
     description?: string
     assigneeUserIds?: string[]
+    associations?: TimeEntryAssociations
   }) => Promise<void>
   toggle: (
     description?: string,
     options?: {
       assigneeUserIds?: string[]
+      associations?: TimeEntryAssociations
     },
   ) => Promise<void>
   addManualEntry: (params: {
@@ -28,12 +56,18 @@ export interface TimerContextValue {
     endedAtUtc: string
     isBillable?: boolean
     assigneeUserIds?: string[]
+    projectId?: string | null
+    projectTaskId?: string | null
+    tagIds?: string[]
   }) => Promise<void>
   addDurationEntry: (params: {
     description?: string
     entryDateUtc: string
     durationSeconds: number
     isBillable?: boolean
+    projectId?: string | null
+    projectTaskId?: string | null
+    tagIds?: string[]
   }) => Promise<void>
   updateEntry: (params: {
     id: string
@@ -42,6 +76,9 @@ export interface TimerContextValue {
     endedAtUtc?: string
     durationSeconds?: number
     isBillable?: boolean
+    projectId?: string | null
+    projectTaskId?: string | null
+    tagIds?: string[]
   }) => Promise<void>
   refresh: () => Promise<void>
 }

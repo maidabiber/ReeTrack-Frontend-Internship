@@ -1,5 +1,7 @@
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
+import type { PagedResult } from '../types/paged'
 import { apiClient, apiErrorMessage } from './client'
+import { appendListQueryParams, toPagedResult } from './pagination'
 
 /** Mirrors backend TimeEntryTemplateResponse (core fields only). */
 interface TimeEntryTemplateResponse {
@@ -13,20 +15,6 @@ interface TimeEntryTemplateResponse {
   endTimeUtc: string | null
   durationSeconds: number
   createdAtUtc: string
-}
-
-interface PagedTimeEntryTemplatesResponse {
-  items: TimeEntryTemplateResponse[]
-  totalCount: number
-  page: number
-  pageSize: number
-}
-
-export interface PagedTimeEntryTemplates {
-  items: TimeEntryTemplate[]
-  totalCount: number
-  page: number
-  pageSize: number
 }
 
 function toTemplate(response: TimeEntryTemplateResponse): TimeEntryTemplate {
@@ -52,20 +40,13 @@ function toTemplate(response: TimeEntryTemplateResponse): TimeEntryTemplate {
 export function listTimeEntryTemplates(
   page = 1,
   pageSize = 50,
-): Promise<PagedTimeEntryTemplates> {
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  })
+): Promise<PagedResult<TimeEntryTemplate>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, { page, pageSize })
 
   return apiClient
-    .get<PagedTimeEntryTemplatesResponse>(`/time-entry-templates?${params}`)
-    .then((result) => ({
-      items: result.items.map(toTemplate),
-      totalCount: result.totalCount,
-      page: result.page,
-      pageSize: result.pageSize,
-    }))
+    .get<PagedResult<TimeEntryTemplateResponse>>(`/time-entry-templates?${params}`)
+    .then((result) => toPagedResult(result, toTemplate))
 }
 
 export function createTimeEntryTemplate(timeEntryId: string): Promise<TimeEntryTemplate> {

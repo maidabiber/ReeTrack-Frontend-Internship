@@ -9,10 +9,9 @@ const TIME_ENTRY_ID_PREFIX = 'te-'
 
 /** Future: return project-based colors when TimeEntry includes projectId. */
 export function timeEntryColor(_entry: TimeEntry): EventColor {
-  if (_entry.projectId === null) return 'gray'
+  if (_entry.projectId === null) return '#bbbbbb'
   else {
-    // Future: return project-based colors when TimeEntry includes projectId.
-    return 'gray'
+    return _entry.projectColor as EventColor ?? '#bbbbbb'
   }
 }
 
@@ -88,7 +87,7 @@ export function mapSyncedEventToCalendarEvent(event: SyncedCalendarEvent): Calen
     end,
     location: event.location ?? undefined,
     htmlLink: event.htmlLink ?? undefined,
-    color: 'blue',
+    color: '#62a7e9', // Default color for synced calendar events
   }
 }
 

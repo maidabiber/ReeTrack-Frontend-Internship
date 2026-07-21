@@ -27,7 +27,7 @@ const CREATE_PREVIEW_EVENT: CalendarEvent = {
   title: 'New entry',
   start: new Date(0),
   end: new Date(0),
-  color: 'purple',
+  color: '#62a7e9',
 }
 
 interface TimeGridProps {

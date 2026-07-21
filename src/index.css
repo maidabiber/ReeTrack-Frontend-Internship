@@ -51,9 +51,12 @@
   --color-gray: #4b5563;
   --color-gray-tint: #e5e7eb;
 
-  --font-sans: 'Manrope', system-ui, sans-serif;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', 'Menlo', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Inter', ui-monospace, 'SF Mono', 'Menlo', monospace;
+
+  --default-calendar-event-color: #bbbbbb;
+  --google-calendar-event-color: #62a7e9;
 
   /*
    * Type / radius / spacing scales use rem so they track the root font size.

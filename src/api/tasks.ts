@@ -1,13 +1,21 @@
 import type { Task, TaskStatus } from '../types/task'
+import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
+import {
+  appendListQueryParams,
+  type ListQueryOptions,
+  toPagedResult,
+} from './pagination'
 
 /**
  * Project tasks API (ProjectTasksController, RT-42/RT-43). Nested under a
- * project: /api/projects/{projectId}/tasks. Reads are member-accessible;
- * mutations are admin-only.
+ * project: /api/projects/{projectId}/tasks. Cross-project open-task listing
+ * for the timer picker: GET /api/tasks.
  */
 
 export type TaskStatusFilter = 'open' | 'done' | 'all'
+
+export type ListTasksOptions = ListQueryOptions
 
 /** Mirrors backend TaskResponse. */
 interface TaskResponse {
@@ -37,10 +45,25 @@ function toTask(response: TaskResponse): Task {
 export function listTasks(
   projectId: string,
   status: TaskStatusFilter = 'open',
-): Promise<Task[]> {
+  options: ListTasksOptions = {},
+): Promise<PagedResult<Task>> {
+  const params = new URLSearchParams({ status })
+  appendListQueryParams(params, options)
+
   return apiClient
-    .get<TaskResponse[]>(`/projects/${projectId}/tasks?status=${status}`)
-    .then((tasks) => tasks.map(toTask))
+    .get<PagedResult<TaskResponse>>(`/projects/${projectId}/tasks?${params.toString()}`)
+    .then((result) => toPagedResult(result, toTask))
+}
+
+/** Open tasks across all projects, optionally filtered by name / project name. */
+export function listOpenTasks(options: ListTasksOptions = {}): Promise<PagedResult<Task>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, options)
+  const qs = params.toString()
+
+  return apiClient
+    .get<PagedResult<TaskResponse>>(`/tasks${qs ? `?${qs}` : ''}`)
+    .then((result) => toPagedResult(result, toTask))
 }
 
 export interface TaskInput {

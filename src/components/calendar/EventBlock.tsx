@@ -1,16 +1,9 @@
 import { useState } from 'react'
-import type { CalendarEvent, EventColor } from './types'
+import type { CalendarEvent } from './types'
 import { formatTimeRange, hoverMinDisplayHeightPercent, hoverMinDisplayHeightPx } from './dateUtils'
 import { DEFAULT_HOUR_HEIGHT } from './hourZoom'
 
-const EVENT_COLOR_CLASSES: Record<EventColor, { bg: string; ring: string }> = {
-  purple: { bg: 'bg-brand-tint', ring: 'ring-brand' },
-  orange: { bg: 'bg-orange-tint', ring: 'ring-orange' },
-  green: { bg: 'bg-green-tint', ring: 'ring-green' },
-  yellow: { bg: 'bg-yellow-tint', ring: 'ring-yellow' },
-  blue: { bg: 'bg-blue-tint', ring: 'ring-blue' },
-  gray: { bg: 'bg-gray-tint', ring: 'ring-gray' },
-}
+const DEFAULT_EVENT_COLOR = '#EEF1FD'
 
 interface EventBlockProps {
   event: CalendarEvent
@@ -54,7 +47,7 @@ export function EventBlock({
   onClick,
 }: EventBlockProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const colors = EVENT_COLOR_CLASSES[event.color ?? 'purple']
+  const eventColor = event.color ?? DEFAULT_EVENT_COLOR
 
   const dayHeightPx = hourHeight * 24
   const minHeightPx = compact ? 18 : 22
@@ -96,7 +89,11 @@ export function EventBlock({
           onPointerDown?.(pointerEvent)
         }}
         onClick={onClick}
-        className={`h-full w-full rounded-sm px-2 py-0.5 text-left ${colors.bg} ${
+        style={{
+          backgroundColor: eventColor,
+          ...(selected ? { outline: `2px solid ${eventColor}`, outlineOffset: '1px' } : {}),
+        }}
+        className={`h-full w-full rounded-sm px-2 py-0.5 text-left ${
           isElevated ? 'overflow-visible shadow-lg' : 'overflow-hidden'
         } ${isDragSource ? 'opacity-30' : ''} ${
           isDragPreview || isResizePreview
@@ -104,9 +101,7 @@ export function EventBlock({
             : editable
               ? 'cursor-grab'
               : 'cursor-pointer'
-        } ${
-          selected ? `ring-2 ${colors.ring} ring-offset-1` : !isDragPreview && !isResizePreview ? 'hover:brightness-[0.97]' : ''
-        }`}
+        } ${!selected && !isDragPreview && !isResizePreview ? 'hover:brightness-[0.97]' : ''}`}
       >
         <div className="truncate font-display text-xs font-semibold leading-tight text-navy">
           {event.title}

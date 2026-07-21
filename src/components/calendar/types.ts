@@ -1,4 +1,4 @@
-export type EventColor = 'purple' | 'orange' | 'green' | 'yellow' | 'blue' | 'gray'
+export type EventColor = `#${string}`
 
 export type CalendarEventKind = 'timeEntry' | 'calendarEvent'
 

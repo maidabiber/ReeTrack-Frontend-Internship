@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ApiError } from '../../api/client'
+import { fetchAllPages } from '../../api/pagination'
+import { listTasks } from '../../api/tasks'
 import { timeEntryApiErrorMessage } from '../../api/timeEntries'
 import { useTimer } from '../../hooks/useTimer'
 import {
@@ -15,9 +17,13 @@ import {
   validateDurationOnlyEntry,
   validateManualEntry,
 } from '../../lib/manualEntry'
+import type { Task } from '../../types/task'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
 
+import { SearchSelect } from '../ui/SearchSelect'
+import { ProjectPicker } from '../pickers/ProjectPicker'
+import { TagMultiSelect } from '../pickers/TagMultiSelect'
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { DurationLimitModal } from './durationLimitModal'
@@ -28,6 +34,10 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const { isSavingEdit, updateEntry } = useTimer()
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
+  const [projectId, setProjectId] = useState<string | null>(entry.projectId)
+  const [projectTaskId, setProjectTaskId] = useState<string | null>(entry.projectTaskId)
+  const [tagIds, setTagIds] = useState<string[]>(() => entry.tags.map((t) => t.id))
+  const [tasks, setTasks] = useState<Task[]>([])
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
   const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [durationOnlySeconds, setDurationOnlySeconds] = useState(entry.durationSeconds)
@@ -55,6 +65,48 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const blockingError = isDurationOnly
     ? durationOnlyValidationError ?? durationParseError ?? error
     : validation.error ?? error
+
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const list = await fetchAllPages((page, pageSize) =>
+          listTasks(projectId, 'all', { page, pageSize }),
+        )
+        if (cancelled) return
+        setTasks(list)
+      } catch {
+        if (!cancelled) setTasks([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
+
+  const taskOptions = useMemo(
+    () =>
+      (projectId ? tasks : []).map((task) => ({
+        value: task.id,
+        label: task.name,
+        hint: task.status === 'done' ? '(done)' : undefined,
+      })),
+    [tasks, projectId],
+  )
+
+  const handleProjectChange = (nextProjectId: string | null) => {
+    setProjectId(nextProjectId)
+    setProjectTaskId(null)
+    if (!nextProjectId) setTasks([])
+  }
+
+  const associationPayload = {
+    projectId,
+    projectTaskId,
+    tagIds,
+    isBillable,
+  }
 
   const handleSaveDurationOnly = async () => {
     setDurationLimitMessage(null)
@@ -84,7 +136,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         description: description.trim() || undefined,
         startedAtUtc: entryDateUtc,
         durationSeconds: durationOnlySeconds,
-        isBillable,
+        ...associationPayload,
       })
       onClose()
     } catch (err) {
@@ -120,7 +172,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
-          isBillable,
+          ...associationPayload,
         })
         onClose()
       },
@@ -148,8 +200,8 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         title="Edit time entry"
         subtitle={
           isDurationOnly
-            ? 'Update description, duration, and billable status.'
-            : 'Update description, times, and billable status.'
+            ? 'Update description, project, tags, duration, and billable status.'
+            : 'Update description, project, tags, times, and billable status.'
         }
         onClose={onClose}
       >
@@ -251,6 +303,44 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
             />
           </div>
         )}
+
+        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="font-display text-label font-semibold text-navy/70">Project</span>
+            <ProjectPicker
+              value={projectId}
+              onChange={handleProjectChange}
+              allowClear
+              disabled={isSavingEdit}
+              placeholder="No project"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-display text-label font-semibold text-navy/70">Task</span>
+            <SearchSelect
+              ariaLabel="Task"
+              options={taskOptions}
+              value={projectTaskId}
+              onChange={setProjectTaskId}
+              placeholder={projectId ? 'No task' : 'Select a project first'}
+              searchPlaceholder="Search tasks…"
+              allowClear
+              disabled={isSavingEdit || !projectId}
+            />
+          </label>
+        </div>
+
+        <div className="mb-3">
+          <span className="mb-1.5 block font-display text-label font-semibold text-navy/70">
+            Tags
+          </span>
+          <TagMultiSelect
+            knownTags={entry.tags}
+            selectedIds={tagIds}
+            onChange={(ids) => setTagIds(ids)}
+            disabled={isSavingEdit}
+          />
+        </div>
 
         <label className="mb-3 flex cursor-pointer items-center gap-2.5">
           <input

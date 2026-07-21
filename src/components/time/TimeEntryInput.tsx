@@ -8,8 +8,10 @@ import {
   type TimeEntryFormVariant,
 } from '../../hooks/useTimeEntryForm'
 import type { Teammate } from '../../lib/mention'
+import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import { toDatetimeLocalValue } from '../../lib/manualEntry'
+import { TrackerModeMenu, type TrackerMode } from './TrackerModeMenu'
 
 export type TimeEntryInputHandle = {
   saveEntry: () => Promise<void>
@@ -28,6 +30,10 @@ type TimeEntryInputProps = {
   onClearDescription: () => void
   onClearMentions: () => void
   onClearShareNotice: () => void
+  associations: TimeEntryAssociations
+  mode: TrackerMode
+  onModeChange: (mode: TrackerMode) => void
+  modeMenuDisabled?: boolean
   /** When set/updated, prefills fields from the template for the active variant. */
   templateSeed?: TemplateSeed | null
 }
@@ -42,6 +48,10 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
       onClearDescription,
       onClearMentions,
       onClearShareNotice,
+      associations,
+      mode,
+      onModeChange,
+      modeMenuDisabled = false,
       templateSeed = null,
     },
     ref,
@@ -54,6 +64,7 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
       onClearDescription,
       onClearMentions,
       onClearShareNotice,
+      associations,
     })
 
     useEffect(() => {
@@ -132,15 +143,24 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
               </>
             )}
 
-            <button
-              type="button"
-              aria-label={variant === 'range' ? 'Add manual entry' : 'Add duration entry'}
-              disabled={isBusy || Boolean(form.blockingError)}
-              onClick={() => void form.saveEntry()}
-              className="mb-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Icon name="plus" className="size-icon-md" />
-            </button>
+            <div className="mb-0.5 flex flex-shrink-0 rounded-full bg-brand text-white shadow-soft">
+              <button
+                type="button"
+                aria-label={variant === 'range' ? 'Add manual entry' : 'Add duration entry'}
+                disabled={isBusy || Boolean(form.blockingError)}
+                onClick={() => void form.saveEntry()}
+                className="flex h-11 w-11 items-center justify-center rounded-l-full bg-brand transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Icon name="plus" className="size-icon-md" />
+              </button>
+              <span aria-hidden="true" className="my-2 w-px flex-shrink-0 bg-white/25" />
+              <TrackerModeMenu
+                mode={mode}
+                onModeChange={onModeChange}
+                disabled={modeMenuDisabled || isBusy}
+                buttonClassName="flex h-11 w-9 items-center justify-center rounded-r-full bg-brand transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
           </div>
 
           {form.showManualFeedback ? (
