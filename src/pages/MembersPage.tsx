@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { EditHourlyRateModal } from '../components/members/EditHourlyRateModal'
 import { Icon } from '../components/ui/Icon'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { Modal } from '../components/ui/Modal'
@@ -30,12 +31,14 @@ import {
   type InvitationListItem,
   type Member,
 } from '../api/members'
+import { getCurrentUserHourlyRate } from '../api/userHourlyRates'
 import {
   downloadInviteCsvTemplate,
   MAX_INVITE_BATCH,
   parseEmails,
   parseInviteCsv,
 } from '../lib/parseInviteCsv'
+import { formatMoney } from '../lib/projectFormat'
 import { ROLE_IDS, type InvitationStatus, type Role, type UserStatus } from '../types/user'
 
 type RoleFilter = 'all' | Role
@@ -73,6 +76,23 @@ const GRID = 'grid grid-cols-[2fr_2.2fr_0.9fr_0.9fr_0.7fr_32px] items-center gap
 const INVITE_GRID =
   'grid grid-cols-[2.2fr_0.8fr_1fr_1.5fr_1fr_1fr_32px] items-center gap-2.5 px-3.5 py-2'
 
+async function enrichMembersWithRates(members: Member[]): Promise<Member[]> {
+  return Promise.all(
+    members.map(async (member) => {
+      try {
+        const rate = await getCurrentUserHourlyRate(member.id)
+        return {
+          ...member,
+          rate: rate.hourlyRate,
+          rateCurrencyCode: rate.currencyCode,
+        }
+      } catch {
+        return member
+      }
+    }),
+  )
+}
+
 /**
  * RT-271/RT-216/RT-217 — Members & invitations management. Lists everyone with
  * access via GET /api/members with working role change and (de)activation
@@ -92,6 +112,7 @@ export default function MembersPage() {
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null)
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [rateEditMember, setRateEditMember] = useState<Member | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [invitationsReloadKey, setInvitationsReloadKey] = useState(0)
@@ -105,6 +126,7 @@ export default function MembersPage() {
     let cancelled = false
 
     listMembers()
+      .then((loaded) => enrichMembersWithRates(loaded))
       .then((loaded) => {
         if (cancelled) return
         setMembers(loaded)
@@ -142,17 +164,33 @@ export default function MembersPage() {
 
   const upsertMember = (member: Member) => {
     setMembers((current) => {
-      const existing = current.findIndex((m) => m.id === member.id || m.email === member.email)
-      if (existing === -1) return [...current, member]
-      return current.map((m, index) => (index === existing ? member : m))
+      const existingIndex = current.findIndex((m) => m.id === member.id || m.email === member.email)
+      if (existingIndex === -1) return [...current, member]
+
+      const previous = current[existingIndex]
+      const merged: Member = {
+        ...member,
+        rate: member.rate ?? previous.rate,
+        rateCurrencyCode: member.rateCurrencyCode ?? previous.rateCurrencyCode,
+      }
+      return current.map((m, index) => (index === existingIndex ? merged : m))
     })
   }
 
   const handleInvited = (rows: BatchInviteRow[]) => {
-    for (const row of rows) {
-      if (row.member) upsertMember(row.member)
+    const invitedMembers = rows.map((row) => row.member).filter((member): member is Member => member !== null)
+    for (const member of invitedMembers) {
+      upsertMember(member)
     }
     setInvitationsReloadKey((key) => key + 1)
+
+    if (invitedMembers.length > 0) {
+      void enrichMembersWithRates(invitedMembers).then((enriched) => {
+        for (const member of enriched) {
+          upsertMember(member)
+        }
+      })
+    }
 
     const invited = rows.filter((row) => row.status === 'Invited').length
     if (invited > 0) {
@@ -225,6 +263,26 @@ export default function MembersPage() {
       .catch((error) =>
         showNotice(memberApiErrorMessage(error, `Could not update ${member.email}.`)),
       )
+  }
+
+  const handleEditRate = (member: Member) => {
+    setOpenRowMenuId(null)
+    setRateEditMember(member)
+  }
+
+  const handleRateSaved = (member: Member) => {
+    void getCurrentUserHourlyRate(member.id)
+      .then((current) => {
+        upsertMember({
+          ...member,
+          rate: current.hourlyRate,
+          rateCurrencyCode: current.currencyCode,
+        })
+      })
+      .catch(() => {
+        // Keep prior rate in the row if refresh fails.
+      })
+    showNotice(`Hourly rate updated for ${member.displayName ?? member.email}.`)
   }
 
   return (
@@ -335,6 +393,7 @@ export default function MembersPage() {
                   onRevoke={() => handleRevoke(member)}
                   onToggleRole={() => handleToggleRole(member)}
                   onToggleActive={() => handleToggleActive(member)}
+                  onEditRate={() => handleEditRate(member)}
                 />
               ))}
 
@@ -367,6 +426,13 @@ export default function MembersPage() {
       )}
 
       {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} onInvited={handleInvited} />}
+      {rateEditMember && (
+        <EditHourlyRateModal
+          member={rateEditMember}
+          onClose={() => setRateEditMember(null)}
+          onSaved={() => handleRateSaved(rateEditMember)}
+        />
+      )}
       </div>
     </div>
   )
@@ -480,6 +546,7 @@ function MemberRow({
   onRevoke,
   onToggleRole,
   onToggleActive,
+  onEditRate,
 }: {
   member: Member
   index: number
@@ -489,8 +556,13 @@ function MemberRow({
   onRevoke: () => void
   onToggleRole: () => void
   onToggleActive: () => void
+  onEditRate: () => void
 }) {
   const hasPendingInvite = member.status === 'Invited' && member.pendingInvitationId !== null
+  const rateLabel =
+    member.rate !== null
+      ? `${formatMoney(member.rate, member.rateCurrencyCode ?? 'EUR')}/h`
+      : '—'
 
   return (
     <div
@@ -514,16 +586,15 @@ function MemberRow({
       <StatusMark label={member.role} colorClassName={ROLE_COLOR[member.role]} />
       <StatusMark label={STATUS_DISPLAY[member.status]} colorClassName={STATUS_COLOR[member.status]} />
 
-      {/* Rates wait on RT-61; display-only until then. */}
       <span
         className={`font-mono text-caption tabular-nums ${member.rate !== null ? 'font-medium' : 'font-normal opacity-40'}`}
-        title="Rates are coming with billing (RT-61)."
       >
-        {member.rate !== null ? `$${member.rate}/hr` : '—'}
+        {rateLabel}
       </span>
 
       <RowMenu open={menuOpen} onToggle={onToggleMenu}>
         {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
+            <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />
         <RowMenuItem
           icon="settings"
           label={member.role === 'Admin' ? 'Make member' : 'Make admin'}

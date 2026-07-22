@@ -46,7 +46,8 @@ function toMember(response: MemberResponse): Member {
     avatarUrl: response.avatarUrl,
     role: response.role === 'Admin' ? 'Admin' : 'Member',
     status: (response.status as UserStatus) ?? 'Active',
-    rate: null, // no backend support yet (RT-61)
+    rate: null,
+    rateCurrencyCode: null,
     emailVerified: response.emailVerified,
     lastLoginAtUtc: response.lastLoginAtUtc,
     pendingInvitationId: response.pendingInvitationId,

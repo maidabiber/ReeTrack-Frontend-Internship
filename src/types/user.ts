@@ -26,8 +26,9 @@ export interface User {
   avatarUrl: string | null
   role: Role
   status: UserStatus
-  /** Billable hourly rate in whole currency units; null when not set. */
+  /** Current hourly rate amount; null when not loaded or missing. */
   rate: number | null
+  rateCurrencyCode: string | null
   emailVerified: boolean
   lastLoginAtUtc: string | null
 }

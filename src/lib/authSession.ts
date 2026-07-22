@@ -63,6 +63,7 @@ export function toSessionUser(apiUser: {
     role: primaryRole(apiUser.roles),
     status: 'Active',
     rate: null,
+    rateCurrencyCode: null,
     emailVerified: true,
     lastLoginAtUtc: null,
   }

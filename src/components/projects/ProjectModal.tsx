@@ -4,12 +4,10 @@ import { ColorSwatchPicker } from '../ui/ColorSwatchPicker'
 import { SearchSelect } from '../ui/SearchSelect'
 import { apiErrorMessage } from '../../api/client'
 import { listClients } from '../../api/clients'
+import { listCurrencies, type Currency } from '../../api/currencies'
 import { createProject, updateProject, type ProjectInput } from '../../api/projects'
 import type { Client } from '../../types/client'
 import type { BillingType, Project } from '../../types/project'
-
-/** Currencies offered in the picker; the backend accepts any 3-letter code. */
-const CURRENCIES = ['EUR', 'USD', 'GBP', 'BAM', 'CHF'] as const
 
 const LABEL = 'mb-1.5 block font-display text-label font-semibold text-navy/70'
 /* Fields sit on the modal's glass: translucent at rest, solid when focused. */
@@ -67,6 +65,7 @@ export function ProjectModal({
   const [color, setColor] = useState<string | null>(project?.color ?? null)
 
   const [clients, setClients] = useState<Client[]>([])
+  const [currencies, setCurrencies] = useState<Currency[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -99,6 +98,21 @@ export function ProjectModal({
     }
   }, [project])
 
+  useEffect(() => {
+    let cancelled = false
+    listCurrencies()
+      .then((loaded) => {
+        if (!cancelled) setCurrencies(loaded)
+      })
+      .catch(() => {
+        if (!cancelled) setError((prev) => prev ?? 'Could not load currencies. Is the backend running?')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const currencyCodes = currencies.map((currency) => currency.code)
   const trimmedName = name.trim()
   const canSave = trimmedName.length > 0 && trimmedName.length <= 200 && clientId !== '' && !isSaving
 
@@ -197,12 +211,12 @@ export function ProjectModal({
               value={currencyCode}
               onChange={(event) => setCurrencyCode(event.target.value)}
             >
-              {(CURRENCIES as readonly string[]).includes(currencyCode) ? null : (
+              {currencyCodes.includes(currencyCode) ? null : (
                 <option value={currencyCode}>{currencyCode}</option>
               )}
-              {CURRENCIES.map((code) => (
-                <option key={code} value={code}>
-                  {code}
+              {currencies.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code}
                 </option>
               ))}
             </select>
