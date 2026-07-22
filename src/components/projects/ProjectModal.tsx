@@ -7,7 +7,7 @@ import { listClients } from '../../api/clients'
 import { listCurrencies, type Currency } from '../../api/currencies'
 import { createProject, updateProject, type ProjectInput } from '../../api/projects'
 import type { Client } from '../../types/client'
-import type { BillingType, Project } from '../../types/project'
+import type { Project } from '../../types/project'
 
 const LABEL = 'mb-1.5 block font-display text-label font-semibold text-navy/70'
 /* Fields sit on the modal's glass: translucent at rest, solid when focused. */
@@ -39,9 +39,9 @@ function amountToField(value: number | null): string {
 /**
  * Create/edit form for a project (RT-37/RT-38), shared by the list and detail
  * pages. Because the backend applies the billing block wholesale whenever
- * billingType is present, submit always sends the full block (currency, rate/fee,
- * budget, estimate, colour); the archive/restore action lives on the kebab, not
- * here, so this form never touches status.
+ * currencyCode is present, submit always sends the full block (currency, hourly
+ * rate, fixed fee, estimate, colour); the archive/restore action lives on the
+ * kebab, not here, so this form never touches status.
  */
 export function ProjectModal({
   project,
@@ -54,11 +54,9 @@ export function ProjectModal({
 }) {
   const [name, setName] = useState(project?.name ?? '')
   const [clientId, setClientId] = useState(project?.clientId ?? '')
-  const [billingType, setBillingType] = useState<BillingType>(project?.billingType ?? 'hourly')
   const [currencyCode, setCurrencyCode] = useState(project?.currencyCode ?? 'EUR')
   const [hourlyRate, setHourlyRate] = useState(amountToField(project?.hourlyRate ?? null))
   const [fixedFeeAmount, setFixedFeeAmount] = useState(amountToField(project?.fixedFeeAmount ?? null))
-  const [budgetAmount, setBudgetAmount] = useState(amountToField(project?.budgetAmount ?? null))
   const [timeEstimateHours, setTimeEstimateHours] = useState(
     amountToField(project?.timeEstimateHours ?? null),
   )
@@ -124,11 +122,9 @@ export function ProjectModal({
     const input: ProjectInput = {
       name: trimmedName,
       clientId,
-      billingType,
       currencyCode: currencyCode.trim().toUpperCase() || 'EUR',
-      hourlyRate: billingType === 'hourly' ? parseAmount(hourlyRate) : null,
-      fixedFeeAmount: billingType === 'fixedFee' ? parseAmount(fixedFeeAmount) : null,
-      budgetAmount: parseAmount(budgetAmount),
+      hourlyRate: parseAmount(hourlyRate),
+      fixedFeeAmount: parseAmount(fixedFeeAmount),
       timeEstimateHours: parseAmount(timeEstimateHours),
       color,
     }
@@ -183,27 +179,7 @@ export function ProjectModal({
           />
         </div>
 
-        <div {...rise(3, 'mb-3')}>
-          <label className={LABEL}>Billing</label>
-          <div className="flex rounded-full bg-navy/[0.06] p-segment">
-            {(['hourly', 'fixedFee'] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setBillingType(option)}
-                className={`flex-1 rounded-full px-3.5 py-compact font-display text-sm font-semibold transition-colors ${
-                  billingType === option
-                    ? 'bg-brand text-white'
-                    : 'text-navy/55 hover:text-navy'
-                }`}
-              >
-                {option === 'hourly' ? 'Hourly' : 'Fixed fee'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div {...rise(4, 'mb-3 flex gap-2.5')}>
+        <div {...rise(3, 'mb-3 flex gap-2.5')}>
           <div className="w-[110px] flex-shrink-0">
             <label className={LABEL}>Currency</label>
             <select
@@ -222,42 +198,30 @@ export function ProjectModal({
             </select>
           </div>
           <div className="flex-1">
-            <label className={LABEL}>{billingType === 'hourly' ? 'Hourly rate' : 'Fixed fee'}</label>
-            {billingType === 'hourly' ? (
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className={AMOUNT_FIELD}
-                placeholder="90"
-                value={hourlyRate}
-                onChange={(event) => setHourlyRate(event.target.value)}
-              />
-            ) : (
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className={AMOUNT_FIELD}
-                placeholder="12000"
-                value={fixedFeeAmount}
-                onChange={(event) => setFixedFeeAmount(event.target.value)}
-              />
-            )}
-          </div>
-        </div>
-
-        <div {...rise(5, 'mb-3 flex gap-2.5')}>
-          <div className="flex-1">
-            <label className={LABEL}>Budget ({currencyCode})</label>
+            <label className={LABEL}>Hourly rate</label>
             <input
               type="number"
               min="0"
               step="0.01"
               className={AMOUNT_FIELD}
-              placeholder="Optional"
-              value={budgetAmount}
-              onChange={(event) => setBudgetAmount(event.target.value)}
+              placeholder="90"
+              value={hourlyRate}
+              onChange={(event) => setHourlyRate(event.target.value)}
+            />
+          </div>
+        </div>
+
+        <div {...rise(4, 'mb-3 flex gap-2.5')}>
+          <div className="flex-1">
+            <label className={LABEL}>Fixed fee ({currencyCode})</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className={AMOUNT_FIELD}
+              placeholder="12000"
+              value={fixedFeeAmount}
+              onChange={(event) => setFixedFeeAmount(event.target.value)}
             />
           </div>
           <div className="flex-1">
@@ -274,7 +238,7 @@ export function ProjectModal({
           </div>
         </div>
 
-        <div {...rise(6, 'mb-3')}>
+        <div {...rise(5, 'mb-3')}>
           <label className={LABEL}>Colour</label>
           <ColorSwatchPicker value={color} onChange={setColor} />
         </div>
@@ -285,7 +249,7 @@ export function ProjectModal({
           </div>
         )}
 
-        <div {...rise(7, 'mt-4.5 flex gap-2')}>
+        <div {...rise(6, 'mt-4.5 flex gap-2')}>
           <button
             type="button"
             onClick={onClose}

@@ -9,7 +9,7 @@ import { getProject, updateProject } from '../api/projects'
 import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
 import { fetchAllPages } from '../api/pagination'
 import { listMembers, type Member } from '../api/members'
-import { formatBillingSummary, formatMoney } from '../lib/projectFormat'
+import { formatMoney } from '../lib/projectFormat'
 import type { Project } from '../types/project'
 import type { Task } from '../types/task'
 
@@ -206,16 +206,14 @@ export default function ProjectDetailPage() {
         {/* Details card */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 rounded-2xl bg-white p-6 shadow-card sm:grid-cols-3">
           <InfoRow label="Client" value={project.clientName} />
-          <InfoRow label="Billing" value={formatBillingSummary(project)} />
           <InfoRow
-            label={project.billingType === 'hourly' ? 'Hourly rate' : 'Fixed fee'}
-            value={
-              (project.billingType === 'hourly'
-                ? formatMoney(project.hourlyRate, project.currencyCode)
-                : formatMoney(project.fixedFeeAmount, project.currencyCode)) ?? '—'
-            }
+            label="Hourly rate"
+            value={formatMoney(project.hourlyRate, project.currencyCode) ?? '—'}
           />
-          <InfoRow label="Budget" value={formatMoney(project.budgetAmount, project.currencyCode) ?? '—'} />
+          <InfoRow
+            label="Fixed fee"
+            value={formatMoney(project.fixedFeeAmount, project.currencyCode) ?? '—'}
+          />
           <InfoRow
             label="Time estimate"
             value={project.timeEstimateHours !== null ? `${project.timeEstimateHours} h` : '—'}

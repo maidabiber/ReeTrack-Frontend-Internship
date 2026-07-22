@@ -10,15 +10,15 @@ export function formatMoney(amount: number | null, currencyCode: string): string
 }
 
 /**
- * A one-line billing summary for a project card/header, e.g. "Hourly · 90 EUR/h"
- * or "Fixed fee · 12,000 EUR". Falls back to just the billing type when no
- * rate/fee is set.
+ * A one-line billing summary for a project card/header combining whichever
+ * rates are set, e.g. "90 EUR/h · 12,000 EUR", "90 EUR/h", or "12,000 EUR".
+ * Falls back to "No rate set" when neither is present.
  */
 export function formatBillingSummary(project: Project): string {
-  if (project.billingType === 'hourly') {
-    const rate = formatMoney(project.hourlyRate, project.currencyCode)
-    return rate ? `Hourly · ${rate}/h` : 'Hourly'
-  }
+  const parts: string[] = []
+  const rate = formatMoney(project.hourlyRate, project.currencyCode)
+  if (rate) parts.push(`${rate}/h`)
   const fee = formatMoney(project.fixedFeeAmount, project.currencyCode)
-  return fee ? `Fixed fee · ${fee}` : 'Fixed fee'
+  if (fee) parts.push(fee)
+  return parts.length > 0 ? parts.join(' · ') : 'No rate set'
 }

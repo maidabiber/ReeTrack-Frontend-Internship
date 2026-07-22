@@ -4,22 +4,17 @@
  */
 export type ProjectStatus = 'active' | 'archived'
 
-/** How the project is billed. Fixed-fee projects use fixedFeeAmount; hourly ones use hourlyRate. */
-export type BillingType = 'hourly' | 'fixedFee'
-
 export interface Project {
   id: string
   name: string
   clientId: string
   clientName: string
   status: ProjectStatus
-  billingType: BillingType
+  /** Who created the project — only they (or an admin) may delete it. */
+  createdByUserId: string
   currencyCode: string
-  /** Set when billingType is 'hourly'. */
   hourlyRate: number | null
-  /** Set when billingType is 'fixedFee'. */
   fixedFeeAmount: number | null
-  budgetAmount: number | null
   timeEstimateHours: number | null
   /** Hex colour (e.g. '#4366E2') or null for no colour. */
   color: string | null

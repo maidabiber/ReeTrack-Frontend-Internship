@@ -24,7 +24,8 @@ import {
   type ProjectStatusFilter,
 } from '../api/projects'
 import { fetchAllPages } from '../api/pagination'
-import { formatBillingSummary, formatMoney } from '../lib/projectFormat'
+import { formatBillingSummary } from '../lib/projectFormat'
+import { useAuth } from '../hooks/useAuth'
 import { projectCoverUrl } from '../lib/projectCover'
 import type { Project } from '../types/project'
 
@@ -34,7 +35,7 @@ type ModalState = { mode: 'create' } | { mode: 'edit'; project: Project } | null
  * Numeric columns sit right-aligned — this is the money directory, so it
  * reads like a ledger rather than a contact list. */
 const GRID =
-  'grid grid-cols-[2.1fr_1.2fr_1.4fr_1fr_0.8fr_0.6fr_0.8fr_32px] items-center gap-2.5 px-3.5 py-2'
+  'grid grid-cols-[2.1fr_1.2fr_1.4fr_0.8fr_0.6fr_0.8fr_32px] items-center gap-2.5 px-3.5 py-2'
 
 /**
  * RT-37/RT-38 — the project directory. A ledger-style table: every project
@@ -45,6 +46,7 @@ const GRID =
  * archiving retires it without losing history.
  */
 export default function ProjectsPage() {
+  const { user, role } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -171,7 +173,6 @@ export default function ProjectsPage() {
               <HeaderCell icon="projects" label="Name" />
               <HeaderCell icon="clients" label="Client" />
               <HeaderCell icon="billable" label="Billing" />
-              <HeaderCell icon="invoices" label="Budget" alignEnd />
               <HeaderCell icon="timer" label="Estimate" alignEnd />
               <HeaderCell icon="check-badge" label="Tasks" alignEnd />
               <HeaderCell icon="shield" label="Status" />
@@ -210,6 +211,7 @@ export default function ProjectsPage() {
                     }}
                     onToggleArchived={() => handleToggleArchived(project)}
                     onDelete={() => handleDelete(project)}
+                    canDelete={role === 'Admin' || user?.id === project.createdByUserId}
                   />
                 ))}
 
@@ -293,28 +295,17 @@ function EmptyDirectory({ onCreate }: { onCreate: (event: React.MouseEvent) => v
 }
 
 /**
- * The ledger's bottom line: per-currency budget totals plus task and estimate
- * sums for the rows currently on screen, so filtering/searching re-totals live.
+ * The ledger's bottom line: task and estimate sums for the rows currently on
+ * screen, so filtering/searching re-totals live.
  */
 function TotalsFooter({ projects }: { projects: Project[] }) {
-  const budgetByCurrency = new Map<string, number>()
   let tasks = 0
   let estimate = 0
 
   for (const project of projects) {
     tasks += project.taskCount
     estimate += project.timeEstimateHours ?? 0
-    if (project.budgetAmount !== null) {
-      budgetByCurrency.set(
-        project.currencyCode,
-        (budgetByCurrency.get(project.currencyCode) ?? 0) + project.budgetAmount,
-      )
-    }
   }
-
-  const budgets = [...budgetByCurrency.entries()].map(([currency, amount]) =>
-    formatMoney(amount, currency),
-  )
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-navy/[0.08] bg-canvas/60 px-3.5 py-2.5">
@@ -322,7 +313,6 @@ function TotalsFooter({ projects }: { projects: Project[] }) {
         On screen
       </span>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-caption tabular-nums text-navy/70">
-        {budgets.length > 0 && <span>{budgets.join(' + ')} budgeted</span>}
         {estimate > 0 && <span>{estimate} h estimated</span>}
         <span>
           {tasks} {tasks === 1 ? 'task' : 'tasks'}
@@ -340,6 +330,7 @@ function ProjectRow({
   onEdit,
   onToggleArchived,
   onDelete,
+  canDelete,
 }: {
   project: Project
   index: number
@@ -348,6 +339,7 @@ function ProjectRow({
   onEdit: () => void
   onToggleArchived: () => void
   onDelete: () => void
+  canDelete: boolean
 }) {
   const isActive = project.status === 'active'
 
@@ -379,14 +371,6 @@ function ProjectRow({
 
       <span
         className={`justify-self-end text-caption tabular-nums ${
-          project.budgetAmount !== null ? 'text-navy/70' : 'text-navy/30'
-        }`}
-      >
-        {formatMoney(project.budgetAmount, project.currencyCode) ?? '—'}
-      </span>
-
-      <span
-        className={`justify-self-end text-caption tabular-nums ${
           project.timeEstimateHours !== null ? 'text-navy/70' : 'text-navy/30'
         }`}
       >
@@ -413,7 +397,7 @@ function ProjectRow({
           label={isActive ? 'Archive' : 'Restore'}
           onClick={onToggleArchived}
         />
-        <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
+        {canDelete && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
       </RowMenu>
     </div>
   )

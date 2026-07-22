@@ -1,4 +1,4 @@
-import type { BillingType, Project, ProjectStatus } from '../types/project'
+import type { Project, ProjectStatus } from '../types/project'
 import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
 import {
@@ -9,7 +9,8 @@ import {
 
 /**
  * Projects API (ProjectsController, RT-37/RT-38). Reads are member-accessible;
- * mutations are admin-only.
+ * mutations are member-accessible too, except delete which the backend limits
+ * to the project's creator or an admin (403 otherwise).
  */
 
 export type ProjectStatusFilter = 'active' | 'archived' | 'all'
@@ -25,11 +26,10 @@ interface ProjectResponse {
   clientId: string
   clientName: string
   status: ProjectStatus
-  billingType: BillingType
+  createdByUserId: string
   currencyCode: string
   hourlyRate: number | null
   fixedFeeAmount: number | null
-  budgetAmount: number | null
   timeEstimateHours: number | null
   color: string | null
   taskCount: number
@@ -43,11 +43,10 @@ function toProject(response: ProjectResponse): Project {
     clientId: response.clientId,
     clientName: response.clientName,
     status: response.status,
-    billingType: response.billingType,
+    createdByUserId: response.createdByUserId,
     currencyCode: response.currencyCode,
     hourlyRate: response.hourlyRate,
     fixedFeeAmount: response.fixedFeeAmount,
-    budgetAmount: response.budgetAmount,
     timeEstimateHours: response.timeEstimateHours,
     color: response.color,
     taskCount: response.taskCount,
@@ -74,17 +73,15 @@ export function getProject(projectId: string): Promise<Project> {
 
 /**
  * Fields the create/edit form sends. The billing block (currencyCode, hourlyRate,
- * fixedFeeAmount, budgetAmount, timeEstimateHours, color) is applied wholesale
- * whenever billingType is present, so the form always sends the full block.
+ * fixedFeeAmount, timeEstimateHours, color) is applied wholesale whenever
+ * currencyCode is present, so the form always sends the full block.
  */
 export interface ProjectInput {
   name: string
   clientId: string
-  billingType: BillingType
   currencyCode: string
   hourlyRate: number | null
   fixedFeeAmount: number | null
-  budgetAmount: number | null
   timeEstimateHours: number | null
   color: string | null
 }
