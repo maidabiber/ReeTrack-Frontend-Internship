@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    /* "@" alias is required by shadcn-generated components (src/components/ui);
+     * existing app code keeps using relative imports. */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
