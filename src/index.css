@@ -46,12 +46,16 @@
   --color-yellow-tint: #fff3d1;
   --color-green: #2fbf71;
   --color-green-tint: #dcf6e8;
+  --color-dark-green: #065f46;
   --color-red: #e0483e;
   --color-red-tint: #fde7e5;
   --color-blue: #2563eb;
+  --color-teal: #14b8a6;
   --color-blue-tint: #dbeafe;
   --color-gray: #4b5563;
   --color-gray-tint: #e5e7eb;
+  --color-amber: #f59e0b;
+  --color-goldenrod: #b45309;
 
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Inter', system-ui, sans-serif;

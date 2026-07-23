@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
+import { listHolidays } from '../../api/holidays'
 import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
 
@@ -57,6 +58,7 @@ export function EventCalendar() {
   const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
   const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
   const [creatingRange, setCreatingRange] = useState<{ start: Date; end: Date } | null>(null)
+  const [holidaysByDate, setHolidaysByDate] = useState<ReadonlyMap<string, string>>(() => new Map())
 
   const overlapAlert = useOverlapAlert()
   const { overlapWarning, showOverlapAlert } = overlapAlert
@@ -74,6 +76,28 @@ export function EventCalendar() {
 
   const requestKey = `${visibleRange.from.toISOString()}:${visibleRange.to.toISOString()}:${reloadKey}`
   const isLoading = fetchedKey !== requestKey
+
+  useEffect(() => {
+    let cancelled = false
+
+    listHolidays()
+      .then((holidays) => {
+        if (cancelled) return
+        const map = new Map<string, string>()
+        for (const holiday of holidays) {
+          if (holiday.isActive) map.set(holiday.date, holiday.name)
+        }
+        setHolidaysByDate(map)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setHolidaysByDate(new Map())
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -294,6 +318,7 @@ export function EventCalendar() {
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
           canEditSelectedEvent={canEditSelectedEvent}
+          holidaysByDate={holidaysByDate}
           onEditEntry={
             selectedTimeEntry ? () => setEditingEntry(selectedTimeEntry) : undefined
           }
@@ -315,6 +340,7 @@ export function EventCalendar() {
           onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
+          holidaysByDate={holidaysByDate}
         />
       )}
 

@@ -7,6 +7,7 @@ import {
   isSameDay,
   isToday,
   startOfMonth,
+  toDateKey,
 } from './dateUtils'
 import { Icon } from '../ui/Icon'
 
@@ -14,6 +15,7 @@ interface MiniMonthCalendarProps {
   displayMonth: Date
   selectedDate: Date
   events: CalendarEvent[]
+  holidaysByDate?: ReadonlyMap<string, string>
   onMonthChange: (month: Date) => void
   onDateSelect: (date: Date) => void
 }
@@ -24,6 +26,7 @@ export function MiniMonthCalendar({
   displayMonth,
   selectedDate,
   events,
+  holidaysByDate,
   onMonthChange,
   onDateSelect,
 }: MiniMonthCalendarProps) {
@@ -69,11 +72,19 @@ export function MiniMonthCalendar({
           const selected = isSameDay(day, selectedDate)
           const today = isToday(day)
           const hasEvents = eventsForDay(events, day).length > 0
+          const holidayName = holidaysByDate?.get(toDateKey(day))
+          const hasHoliday = !!holidayName
+          const title = holidayName
+            ? hasEvents
+              ? `${holidayName} · has entries`
+              : holidayName
+            : undefined
 
           return (
             <button
               key={day.toISOString()}
               type="button"
+              title={title}
               onClick={() => onDateSelect(day)}
               className={`relative mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
                 selected
@@ -86,9 +97,16 @@ export function MiniMonthCalendar({
               }`}
             >
               {day.getDate()}
-              {hasEvents && !selected && (
-                <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-brand" />
-              )}
+              {!selected && (hasEvents || hasHoliday) ? (
+                <span className="absolute -bottom-0.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+                  {hasHoliday ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-brand-hi)] ring-1 ring-white" />
+                  ) : null}
+                  {hasEvents ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand ring-1 ring-white" />
+                  ) : null}
+                </span>
+              ) : null}
             </button>
           )
         })}

@@ -13,6 +13,7 @@ interface WeekViewProps {
   onEventCreate?: (start: Date, end: Date) => void
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
+  holidaysByDate?: ReadonlyMap<string, string>
 }
 
 export function WeekView({
@@ -26,6 +27,7 @@ export function WeekView({
   onEventCreate,
   pendingCreateRange,
   isEventEditable,
+  holidaysByDate,
 }: WeekViewProps) {
   const days = getWeekDays(selectedDate)
 
@@ -42,6 +44,7 @@ export function WeekView({
         onEventCreate={onEventCreate}
         pendingCreateRange={pendingCreateRange}
         isEventEditable={isEventEditable}
+        holidaysByDate={holidaysByDate}
         allowHorizontalDrag
       />
     </div>

@@ -28,15 +28,15 @@ const projectChartConfig = {
 } satisfies ChartConfig
 
 const stackedChartConfig = {
-  normal: { label: 'Normal', color: 'var(--color-navy)' },
-  weekend: { label: 'Weekend', color: 'var(--color-brand)' },
+  normal: { label: 'Standard', color: 'var(--color-blue)' },
+  weekend: { label: 'Weekend', color: 'var(--color-amber)' },
   holiday: { label: 'Holiday', color: 'var(--color-brand-hi)' },
   overtime: { label: 'Overtime', color: 'var(--color-orange)' },
 } satisfies ChartConfig
 
 const PROJECT_BAR_COLORS: Record<string, string> = {
-  Total: 'var(--color-navy)',
-  Weekend: 'var(--color-brand)',
+  Standard: 'var(--color-blue)',
+  Weekend: 'var(--color-amber)',
   Holiday: 'var(--color-brand-hi)',
   Overtime: 'var(--color-orange)',
 }
@@ -46,7 +46,7 @@ function formatHours(hours: number): string {
 }
 
 /**
- * Original project overview: four separate horizontal bars (Total / Weekend / Holiday / Overtime).
+ * Project overview: four separate horizontal bars (Standard / Weekend / Holiday / Overtime).
  */
 export function ProjectRateHoursBarChart({
   hours,
@@ -55,15 +55,15 @@ export function ProjectRateHoursBarChart({
   hours: RateHours
   className?: string
 }) {
-  const chartData = useMemo(
-    () => [
-      { name: 'Total', hours: hours.totalHours, fill: PROJECT_BAR_COLORS.Total },
-      { name: 'Weekend', hours: hours.weekendHours, fill: PROJECT_BAR_COLORS.Weekend },
-      { name: 'Holiday', hours: hours.holidayHours, fill: PROJECT_BAR_COLORS.Holiday },
-      { name: 'Overtime', hours: hours.overtimeHours, fill: PROJECT_BAR_COLORS.Overtime },
-    ],
-    [hours.totalHours, hours.weekendHours, hours.holidayHours, hours.overtimeHours],
-  )
+  const chartData = useMemo(() => {
+    const parts = partitionRateHours(hours)
+    return [
+      { name: 'Standard', hours: parts.normal, fill: PROJECT_BAR_COLORS.Standard },
+      { name: 'Weekend', hours: parts.weekend, fill: PROJECT_BAR_COLORS.Weekend },
+      { name: 'Holiday', hours: parts.holiday, fill: PROJECT_BAR_COLORS.Holiday },
+      { name: 'Overtime', hours: parts.overtime, fill: PROJECT_BAR_COLORS.Overtime },
+    ]
+  }, [hours])
 
   return (
     <ChartContainer config={projectChartConfig} className={className}>
@@ -112,7 +112,7 @@ function partitionRateHours(item: Omit<RateHoursSeriesItem, 'name'>): {
 
 /**
  * Upright stacked bars: one bar per series item (task), height = total hours,
- * segments = Normal / Weekend / Holiday / Overtime share of that total.
+ * segments = Standard / Weekend / Holiday / Overtime share of that total.
  */
 export function TaskRateStackedBarChart({
   series,

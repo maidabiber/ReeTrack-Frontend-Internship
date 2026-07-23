@@ -19,6 +19,7 @@ interface DayViewProps {
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
   canEditSelectedEvent?: boolean
+  holidaysByDate?: ReadonlyMap<string, string>
   onEditEntry?: () => void
   onCreateTimeEntry?: () => void
 }
@@ -37,6 +38,7 @@ export function DayView({
   pendingCreateRange,
   isEventEditable,
   canEditSelectedEvent = false,
+  holidaysByDate,
   onEditEntry,
   onCreateTimeEntry,
 }: DayViewProps) {
@@ -66,6 +68,7 @@ export function DayView({
           onEventCreate={onEventCreate}
           pendingCreateRange={pendingCreateRange}
           isEventEditable={isEventEditable}
+          holidaysByDate={holidaysByDate}
           allowHorizontalDrag={false}
         />
       </div>
@@ -75,6 +78,7 @@ export function DayView({
           displayMonth={displayMonth}
           selectedDate={selectedDate}
           events={allEvents}
+          holidaysByDate={holidaysByDate}
           onMonthChange={setDisplayMonth}
           onDateSelect={handleDateSelect}
         />

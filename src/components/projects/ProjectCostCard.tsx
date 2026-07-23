@@ -205,7 +205,15 @@ export function ProjectCostCard({
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <StatChip label="Total" value={formatHours(cost.totalHours)} />
+                <StatChip
+                  label="Standard"
+                  value={formatHours(
+                    Math.max(
+                      0,
+                      cost.totalHours - cost.weekendHours - cost.holidayHours - cost.overtimeHours,
+                    ),
+                  )}
+                />
                 <StatChip label="Weekend" value={formatHours(cost.weekendHours)} />
                 <StatChip label="Holiday" value={formatHours(cost.holidayHours)} />
                 <StatChip label="Overtime" value={formatHours(cost.overtimeHours)} />

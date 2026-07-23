@@ -10,6 +10,7 @@ import {
   isToday,
   layoutOverlappingEvents,
   nowLinePercent,
+  toDateKey,
 } from './dateUtils'
 import { EventBlock } from './EventBlock'
 import { clampHourHeight, DEFAULT_HOUR_HEIGHT, stepHourHeight } from './hourZoom'
@@ -42,6 +43,7 @@ interface TimeGridProps {
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
   allowHorizontalDrag?: boolean
+  holidaysByDate?: ReadonlyMap<string, string>
 }
 
 export function TimeGrid({
@@ -56,6 +58,7 @@ export function TimeGrid({
   pendingCreateRange,
   isEventEditable,
   allowHorizontalDrag = false,
+  holidaysByDate,
 }: TimeGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollRef = useRef<number | null>(null)
@@ -253,23 +256,45 @@ export function TimeGrid({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-shrink-0 border-b border-navy/8 bg-white">
         <div className="w-14 flex-shrink-0" />
-        {days.map((day) => (
-          <div
-            key={day.toISOString()}
-            className="flex min-w-0 flex-1 flex-col items-center py-2"
-          >
-            <span className="text-xs font-medium uppercase tracking-wide text-navy/45">
-              {formatWeekday(day)}
-            </span>
-            <span
-              className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full font-display text-md font-bold ${
-                isToday(day) ? 'bg-navy text-cream' : 'text-navy'
+        {days.map((day) => {
+          const holidayName = holidaysByDate?.get(toDateKey(day))
+          const isHoliday = !!holidayName
+          return (
+            <div
+              key={day.toISOString()}
+              title={holidayName}
+              className={`flex min-w-0 flex-1 flex-col items-center px-1 py-2 ${
+                isHoliday ? 'bg-brand-tint/70' : ''
               }`}
             >
-              {day.getDate()}
-            </span>
-          </div>
-        ))}
+              <span
+                className={`text-xs font-medium uppercase tracking-wide ${
+                  isHoliday ? 'text-brand' : 'text-navy/45'
+                }`}
+              >
+                {formatWeekday(day)}
+              </span>
+              <span
+                className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-full font-display text-md font-bold ${
+                  isToday(day)
+                    ? 'bg-navy text-cream'
+                    : isHoliday
+                      ? 'bg-brand text-cream'
+                      : 'text-navy'
+                }`}
+              >
+                {day.getDate()}
+              </span>
+              {holidayName ? (
+                <span className="mt-1.5 max-w-full truncate rounded-md bg-brand px-2 py-0.5 text-xs font-semibold leading-tight text-cream">
+                  {holidayName}
+                </span>
+              ) : (
+                <span className="mt-1.5 h-[22px]" aria-hidden />
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div
