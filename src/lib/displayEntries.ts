@@ -1,5 +1,5 @@
 import type { TimeEntry } from '../types/timeEntry'
-import { isPendingSharedByCurrentUser, isPendingSharedEntry, isPendingSharedWithCurrentUser, isSharedByCurrentUser } from './entryShare'
+import { isPendingSharedByCurrentUser, isPendingSharedEntry, isPendingSharedWithCurrentUser } from './entryShare'
 
 export interface DisplayTimeEntry {
   key: string
@@ -13,31 +13,32 @@ export function groupEntriesForDisplay(entries: TimeEntry[], currentUserId: stri
   const displayEntries: DisplayTimeEntry[] = []
 
   for (const entry of entries) {
-    if (
-      entry.shareGroupId &&
-      isSharedByCurrentUser(entry, currentUserId)
-    ) {
-      if (consumedShareGroups.has(entry.shareGroupId)) continue
-
-      const groupedEntries = entries.filter(
-        (item) => item.shareGroupId === entry.shareGroupId && isSharedByCurrentUser(item, currentUserId),
-      )
-      consumedShareGroups.add(entry.shareGroupId)
-
+    if (!entry.shareGroupId) {
       displayEntries.push({
-        key: entry.shareGroupId,
-        entry: groupedEntries[0] ?? entry,
-        groupedEntries,
-        isGroupedShare: groupedEntries.length > 1,
+        key: entry.id,
+        entry,
+        groupedEntries: [entry],
+        isGroupedShare: false,
       })
       continue
     }
 
+    if (consumedShareGroups.has(entry.shareGroupId)) continue
+    consumedShareGroups.add(entry.shareGroupId)
+
+    const groupEntries = entries.filter((item) => item.shareGroupId === entry.shareGroupId)
+    const ownEntry =
+      groupEntries.find(
+        (item) => item.assigneeUserId === currentUserId && !item.submittedByUserId,
+      ) ?? groupEntries.find((item) => item.assigneeUserId === currentUserId)
+
+    if (!ownEntry) continue
+
     displayEntries.push({
-      key: entry.id,
-      entry,
-      groupedEntries: [entry],
-      isGroupedShare: false,
+      key: entry.shareGroupId,
+      entry: ownEntry,
+      groupedEntries: groupEntries,
+      isGroupedShare: groupEntries.length > 1,
     })
   }
 
