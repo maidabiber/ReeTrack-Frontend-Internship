@@ -4,6 +4,7 @@ import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 import { Modal } from '../components/ui/Modal'
 import { ProjectModal } from '../components/projects/ProjectModal'
+import { ProjectCostCard } from '../components/projects/ProjectCostCard'
 import { apiErrorMessage } from '../api/client'
 import { getProject, updateProject } from '../api/projects'
 import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
@@ -218,6 +219,13 @@ export default function ProjectDetailPage() {
           <InfoRow label="Planned vs actual" value={formatPlannedVsActual(project)} />
           <InfoRow label="Created" value={formatDate(project.createdAtUtc)} />
         </div>
+
+        <ProjectCostCard
+          projectId={project.id}
+          currencyCode={project.currencyCode}
+          tasks={tasks}
+          onError={showNotice}
+        />
 
         {/* Tasks card */}
         <TasksCard
