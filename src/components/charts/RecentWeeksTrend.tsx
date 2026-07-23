@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { formatHoursLabel, formatHoursTick } from './chartFormat'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { formatHoursLabel, formatHoursTick, loggedSeriesConfig } from './chartFormat'
 
 export interface WeekTrendPoint {
   /** Short week label, e.g. "13 Jul". */
@@ -10,10 +10,6 @@ export interface WeekTrendPoint {
   /** "None" | "Submitted" | "Approved" | "Rejected" — shown in the tooltip. */
   status: string
 }
-
-const config = {
-  seconds: { label: 'Logged', color: 'var(--color-brand)' },
-} satisfies ChartConfig
 
 /**
  * Total logged time across recent weeks, oldest to newest. The stroke wears the
@@ -26,7 +22,7 @@ export function RecentWeeksTrend({ data }: { data: WeekTrendPoint[] }) {
   const fillId = `${id}-fill`
 
   return (
-    <ChartContainer config={config} className="h-48 w-full">
+    <ChartContainer config={loggedSeriesConfig} className="h-48 w-full">
       <AreaChart data={data} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
         <defs>
           <linearGradient id={strokeId} x1="0" y1="0" x2="1" y2="1">

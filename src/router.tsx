@@ -61,6 +61,8 @@ export const router = createBrowserRouter([
       ...navRoutes,
       // Project detail isn't a nav item, so it's registered manually.
       { path: 'projects/:id', element: <ProjectDetailPage /> },
+      // Timesheet deep link (decision emails): Timer page with the timesheet view open.
+      { path: 'timesheet', element: <TimerPage /> },
       { path: 'profile', element: <ProfilePage /> },
       ...navRoutes,
     ],

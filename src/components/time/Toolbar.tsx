@@ -3,12 +3,14 @@ import { useTimer } from '../../hooks/useTimer'
 import { useTimeTotals } from '../../hooks/useTimeTotals'
 import { formatDurationHms } from '../../lib/formatDuration'
 
+export type TimerContentView = 'list' | 'calendar' | 'timesheet'
+
 export function Toolbar({
   contentView,
   onContentViewChange,
 }: {
-  contentView: 'list' | 'calendar'
-  onContentViewChange: (view: 'list' | 'calendar') => void
+  contentView: TimerContentView
+  onContentViewChange: (view: TimerContentView) => void
 }) {
   const { entries, activeTimer, elapsedSeconds } = useTimer()
   const { todayTotalSeconds, weekTotalSeconds } = useTimeTotals(
@@ -64,8 +66,10 @@ export function Toolbar({
         </button>
         <button
           type="button"
-          title="Coming soon"
-          className="rounded-full px-3.5 py-compact font-display text-sm font-semibold text-navy/55"
+          onClick={() => onContentViewChange('timesheet')}
+          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
+            contentView === 'timesheet' ? 'bg-navy text-cream' : 'text-navy/55'
+          }`}
         >
           Timesheet
         </button>

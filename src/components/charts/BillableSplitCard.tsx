@@ -1,5 +1,6 @@
 import { Cell, Pie, PieChart } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import type { BillableSplit } from '../../lib/timesheetStats'
 import { formatHoursLabel } from './chartFormat'
 
 const config = {
@@ -8,15 +9,8 @@ const config = {
 } satisfies ChartConfig
 
 /** Donut of billable vs non-billable time, with a direct-labeled legend. */
-export function BillableSplitCard({
-  billableSeconds,
-  nonBillableSeconds,
-}: {
-  billableSeconds: number
-  nonBillableSeconds: number
-}) {
-  const total = billableSeconds + nonBillableSeconds
-  const billablePct = total === 0 ? 0 : Math.round((billableSeconds / total) * 100)
+export function BillableSplitCard({ split }: { split: BillableSplit }) {
+  const { billableSeconds, nonBillableSeconds, totalSeconds, billablePct } = split
   const data = [
     { key: 'billable', seconds: billableSeconds, fill: 'var(--color-brand)' },
     { key: 'nonBillable', seconds: nonBillableSeconds, fill: 'var(--color-brand-hi)' },
@@ -36,7 +30,7 @@ export function BillableSplitCard({
               nameKey="key"
               innerRadius={38}
               outerRadius={52}
-              paddingAngle={total === 0 ? 0 : 2}
+              paddingAngle={totalSeconds === 0 ? 0 : 2}
               cornerRadius={4}
               strokeWidth={0}
             >

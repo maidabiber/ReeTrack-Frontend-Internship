@@ -1,6 +1,6 @@
 import { Bar, BarChart, LabelList, XAxis, YAxis } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { formatHoursLabel } from './chartFormat'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { formatHoursLabel, loggedSeriesConfig } from './chartFormat'
 
 export interface ProjectHours {
   /** Project name; entries without a project bucket as "No project". */
@@ -8,14 +8,14 @@ export interface ProjectHours {
   seconds: number
 }
 
-const config = {
-  seconds: { label: 'Logged', color: 'var(--color-brand)' },
-} satisfies ChartConfig
-
 /** Horizontal per-project totals with direct value labels. */
 export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
   return (
-    <ChartContainer config={config} style={{ height: Math.max(56, data.length * 40) }} className="w-full">
+    <ChartContainer
+      config={loggedSeriesConfig}
+      style={{ height: Math.max(56, data.length * 40) }}
+      className="w-full"
+    >
       <BarChart data={data} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }}>
         <XAxis type="number" hide />
         <YAxis
@@ -30,7 +30,7 @@ export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
           cursor={{ fill: 'var(--color-brand-tint)' }}
           content={<ChartTooltipContent formatter={(value) => formatHoursLabel(Number(value))} />}
         />
-        <Bar dataKey="seconds" fill="var(--color-seconds)" radius={[0, 4, 4, 0]} maxBarSize={18}>
+        <Bar dataKey="seconds" fill="var(--color-brand)" radius={[0, 4, 4, 0]} maxBarSize={18}>
           <LabelList
             dataKey="seconds"
             position="right"

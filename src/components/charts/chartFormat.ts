@@ -1,3 +1,10 @@
+import type { ChartConfig } from '../ui/chart'
+
+/** Shared config for the single-series "time logged" charts. */
+export const loggedSeriesConfig = {
+  seconds: { label: 'Logged', color: 'var(--color-brand)' },
+} satisfies ChartConfig
+
 /** Compact duration for chart labels: "7h 30m", "45m", "0m". */
 export function formatHoursLabel(totalSeconds: number): string {
   const safe = Math.max(0, Math.floor(totalSeconds))
