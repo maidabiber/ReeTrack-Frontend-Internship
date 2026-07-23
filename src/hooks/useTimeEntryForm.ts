@@ -3,6 +3,7 @@ import { timeEntryApiErrorMessage } from '../api/timeEntries'
 
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/timeEntryErrors'
 import { useOverlapAlert } from './useOverlapAlert'
+import { useWeekLock } from './useWeekLock'
 
 import type { ManualFieldState } from '../components/time/ManualField'
 import { useTimer } from './useTimer'
@@ -17,6 +18,7 @@ import {
   formatManualDurationInput,
   MANUAL_ENTRY_MESSAGES,
   MAX_MANUAL_DURATION_SECONDS,
+  parseDateInput,
   parseDatetimeLocal,
   parseDurationInput,
   toDateInputValue,
@@ -25,6 +27,14 @@ import {
 } from '../lib/manualEntry'
 
 const DEFAULT_DURATION_ONLY_SECONDS = 60 * 60
+
+/** Local-noon instant for a duration entry's date, matching dateInputToUtcIso. */
+function durationDateInstant(entryDate: string): Date | null {
+  const day = parseDateInput(entryDate)
+  if (!day) return null
+  day.setHours(12, 0, 0, 0)
+  return day
+}
 
 export type TimeEntryFormVariant = 'range' | 'duration'
 
@@ -64,6 +74,12 @@ export function useTimeEntryForm({
   const [localError, setLocalError] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
+
+  // The week the entry would land in — range entries by their start, duration
+  // entries by their date. Locked (submitted/approved) weeks block the save.
+  const weekLock = useWeekLock(
+    variant === 'duration' ? durationDateInstant(entryDate) : manualEntry.start,
+  )
 
   const rangeValidation = validateManualEntry(manualEntry, [], null)
   const endOrderError =
@@ -277,6 +293,9 @@ export function useTimeEntryForm({
   }
 
   const saveEntry = async () => {
+    // Belt-and-braces: the button is disabled when locked, but never fire a
+    // save into a locked week even if a keyboard shortcut reaches here.
+    if (weekLock.locked) return
     if (variant === 'duration') {
       await saveDurationEntry()
       return
@@ -286,6 +305,7 @@ export function useTimeEntryForm({
 
   return {
     variant,
+    weekLock,
     manualEntry,
     entryDate,
     setEntryDate,

@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import { Icon } from '../ui/Icon'
+import { WeekLockIcon } from '../timesheet/WeekLockBanner'
 import { ManualField, ManualFormNotice } from './ManualField'
 import { DurationLimitModal } from './durationLimitModal'
 import { OverlapAlertModal } from './overlapAlert'
@@ -143,11 +144,17 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
               </>
             )}
 
+            {form.weekLock.locked ? (
+              <span className="mb-0.5 flex h-11 items-center">
+                <WeekLockIcon status={form.weekLock.status} />
+              </span>
+            ) : null}
+
             <div className="mb-0.5 flex flex-shrink-0 rounded-full bg-brand text-white shadow-soft">
               <button
                 type="button"
                 aria-label={variant === 'range' ? 'Add manual entry' : 'Add duration entry'}
-                disabled={isBusy || Boolean(form.blockingError)}
+                disabled={isBusy || Boolean(form.blockingError) || form.weekLock.locked}
                 onClick={() => void form.saveEntry()}
                 className="flex h-11 w-11 items-center justify-center rounded-l-full bg-brand transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
               >

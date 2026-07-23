@@ -30,6 +30,7 @@ export type IconName =
   | 'ban'
   | 'star'
   | 'share'
+  | 'lock'
   | 'x'
   | 'more'
 
@@ -180,6 +181,12 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
       <circle cx="18" cy="19" r="3" />
       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </>
   ),
   x: (

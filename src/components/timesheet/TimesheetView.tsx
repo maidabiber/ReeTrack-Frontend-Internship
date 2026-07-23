@@ -9,10 +9,8 @@ import {
 } from '../../api/timesheets'
 import {
   addWeeks,
-  formatFullDate,
   formatHeaderLabel,
   formatMonthDay,
-  formatTimeRange,
   getWeekDays,
   isSameDay,
   isToday,
@@ -30,7 +28,9 @@ import { WeekEntriesList } from './WeekEntriesList'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
 import { billableSplit, hoursPerDay, projectTotals } from '../../lib/timesheetStats'
+import { invalidateWeekLock } from '../../hooks/useWeekLock'
 import type { MyWeekTimesheet, WeekStatus, WeekSummary } from '../../types/timesheet'
+
 
 const STATUS_DOT: Record<WeekStatus, string> = {
   None: 'bg-navy/35',
@@ -166,6 +166,8 @@ export function TimesheetView() {
       .then(() => {
         setConfirmAction(null)
         setNotice('Timesheet submitted for approval.')
+        // Drop cached lock state so the timer/calendar lock this week at once.
+        invalidateWeekLock()
         refresh()
       })
       .catch((cause) => setActionError(apiErrorMessage(cause, 'Could not submit this week.')))
@@ -180,6 +182,8 @@ export function TimesheetView() {
       .then(() => {
         setConfirmAction(null)
         setNotice('Submission withdrawn — this week is editable again.')
+        // Drop cached lock state so the timer/calendar unlock this week at once.
+        invalidateWeekLock()
         refresh()
       })
       .catch((cause) => setActionError(apiErrorMessage(cause, 'Could not withdraw this submission.')))
@@ -454,86 +458,5 @@ function ConfirmButtons({
         </button>
       </div>
     </div>
-  )
-}
-
-/**
- * Read-only list of the timesheet's entries grouped by their local start date.
- * Grouping by the entries' own dates (rather than the week's Mon–Sun) means a
- * boundary entry — the backend keys weeks by UTC Monday, so an entry's local
- * date can land on the neighbouring Sunday/Monday — still shows up under its
- * real date instead of silently disappearing. Entries without a start time
- * can't be placed on a day but still count toward the stat tiles, so they get
- * their own group.
- */
-function WeekEntriesList({ entries }: { entries: TimesheetEntry[] }) {
-  const dayGroups = useMemo(() => {
-    const groups = new Map<string, { day: Date; entries: TimesheetEntry[] }>()
-    for (const entry of entries) {
-      if (!entry.startedAtUtc) continue
-      const day = new Date(entry.startedAtUtc)
-      const key = toDateInputValue(day)
-      const group = groups.get(key) ?? { day, entries: [] }
-      group.entries.push(entry)
-      groups.set(key, group)
-    }
-    return [...groups.values()].sort((a, b) => a.day.getTime() - b.day.getTime())
-  }, [entries])
-  const unscheduled = useMemo(() => entries.filter((entry) => !entry.startedAtUtc), [entries])
-
-  return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-      <h3 className="border-b border-navy/8 px-5 py-4 font-display text-body font-bold text-navy">
-        Entries
-      </h3>
-      {dayGroups.length === 0 && unscheduled.length === 0 ? (
-        <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
-          No time logged in this week.
-          <br />
-          Entries you log on the Timer page will show up here.
-        </div>
-      ) : (
-        <>
-          {dayGroups.map(({ day, entries: dayEntries }) => (
-            <EntryGroup key={day.toDateString()} heading={formatFullDate(day)} entries={dayEntries} />
-          ))}
-          {unscheduled.length > 0 && <EntryGroup heading="No start time" entries={unscheduled} />}
-        </>
-      )}
-    </div>
-  )
-}
-
-function EntryGroup({ heading, entries }: { heading: string; entries: TimesheetEntry[] }) {
-  return (
-    <section>
-      <h4 className="bg-surface-muted px-5 py-2 text-sm font-semibold text-navy/60">{heading}</h4>
-      <ul className="divide-y divide-navy/6">
-        {entries.map((entry) => (
-          <li key={entry.id} className="flex items-center gap-4 px-5 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-md font-medium text-navy">
-                {entry.description?.trim() || 'No description'}
-              </p>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
-                {entry.projectName && <span>{entry.projectName}</span>}
-                {entry.projectName && entry.clientName && <span aria-hidden="true">·</span>}
-                {entry.clientName && <span>{entry.clientName}</span>}
-                {entry.status === 'Pending' && <Pill label="Pending" dotClassName="bg-brand/50" />}
-              </p>
-            </div>
-            {entry.isBillable && <Pill label="Billable" dotClassName="bg-green" />}
-            {entry.startedAtUtc && entry.endedAtUtc && (
-              <span className="shrink-0 text-sm text-navy/50">
-                {formatTimeRange(new Date(entry.startedAtUtc), new Date(entry.endedAtUtc))}
-              </span>
-            )}
-            <span className="shrink-0 font-mono text-md tabular-nums text-navy">
-              {formatDurationHms(entry.durationSeconds)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
   )
 }

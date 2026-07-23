@@ -7,6 +7,8 @@ import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { OverlapAlertModal } from '../time/overlapAlert'
 
 import { useTimer } from '../../hooks/useTimer'
+import { useWeekLock } from '../../hooks/useWeekLock'
+import { WeekLockBanner } from '../timesheet/WeekLockBanner'
 import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent, CalendarViewMode } from './types'
 import {
@@ -58,6 +60,10 @@ export function EventCalendar() {
 
   const overlapAlert = useOverlapAlert()
   const { overlapWarning, showOverlapAlert } = overlapAlert
+
+  // The visible week's timesheet lock: when submitted/approved, entries in it
+  // can't be dragged, resized, created or edited (the backend 409s too).
+  const weekLock = useWeekLock(selectedDate)
 
   const visibleRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -119,8 +125,9 @@ export function EventCalendar() {
   )
 
   const isEventEditable = useCallback(
-    (event: CalendarEvent) => isEditableTimeEntryEvent(event, entries, activeTimer),
-    [entries, activeTimer],
+    (event: CalendarEvent) =>
+      !weekLock.locked && isEditableTimeEntryEvent(event, entries, activeTimer),
+    [weekLock.locked, entries, activeTimer],
   )
 
   const resolveEntry = useCallback(
@@ -178,6 +185,7 @@ export function EventCalendar() {
   )
 
   function handleCreateFromCalendarEvent(event: CalendarEvent) {
+    if (weekLock.locked) return
     setReadonlyCalendarEvent(null)
     setCreatingRange(null)
     setCreatingFromEvent(event)
@@ -261,6 +269,13 @@ export function EventCalendar() {
         </div>
       )}
 
+      {weekLock.locked && (
+        <WeekLockBanner
+          status={weekLock.status}
+          className="border-b border-navy/8 bg-surface-muted px-4 py-2.5"
+        />
+      )}
+
       {viewMode === 'day' ? (
         <DayView
           selectedDate={selectedDate}
@@ -272,7 +287,7 @@ export function EventCalendar() {
           onDateChange={handleDateChange}
           onEventSelect={handleDayEventSelect}
           onEventMove={handleEventMove}
-          onEventCreate={handleEventCreate}
+          onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
           canEditSelectedEvent={canEditSelectedEvent}
@@ -294,7 +309,7 @@ export function EventCalendar() {
           selectedEventId={selectedEventId}
           onEventClick={handleWeekEventClick}
           onEventMove={handleEventMove}
-          onEventCreate={handleEventCreate}
+          onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
         />

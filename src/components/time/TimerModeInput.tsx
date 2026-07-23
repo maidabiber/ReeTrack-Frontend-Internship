@@ -5,6 +5,8 @@ import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { OverlapAlertModal } from './overlapAlert'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { useTimer } from '../../hooks/useTimer'
+import { useWeekLock } from '../../hooks/useWeekLock'
+import { WeekLockIcon } from '../timesheet/WeekLockBanner'
 import type { Teammate } from '../../lib/mention'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 
@@ -53,6 +55,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       clearOverlapAlert,
       saveOrShowOverlapAlert,
     } = useOverlapAlert()
+    const weekLock = useWeekLock(new Date())
 
     const handleToggle = useCallback(async () => {
       const trimmedDescription = description.trim() || undefined
@@ -121,10 +124,13 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       ? 'bg-navy hover:bg-navy/90'
       : 'bg-brand hover:bg-brand-deep'
     const busy = isInitializing || isToggling
+    // Starting a timer logs into the current week; block it when that week's
+    // timesheet is locked. A timer already running can still be stopped.
+    const startBlocked = weekLock.locked && !isRunning
 
     return (
       <>
-        {error ? (
+        {!startBlocked && error ? (
           <span
             className="max-w-error-hint truncate text-right text-micro text-red"
             title={error}
@@ -151,12 +157,14 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
           </div>
         </div>
 
+        {startBlocked ? <WeekLockIcon status={weekLock.status} /> : null}
+
         <div className={`flex flex-shrink-0 text-white shadow-soft ${primaryTone} rounded-full`}>
           <button
             type="button"
             aria-label={isRunning ? 'Stop timer' : 'Start timer'}
             aria-pressed={isRunning}
-            disabled={busy}
+            disabled={busy || startBlocked}
             onClick={() => void handleToggle()}
             className="flex h-11 w-11 items-center justify-center rounded-l-full transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >

@@ -4,6 +4,8 @@ import { fetchAllPages } from '../../api/pagination'
 import { listTasks } from '../../api/tasks'
 import { timeEntryApiErrorMessage } from '../../api/timeEntries'
 import { useTimer } from '../../hooks/useTimer'
+import { useWeekLock } from '../../hooks/useWeekLock'
+import { WeekLockBanner } from '../timesheet/WeekLockBanner'
 import {
   applyManualFieldChange,
   createManualEntryFromTimeEntry,
@@ -32,6 +34,8 @@ import { OverlapAlertModal } from './overlapAlert'
 export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
   const isDurationOnly = entry.mode === 'DurationOnly'
   const { isSavingEdit, updateEntry } = useTimer()
+  // Entries in a submitted/approved week can't be edited (the backend 409s too).
+  const weekLock = useWeekLock(entry.startedAtUtc ? new Date(entry.startedAtUtc) : null)
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
   const [projectId, setProjectId] = useState<string | null>(entry.projectId)
@@ -205,6 +209,8 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         }
         onClose={onClose}
       >
+        {weekLock.locked && <WeekLockBanner status={weekLock.status} className="mb-4 rounded-lg bg-surface-muted px-3.5 py-2.5" />}
+
         <div className="mb-3">
           <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">
             Description
@@ -369,7 +375,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
           </button>
           <button
             type="button"
-            disabled={isSavingEdit || Boolean(blockingError)}
+            disabled={isSavingEdit || Boolean(blockingError) || weekLock.locked}
             onClick={() => void (isDurationOnly ? handleSaveDurationOnly() : handleSave())}
             className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
           >
