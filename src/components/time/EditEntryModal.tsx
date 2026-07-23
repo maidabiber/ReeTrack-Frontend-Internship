@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ApiError } from '../../api/client'
-import { fetchAllPages } from '../../api/pagination'
-import { listTasks } from '../../api/tasks'
 import { timeEntryApiErrorMessage } from '../../api/timeEntries'
+import { useEntryAssociations } from '../../hooks/useEntryAssociations'
 import { useTimer } from '../../hooks/useTimer'
 import { useWeekLock } from '../../hooks/useWeekLock'
 import { WeekLockBanner } from '../timesheet/WeekLockBanner'
@@ -19,22 +18,18 @@ import {
   validateDurationOnlyEntry,
   validateManualEntry,
 } from '../../lib/manualEntry'
-import type { Task } from '../../types/task'
+import { dateToCalendarDate } from '../../lib/calendarDate'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
-import { ManualDateTimeFields } from './ManualDateTimeFields'
-import { ManualField } from './ManualField'
 import { DatePickerField } from '../ui/date-picker/DatePickerField'
-import { MODAL_LABEL_CLASS } from '../ui/date-picker/fieldStyles'
-import { dateToCalendarDate } from '../../lib/calendarDate'
 
-import { SearchSelect } from '../ui/SearchSelect'
-import { ProjectPicker } from '../pickers/ProjectPicker'
-import { TagMultiSelect } from '../pickers/TagMultiSelect'
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { DurationLimitModal } from './durationLimitModal'
 import { OverlapAlertModal } from './overlapAlert'
+import { TimeEntryFields } from './TimeEntryFields'
+import { ManualDateTimeFields } from './ManualDateTimeFields'
+import { ManualField } from './ManualField'
 
 export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: () => void }) {
   const isDurationOnly = entry.mode === 'DurationOnly'
@@ -42,11 +37,12 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   // Entries in a submitted/approved week can't be edited (the backend 409s too).
   const weekLock = useWeekLock(entry.startedAtUtc ? new Date(entry.startedAtUtc) : null)
   const [description, setDescription] = useState(entry.description ?? '')
-  const [isBillable, setIsBillable] = useState(entry.isBillable)
-  const [projectId, setProjectId] = useState<string | null>(entry.projectId)
-  const [projectTaskId, setProjectTaskId] = useState<string | null>(entry.projectTaskId)
-  const [tagIds, setTagIds] = useState<string[]>(() => entry.tags.map((t) => t.id))
-  const [tasks, setTasks] = useState<Task[]>([])
+  const associations = useEntryAssociations({
+    projectId: entry.projectId,
+    projectTaskId: entry.projectTaskId,
+    tagIds: entry.tags.map((t) => t.id),
+    isBillable: entry.isBillable,
+  })
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
   const [durationOnlySeconds, setDurationOnlySeconds] = useState(entry.durationSeconds)
   const [durationOnlyInput, setDurationOnlyInput] = useState(() =>
@@ -76,48 +72,6 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
     ? durationOnlyValidationError ?? durationParseError ?? error
     : validation.error ?? error
 
-  useEffect(() => {
-    if (!projectId) return
-    let cancelled = false
-    void (async () => {
-      try {
-        const list = await fetchAllPages((page, pageSize) =>
-          listTasks(projectId, 'all', { page, pageSize }),
-        )
-        if (cancelled) return
-        setTasks(list)
-      } catch {
-        if (!cancelled) setTasks([])
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [projectId])
-
-  const taskOptions = useMemo(
-    () =>
-      (projectId ? tasks : []).map((task) => ({
-        value: task.id,
-        label: task.name,
-        hint: task.status === 'done' ? '(done)' : undefined,
-      })),
-    [tasks, projectId],
-  )
-
-  const handleProjectChange = (nextProjectId: string | null) => {
-    setProjectId(nextProjectId)
-    setProjectTaskId(null)
-    if (!nextProjectId) setTasks([])
-  }
-
-  const associationPayload = {
-    projectId,
-    projectTaskId,
-    tagIds,
-    isBillable,
-  }
-
   const handleSaveDurationOnly = async () => {
     setDurationLimitMessage(null)
 
@@ -146,7 +100,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         description: description.trim() || undefined,
         startedAtUtc: entryDateUtc,
         durationSeconds: durationOnlySeconds,
-        ...associationPayload,
+        ...associations.payload,
       })
       onClose()
     } catch (err) {
@@ -182,7 +136,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),
-          ...associationPayload,
+          ...associations.payload,
         })
         onClose()
       },
@@ -215,168 +169,102 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         }
         onClose={onClose}
       >
-        {weekLock.locked && <WeekLockBanner status={weekLock.status} className="mb-4 rounded-lg bg-surface-muted px-3.5 py-2.5" />}
-
-        <div className="mb-3">
-          <span className={MODAL_LABEL_CLASS}>Description</span>
-          <input
-            className="w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
-            placeholder="What did you work on?"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            disabled={isSavingEdit}
+        {weekLock.locked && (
+          <WeekLockBanner
+            status={weekLock.status}
+            className="mb-4 rounded-lg bg-surface-muted px-3.5 py-2.5"
           />
-        </div>
-
-        {isDurationOnly ? (
-          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
-            <div className="min-w-0">
-              <DatePickerField
-                variant="modal"
-                label="Date"
-                value={durationOnlyCalendarDate}
-                onChange={(nextDate) =>
-                  setDurationOnlyDate(
-                    toDateInputValue(new Date(nextDate.year, nextDate.month - 1, nextDate.day)),
-                  )
-                }
-                disabled={isSavingEdit}
-              />
-            </div>
-            <div className="min-w-0">
-              <ManualField
-                variant="modal"
-                label="Duration"
-                type="text"
-                value={durationOnlyInput}
-                onChange={(value) => {
-                  setDurationOnlyInput(value)
-                  setDurationParseError(null)
-                  setDurationLimitMessage(null)
-                  const parsed = parseDurationInput(value)
-                  if (parsed === null) return
-                  setDurationOnlySeconds(parsed)
-                }}
-                onBlur={() => {
-                  const parsed = parseDurationInput(durationOnlyInput)
-                  if (durationOnlyInput.trim() && parsed === null) {
-                    setDurationParseError('Use 1:30 or 1:30:00')
-                    return
-                  }
-                  setDurationParseError(null)
-                  setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
-                }}
-                fieldState={durationParseError ? 'error' : 'default'}
-                hint={durationParseError ?? undefined}
-                disabled={isSavingEdit}
-              />
-            </div>
-            <div className="min-w-0">
-              <span className={MODAL_LABEL_CLASS}>Project</span>
-              <ProjectPicker
-                value={projectId}
-                onChange={handleProjectChange}
-                allowClear
-                disabled={isSavingEdit}
-                placeholder="No project"
-              />
-            </div>
-            <div className="min-w-0">
-              <span className={MODAL_LABEL_CLASS}>Task</span>
-              <SearchSelect
-                ariaLabel="Task"
-                options={taskOptions}
-                value={projectTaskId}
-                onChange={setProjectTaskId}
-                placeholder={projectId ? 'No task' : 'Select a project first'}
-                searchPlaceholder="Search tasks…"
-                allowClear
-                disabled={isSavingEdit || !projectId}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
-            <div className="min-w-0">
-              <ManualDateTimeFields
-                variant="modal"
-                label="Start"
-                value={manualEntry.start}
-                onChange={(parsed) => {
-                  setDurationLimitMessage(null)
-                  overlapAlert.clearOverlapAlert()
-                  setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
-                }}
-                fieldState={endOrderError ? 'error' : 'default'}
-                disabled={isSavingEdit}
-              />
-            </div>
-            <div className="min-w-0">
-              <ManualDateTimeFields
-                variant="modal"
-                label="End"
-                value={manualEntry.end}
-                onChange={(parsed) => {
-                  setDurationLimitMessage(null)
-                  overlapAlert.clearOverlapAlert()
-                  setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
-                }}
-                fieldState={endOrderError ? 'error' : 'default'}
-                disabled={isSavingEdit}
-              />
-            </div>
-            <div className="min-w-0">
-              <span className={MODAL_LABEL_CLASS}>Project</span>
-              <ProjectPicker
-                value={projectId}
-                onChange={handleProjectChange}
-                allowClear
-                disabled={isSavingEdit}
-                placeholder="No project"
-              />
-            </div>
-            <div className="min-w-0">
-              <span className={MODAL_LABEL_CLASS}>Task</span>
-              <SearchSelect
-                ariaLabel="Task"
-                options={taskOptions}
-                value={projectTaskId}
-                onChange={setProjectTaskId}
-                placeholder={projectId ? 'No task' : 'Select a project first'}
-                searchPlaceholder="Search tasks…"
-                allowClear
-                disabled={isSavingEdit || !projectId}
-              />
-            </div>
-          </div>
         )}
 
-        <div className="mb-3">
-          <span className={MODAL_LABEL_CLASS}>Tags</span>
-          <TagMultiSelect
-            knownTags={entry.tags}
-            selectedIds={tagIds}
-            onChange={(ids) => setTagIds(ids)}
-            disabled={isSavingEdit}
-          />
-        </div>
-
-        <label className="mb-3 flex cursor-pointer items-center gap-2.5">
-          <input
-            type="checkbox"
-            checked={isBillable}
-            onChange={(event) => setIsBillable(event.target.checked)}
-            disabled={isSavingEdit}
-            className="h-4 w-4 rounded border-navy/20 text-brand focus:ring-brand/30"
-          />
-          <span className="text-md font-medium text-navy/80">Billable</span>
-        </label>
-
-        {blockingError ? (
-          <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm leading-[1.5] text-red">
-            {blockingError}
-          </div>
-        ) : null}
+        <TimeEntryFields
+          description={description}
+          onDescriptionChange={setDescription}
+          associations={associations}
+          knownTags={entry.tags}
+          disabled={isSavingEdit}
+          error={blockingError}
+          timeFields={
+            isDurationOnly ? (
+              <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <DatePickerField
+                    variant="modal"
+                    label="Date"
+                    value={durationOnlyCalendarDate}
+                    onChange={(nextDate) =>
+                      setDurationOnlyDate(
+                        toDateInputValue(
+                          new Date(nextDate.year, nextDate.month - 1, nextDate.day),
+                        ),
+                      )
+                    }
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <ManualField
+                    variant="modal"
+                    label="Duration"
+                    type="text"
+                    value={durationOnlyInput}
+                    onChange={(value) => {
+                      setDurationOnlyInput(value)
+                      setDurationParseError(null)
+                      setDurationLimitMessage(null)
+                      const parsed = parseDurationInput(value)
+                      if (parsed === null) return
+                      setDurationOnlySeconds(parsed)
+                    }}
+                    onBlur={() => {
+                      const parsed = parseDurationInput(durationOnlyInput)
+                      if (durationOnlyInput.trim() && parsed === null) {
+                        setDurationParseError('Use 1:30 or 1:30:00')
+                        return
+                      }
+                      setDurationParseError(null)
+                      setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
+                    }}
+                    className="font-mono tabular-nums"
+                    fieldState={durationParseError ? 'error' : 'default'}
+                    hint={durationParseError ?? undefined}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <ManualDateTimeFields
+                    variant="modal"
+                    label="Start"
+                    value={manualEntry.start}
+                    onChange={(parsed) => {
+                      setDurationLimitMessage(null)
+                      overlapAlert.clearOverlapAlert()
+                      setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
+                    }}
+                    fieldState={endOrderError ? 'error' : 'default'}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <ManualDateTimeFields
+                    variant="modal"
+                    label="End"
+                    value={manualEntry.end}
+                    onChange={(parsed) => {
+                      setDurationLimitMessage(null)
+                      overlapAlert.clearOverlapAlert()
+                      setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
+                    }}
+                    fieldState={endOrderError ? 'error' : 'default'}
+                    disabled={isSavingEdit}
+                  />
+                </div>
+              </div>
+            )
+          }
+        />
 
         <div className="mt-4.5 flex gap-2">
           <button
