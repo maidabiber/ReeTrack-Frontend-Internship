@@ -11,11 +11,13 @@ import {
   TimerModeInput,
   type TimerModeInputHandle,
 } from './TimerModeInput'
-import type { TrackerMode } from './TrackerModeMenu'
 import { Icon } from '../ui/Icon'
+import type { TrackerMode } from './TrackerModeMenu'
+import { PomodoroControls } from './PomodoroControls'
 import { MetadataBubble } from '../ui/MetadataBubble'
 import { ProjectTaskPicker } from '../pickers/ProjectTaskPicker'
 import { TagMultiSelect } from '../pickers/TagMultiSelect'
+import { usePomodoro } from '../../hooks/usePomodoro'
 import { useTimer } from '../../hooks/useTimer'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
@@ -66,6 +68,8 @@ export function TrackerBar() {
     applyDraftTemplate,
     clearDraft,
   } = useTimer()
+
+  const pomodoro = usePomodoro()
 
   const [trackerMode, setTrackerMode] = useState<TrackerMode>('timer')
   const [shareNotice, setShareNotice] = useState<string | null>(null)
@@ -314,6 +318,21 @@ export function TrackerBar() {
               ) : null}
             </div>
           )}
+
+          {trackerMode === 'timer' ? (
+            <>
+              <div className="mx-1 h-5.5 w-px flex-shrink-0 bg-navy/10" />
+              <PomodoroControls
+                enabled={pomodoro.prefs.enabled}
+                workMinutes={pomodoro.prefs.workMinutes}
+                breakMinutes={pomodoro.prefs.breakMinutes}
+                onEnabledChange={pomodoro.setEnabled}
+                onWorkMinutesChange={pomodoro.setWorkMinutes}
+                onBreakMinutesChange={pomodoro.setBreakMinutes}
+                disabled={isInitializing}
+              />
+            </>
+          ) : null}
 
           <div className="flex-1" />
 

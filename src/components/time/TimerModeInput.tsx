@@ -134,7 +134,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
           </span>
         ) : null}
 
-        <div className="flex min-w-timer-cluster items-center justify-end gap-2">
+        <div className="flex min-w-timer-cluster items-center justify-end gap-2.5">
           {isRunning ? (
             <span
               className="h-2 w-2 flex-shrink-0 animate-pulse rounded-full bg-brand"
@@ -143,7 +143,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
             />
           ) : null}
           <div
-            className={`text-right font-mono text-timer font-light tracking-tight tabular-nums ${
+            className={`font-mono text-timer font-light tracking-tight tabular-nums ${
               isRunning ? 'text-brand' : 'text-navy'
             }`}
           >

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
+import { FloatingPomodoroWidget } from '../time/FloatingPomodoroWidget'
 
 /**
  * Persistent application shell: the sidebar stays mounted while the routed page
@@ -13,6 +14,7 @@ export function AppLayout() {
       <main className="ml-[216px] flex min-h-screen min-w-0 flex-col">
         <Outlet />
       </main>
+      <FloatingPomodoroWidget />
     </div>
   )
 }
