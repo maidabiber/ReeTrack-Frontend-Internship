@@ -4,6 +4,8 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
+  // tsc ignores this (solution-style config); it exists because `npx shadcn add`
+  // reads the ROOT tsconfig to resolve the "@/" alias. Keep in sync with tsconfig.app.json.
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

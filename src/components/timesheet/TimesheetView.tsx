@@ -26,10 +26,11 @@ import { WeekHoursBarChart } from '../charts/WeekHoursBarChart'
 import { Icon } from '../ui/Icon'
 import { Modal } from '../ui/Modal'
 import { Pill } from '../ui/Pill'
+import { WeekEntriesList } from './WeekEntriesList'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
 import { billableSplit, hoursPerDay, projectTotals } from '../../lib/timesheetStats'
-import type { MyWeekTimesheet, TimesheetEntry, WeekStatus, WeekSummary } from '../../types/timesheet'
+import type { MyWeekTimesheet, WeekStatus, WeekSummary } from '../../types/timesheet'
 
 const STATUS_DOT: Record<WeekStatus, string> = {
   None: 'bg-navy/35',

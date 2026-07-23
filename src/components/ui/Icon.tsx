@@ -5,6 +5,7 @@ export type IconName =
   | 'timer'
   | 'reports'
   | 'approvals'
+  | 'timesheet'
   | 'projects'
   | 'clients'
   | 'members'
@@ -59,6 +60,13 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
     <>
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
       <polyline points="22 4 12 14.01 9 11.01" />
+    </>
+  ),
+  timesheet: (
+    <>
+      <path d="M9 4h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+      <path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
+      <path d="M8.5 14.5l2 2 4-4.5" />
     </>
   ),
   projects: <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-8l-2-2H5a2 2 0 0 0-2 2z" />,

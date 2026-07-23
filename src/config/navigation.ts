@@ -53,6 +53,7 @@ export const NAV_SECTIONS: NavSection[] = [
     adminOnly: true,
     items: [
       { label: 'Members', path: '/members', icon: 'members' },
+      { label: 'Timesheets', path: '/timesheet-review', icon: 'timesheet' },
       { label: 'Billable rates', path: '/billable-rates', icon: 'billable' },
       { label: 'Invoices', path: '/invoices', icon: 'invoices' },
       { label: 'Goals', path: '/goals', icon: 'goals' },

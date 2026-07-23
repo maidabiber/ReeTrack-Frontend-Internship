@@ -11,6 +11,7 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TagsPage from './pages/TagsPage'
 import ApprovalsPage from './pages/ApprovalsPage'
+import TimesheetReviewPage from './pages/TimesheetReviewPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
 import ProfilePage from './pages/ProfilePage'
@@ -23,6 +24,7 @@ const PAGES: Record<string, React.ReactElement> = {
   '/projects': <ProjectsPage />,
   '/tags': <TagsPage />,
   '/approvals': <ApprovalsPage />,
+  '/timesheet-review': <TimesheetReviewPage />,
 }
 
 // The Timer landing screen (RT-270) is the index route; every other nav
