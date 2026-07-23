@@ -26,7 +26,7 @@ import {
 import { fetchAllPages } from '../api/pagination'
 import { formatBillingSummary } from '../lib/projectFormat'
 import { useAuth } from '../hooks/useAuth'
-import { projectCoverUrl } from '../lib/projectCover'
+import { softAccentFill } from '../lib/color'
 import type { Project } from '../types/project'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; project: Project } | null
@@ -349,12 +349,10 @@ function ProjectRow({
       style={riseDelay(index)}
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        {/* The card grid's cover art lives on as the row's identity tile. */}
-        <img
-          src={projectCoverUrl(project)}
-          alt=""
-          loading="lazy"
+        <span
+          aria-hidden="true"
           className={`h-[26px] w-[26px] flex-shrink-0 rounded-sm ${isActive ? '' : 'opacity-50 grayscale'}`}
+          style={{ backgroundColor: softAccentFill(project.color) }}
         />
         <Link
           to={`/projects/${project.id}`}

@@ -1,18 +1,17 @@
 import type { CalendarView } from '../../api/calendar'
 import type { SyncedCalendarEvent } from '../../types/integrations'
 import type { ActiveTimer, TimeEntry } from '../../types/timeEntry'
+import { NO_ACCENT_COLOR } from '../../lib/color'
 import { stripHtmlToText } from '../../lib/stripHtml'
 import { endOfDay, startOfDay } from './dateUtils'
 import type { CalendarEvent, EventColor } from './types'
 
 const TIME_ENTRY_ID_PREFIX = 'te-'
 
-/** Future: return project-based colors when TimeEntry includes projectId. */
+/** Accent colour for a time entry card; EventBlock washes this into a soft tint. */
 export function timeEntryColor(_entry: TimeEntry): EventColor {
-  if (_entry.projectId === null) return '#bbbbbb'
-  else {
-    return _entry.projectColor as EventColor ?? '#bbbbbb'
-  }
+  if (_entry.projectId === null) return NO_ACCENT_COLOR
+  return (_entry.projectColor as EventColor) ?? NO_ACCENT_COLOR
 }
 
 export function timeEntryIdFromCalendarEvent(event: CalendarEvent): string | null {

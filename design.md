@@ -13,9 +13,10 @@ agencies, technical teams. The app chrome reads like a developer tool: a deep
 rates, counts, IDs), generous whitespace, and **solid, quiet buttons**. Pages
 sit on a soft near-white **canvas** so white cards lift off the background and
 the ink chrome meets a gentle edge. Color comes from *data*, not decoration:
-every project, tag and client carries its own accent, shown as **pastel
-"glass" cover art** at card scale and as tints and marks at row scale. Motion
-is calm and purposeful — things settle into place; nothing glows or bounces.
+every project, tag and client carries its own accent, shown as **soft-tint
+swatches** (the same wash as calendar event fills) and as tints and marks at
+row scale. Motion is calm and purposeful — things settle into place; nothing
+glows or bounces.
 
 Four rules keep it from looking like every AI-generated gradient dashboard:
 
@@ -78,13 +79,16 @@ paper. On ink, tint with white alpha (`text-white/70`, `hover:bg-white/[0.06]`).
 `PROJECT_COLORS` (`src/lib/projectColors.ts`) is the shared accent palette for
 projects and tags; clients derive a stable accent from it by hash. Accents
 appear:
-- **As pastel cover art** — DiceBear `glass` tiles via `projectCoverUrl`,
-  with the accent blended **50% toward white** (`COVER_TINT`) so a grid of
-  covers never shouts over the brand. Small identity tiles
-  (`rounded-sm`/`rounded-xs`) on project, client and inline-project rows.
+- **As soft-tint fills** — `softAccentFill` / `SOFT_ACCENT_TINT` (0.72 toward
+  white) in `src/lib/color.ts`. Same treatment for calendar event cards and
+  project-row identity squares (`rounded-sm`). Colourless accents fall back to
+  `NO_ACCENT_COLOR` (`#C7CDDB`).
 - **As row tints** — tag rows wash the tag colour into white
   (`.tag-tint-row`, `color-mix` 10% → 18% on hover).
 - **Pure** only at small scale: swatch pickers, the tag diamond swatch.
+- **Clients (legacy)** — DiceBear `glass` tiles via `clientCoverUrl` /
+  nested `projectCoverUrl` on the clients directory until those rows migrate
+  to soft-tint swatches.
 
 ### Semantic status text
 Status words are coloured plain text (see §5): active/accepted = deep green,
@@ -109,7 +113,6 @@ blurred only when it floats above live content that can melt through it.
 |---|---|
 | Dropdowns / row menus / pickers | `bg-white/80 backdrop-blur-xl shadow-dropdown` |
 | Modal scrim | `bg-ink/50 backdrop-blur-md` (the page visibly frosts) |
-| Card footers over cover art | `bg-white/75 backdrop-blur-xl border-t border-white/50` |
 | Buttons/chips floating on imagery | white glass circle (e.g. the card kebab) |
 
 **Solid surfaces stay solid**: the sidebar, resting cards, buttons and the
@@ -176,10 +179,8 @@ Rules:
   `aria-label`/`title`.
 - **Secondary / cancel:** ghost `border-control border-navy/20 text-navy/70`,
   sharpening to `border-navy text-navy` on hover.
-- **Card:** `rounded-2xl bg-white shadow-card`. Cover cards (projects) are
-  full-bleed art with a glass footer; hover deepens the shadow
-  (`hover:shadow-panel`), zooms the art slightly and unfolds extra meta
-  (`grid-rows-[0fr] → [1fr]`).
+- **Card:** `rounded-2xl bg-white shadow-card`. Hover may deepen the shadow
+  (`hover:shadow-panel`).
 - **Modal:** ink-frosted scrim → gradient hairline frame (`rounded-3xl
   bg-brand-gradient p-px shadow-modal`) → opaque `bg-canvas` panel with faint
   corner blobs, an ✕ button and Escape-to-close. Scrim `animate-fade`, panel
@@ -194,7 +195,8 @@ Rules:
 - **Status / role text:** plain `text-caption font-medium` words coloured per
   §2 — no chips, dots or badge chrome. Admin adds `font-semibold`.
 - **Row identity visuals:** people get `UserAvatar` (boring-avatars, brand
-  palette); entities (clients, inline projects) get small glass cover tiles.
+  palette); project rows get soft-tint squares via `softAccentFill`; clients
+  and nested project rows on Clients still use small glass cover tiles.
   Archived/disabled anything: `opacity-50 grayscale`.
 - **Tag rows:** `.tag-tint-row` with `--tag-color` set inline; the leading
   diamond (`rotate-45 rounded-[2px]`) is the tag's colour swatch.
@@ -312,8 +314,8 @@ card). Mirror `pages/SignInPage.tsx`.
 
 **Do** — gradient only as hairline frames + the sidebar's soft active wash ·
 solid blue for buttons (icon-only circle in page headers) · mono + tabular
-for every value, mono uppercase for toolbar labels · pastel glass cover art
-for entity identity · glass only on floating surfaces · skeletons that match
+for every value, mono uppercase for toolbar labels · soft-tint entity fills
+(calendar + projects) · glass only on floating surfaces · skeletons that match
 real geometry · staggered `animate-rise` entrances behind `motion-safe:` ·
 plain coloured words for status · reuse `ui/*`.
 

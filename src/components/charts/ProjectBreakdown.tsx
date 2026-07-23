@@ -34,7 +34,7 @@ export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
           <LabelList
             dataKey="seconds"
             position="right"
-            formatter={(value) => formatHoursLabel(Number(value))}
+            formatter={(value: number | string) => formatHoursLabel(Number(value))}
             className="fill-gray font-mono"
             fontSize={11}
           />

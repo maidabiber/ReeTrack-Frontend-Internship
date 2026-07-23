@@ -1,9 +1,8 @@
 import { useState } from 'react'
+import { NO_ACCENT_COLOR, softAccentFill } from '../../lib/color'
 import type { CalendarEvent } from './types'
 import { formatTimeRange, hoverMinDisplayHeightPercent, hoverMinDisplayHeightPx } from './dateUtils'
 import { DEFAULT_HOUR_HEIGHT } from './hourZoom'
-
-const DEFAULT_EVENT_COLOR = '#EEF1FD'
 
 interface EventBlockProps {
   event: CalendarEvent
@@ -47,7 +46,8 @@ export function EventBlock({
   onClick,
 }: EventBlockProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const eventColor = event.color ?? DEFAULT_EVENT_COLOR
+  const accentColor = event.color ?? NO_ACCENT_COLOR
+  const fillColor = softAccentFill(accentColor)
 
   const dayHeightPx = hourHeight * 24
   const minHeightPx = compact ? 18 : 22
@@ -90,8 +90,8 @@ export function EventBlock({
         }}
         onClick={onClick}
         style={{
-          backgroundColor: eventColor,
-          ...(selected ? { outline: `2px solid ${eventColor}`, outlineOffset: '1px' } : {}),
+          backgroundColor: fillColor,
+          ...(selected ? { outline: `2px solid ${accentColor}`, outlineOffset: '1px' } : {}),
         }}
         className={`h-full w-full rounded-sm px-2 py-0.5 text-left ${
           isElevated ? 'overflow-visible shadow-lg' : 'overflow-hidden'

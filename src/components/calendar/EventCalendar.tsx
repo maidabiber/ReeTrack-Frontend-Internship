@@ -176,6 +176,9 @@ export function EventCalendar() {
             startedAtUtc: save.startedAtUtc,
             endedAtUtc: save.endedAtUtc,
             isBillable: save.isBillable,
+            projectId: save.projectId,
+            projectTaskId: save.projectTaskId,
+            tagIds: save.tagIds,
           })
           overlapAlert.clearOverlapAlert()
         },

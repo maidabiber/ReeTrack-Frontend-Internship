@@ -1,5 +1,6 @@
 import { createAvatar } from '@dicebear/core'
 import { glass } from '@dicebear/collection'
+import { tintTowardWhite } from './color'
 import { PROJECT_COLORS } from './projectColors'
 import type { Client } from '../types/client'
 import type { Project } from '../types/project'
@@ -24,17 +25,6 @@ const FALLBACK_COVER_COLOR = '#1B2540'
  */
 const COVER_TINT = 0.5
 
-function tintTowardWhite(hex: string, amount: number): string {
-  const channels = hex.replace('#', '').match(/../g) ?? []
-  return channels
-    .map((channel) => {
-      const value = parseInt(channel, 16)
-      const mixed = Math.round(value + (255 - value) * amount)
-      return mixed.toString(16).padStart(2, '0')
-    })
-    .join('')
-}
-
 // Rows regenerate their cover on every render; the SVG is pure in
 // (seed, colour), so memoise the data URIs for the session.
 const coverCache = new Map<string, string>()
@@ -44,7 +34,8 @@ export function projectCoverUrl(project: Pick<Project, 'id' | 'color'>): string 
   const cached = coverCache.get(cacheKey)
   if (cached) return cached
 
-  const backgroundColor = tintTowardWhite(project.color ?? FALLBACK_COVER_COLOR, COVER_TINT)
+  // DiceBear expects hex without the leading '#'.
+  const backgroundColor = tintTowardWhite(project.color ?? FALLBACK_COVER_COLOR, COVER_TINT).replace(/^#/, '')
   const uri = createAvatar(glass, { seed: project.id, backgroundColor: [backgroundColor] }).toDataUri()
   coverCache.set(cacheKey, uri)
   return uri
