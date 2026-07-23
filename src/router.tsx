@@ -12,6 +12,7 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import TagsPage from './pages/TagsPage'
 import ApprovalsPage from './pages/ApprovalsPage'
+import ReportsPage from './pages/ReportsPage'
 import TimesheetReviewPage from './pages/TimesheetReviewPage'
 import OnboardingPage from './pages/OnboardingPage'
 import SignInPage from './pages/SignInPage'
@@ -26,6 +27,7 @@ const PAGES: Record<string, React.ReactElement> = {
   '/projects': <ProjectsPage />,
   '/tags': <TagsPage />,
   '/approvals': <ApprovalsPage />,
+  '/reports': <ReportsPage />,
   '/timesheet-review': <TimesheetReviewPage />,
 }
 
@@ -68,7 +70,6 @@ export const router = createBrowserRouter([
       // Timesheet deep link (decision emails): Timer page with the timesheet view open.
       { path: 'timesheet', element: <TimerPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      ...navRoutes,
     ],
   },
 ])
