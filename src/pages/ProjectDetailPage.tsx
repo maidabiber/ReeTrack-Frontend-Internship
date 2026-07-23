@@ -10,6 +10,7 @@ import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
 import { fetchAllPages } from '../api/pagination'
 import { listMembers, type Member } from '../api/members'
 import { formatMoney } from '../lib/projectFormat'
+import { formatPlannedVsActual } from '../lib/projectFormat'
 import type { Project } from '../types/project'
 import type { Task } from '../types/task'
 
@@ -214,10 +215,7 @@ export default function ProjectDetailPage() {
             label="Fixed fee"
             value={formatMoney(project.fixedFeeAmount, project.currencyCode) ?? '—'}
           />
-          <InfoRow
-            label="Time estimate"
-            value={project.timeEstimateHours !== null ? `${project.timeEstimateHours} h` : '—'}
-          />
+          <InfoRow label="Planned vs actual" value={formatPlannedVsActual(project)} />
           <InfoRow label="Created" value={formatDate(project.createdAtUtc)} />
         </div>
 

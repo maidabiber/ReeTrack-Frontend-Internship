@@ -22,3 +22,17 @@ export function formatBillingSummary(project: Project): string {
   if (fee) parts.push(fee)
   return parts.length > 0 ? parts.join(' · ') : 'No rate set'
 }
+
+/** e.g. "12.5 / 40 h" when an estimate exists, otherwise just "12.5 h". */
+export function formatPlannedVsActual(project: Project): string {
+  const actual = formatHours(project.actualHours)
+  if (project.timeEstimateHours === null) return `${actual} h`
+  return `${actual} / ${formatHours(project.timeEstimateHours)} h`
+}
+
+function formatHours(hours: number): string {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(hours)
+}

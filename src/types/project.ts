@@ -16,6 +16,8 @@ export interface Project {
   hourlyRate: number | null
   fixedFeeAmount: number | null
   timeEstimateHours: number | null
+  /** Confirmed tracked hours on this project (and its tasks). */
+  actualHours: number
   /** Hex colour (e.g. '#4366E2') or null for no colour. */
   color: string | null
   /** Number of non-deleted tasks on this project. */

@@ -31,6 +31,7 @@ interface ProjectResponse {
   hourlyRate: number | null
   fixedFeeAmount: number | null
   timeEstimateHours: number | null
+  actualHours: number
   color: string | null
   taskCount: number
   createdAtUtc: string
@@ -48,6 +49,7 @@ function toProject(response: ProjectResponse): Project {
     hourlyRate: response.hourlyRate,
     fixedFeeAmount: response.fixedFeeAmount,
     timeEstimateHours: response.timeEstimateHours,
+    actualHours: response.actualHours,
     color: response.color,
     taskCount: response.taskCount,
     createdAtUtc: response.createdAtUtc,
