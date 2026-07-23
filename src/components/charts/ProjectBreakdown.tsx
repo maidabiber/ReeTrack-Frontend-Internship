@@ -8,6 +8,10 @@ export interface ProjectHours {
   seconds: number
 }
 
+function formatSecondsLabel(value: unknown): string {
+  return formatHoursLabel(Number(value ?? 0))
+}
+
 /** Horizontal per-project totals with direct value labels. */
 export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
   return (
@@ -28,13 +32,13 @@ export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
         />
         <ChartTooltip
           cursor={{ fill: 'var(--color-brand-tint)' }}
-          content={<ChartTooltipContent formatter={(value) => formatHoursLabel(Number(value))} />}
+          content={<ChartTooltipContent formatter={(value) => formatSecondsLabel(value)} />}
         />
         <Bar dataKey="seconds" fill="var(--color-brand)" radius={[0, 4, 4, 0]} maxBarSize={18}>
           <LabelList
             dataKey="seconds"
             position="right"
-            formatter={(value: number | string) => formatHoursLabel(Number(value ?? 0))}
+            formatter={formatSecondsLabel}
             className="fill-gray font-mono"
             fontSize={11}
           />

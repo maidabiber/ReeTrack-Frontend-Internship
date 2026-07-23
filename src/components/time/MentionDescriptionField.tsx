@@ -164,7 +164,7 @@ export function MentionDescriptionField({
       </div>
 
       {selectedTeammates.length > 0 ? (
-        <div className="flex flex-wrap gap-2 px-6 pb-3">
+        <div className="flex flex-wrap gap-2 pb-1 pt-2">
           {selectedTeammates.map((teammate) => (
             <div
               key={teammate.id}

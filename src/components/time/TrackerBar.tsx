@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MentionDescriptionField } from './MentionDescriptionField'
 import { TimeEntryTemplatesPanel } from './TimeEntryTemplatesPanel'
 import {
@@ -21,6 +21,13 @@ import { usePomodoro } from '../../hooks/usePomodoro'
 import { useTimer } from '../../hooks/useTimer'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
+import { SmartParseButton } from './SmartParseButton'
+import { SmartParseDescriptionField } from './SmartParseDescriptionField'
+import { parseSmartTimeEntry } from '../../api/smartTimeParse'
+import { apiErrorMessage } from '../../api/client'
+import { createSmartParseSeed, resolveSmartParseVariant } from '../../lib/smartTimeParse'
+import { resolveSmartParseAssociations } from '../../lib/resolveSmartParseAssociations'
+import type { SmartParseSeed } from '../../types/smartTimeParse'
 
 const TIMER_PANEL_CLASS = 'timer-panel'
 
@@ -70,6 +77,7 @@ export function TrackerBar() {
     setDraftBillable,
     applyDraftTemplate,
     clearDraft,
+    start,
   } = useTimer()
 
   const pomodoro = usePomodoro()
@@ -82,6 +90,13 @@ export function TrackerBar() {
 
   const [projectPickerOpen, setProjectPickerOpen] = useState(false)
   const [tagsPickerOpen, setTagsPickerOpen] = useState(false)
+  const [isSmartParseMode, setIsSmartParseMode] = useState(false)
+  const [smartParseText, setSmartParseText] = useState('')
+  const [isParsingSmartEntry, setIsParsingSmartEntry] = useState(false)
+  const [smartParseError, setSmartParseError] = useState<string | null>(null)
+  const [smartParseSeed, setSmartParseSeed] = useState<SmartParseSeed | null>(null)
+  const [pendingSmartParseSave, setPendingSmartParseSave] = useState(false)
+  const smartParseNonceRef = useRef(0)
 
   const timerRef = useRef<TimerModeInputHandle>(null)
   const entryRef = useRef<TimeEntryInputHandle>(null)
@@ -114,6 +129,100 @@ export function TrackerBar() {
 
   const clearShareNotice = () => setShareNotice(null)
 
+  const clearPendingSmartParseSave = () => {
+    setPendingSmartParseSave(false)
+    setSmartParseSeed(null)
+  }
+
+  const exitSmartParseMode = () => {
+    setIsSmartParseMode(false)
+    setSmartParseText('')
+    setSmartParseError(null)
+  }
+
+  const toggleSmartParseMode = () => {
+    if (isSmartParseMode) {
+      exitSmartParseMode()
+      return
+    }
+
+    clearShareNotice()
+    clearTemplateSelection()
+    setSmartParseError(null)
+    setSmartParseText(description)
+    setIsSmartParseMode(true)
+  }
+
+  const handleSmartParseSubmit = async () => {
+    const text = smartParseText.trim()
+    if (!text || isParsingSmartEntry) return
+
+    const wasPendingSave = pendingSmartParseSave
+    const existingSeed = smartParseSeed
+
+    setIsParsingSmartEntry(true)
+    setSmartParseError(null)
+
+    try {
+      const parsed = await parseSmartTimeEntry(text)
+      const resolved = await resolveSmartParseAssociations(parsed)
+
+      setDraftDescription(parsed.description)
+      setDraftMentionedTeammates([])
+
+      if (resolved.projectId) {
+        setDraftProject({
+          projectId: resolved.projectId,
+          projectTaskId: resolved.projectTaskId,
+          projectName: resolved.projectName,
+          projectColor: resolved.projectColor,
+          projectTaskName: resolved.projectTaskName,
+        })
+      } else if (!wasPendingSave) {
+        setDraftProject({
+          projectId: resolved.projectId,
+          projectTaskId: resolved.projectTaskId,
+          projectName: resolved.projectName,
+          projectColor: resolved.projectColor,
+          projectTaskName: resolved.projectTaskName,
+        })
+      }
+
+      if (wasPendingSave) {
+        const mergedTagIds = [...new Set([...tagIds, ...resolved.tagIds])]
+        const mergedKnownTags = [...knownTags]
+        for (const tag of resolved.knownTags) {
+          if (!mergedKnownTags.some((known) => known.id === tag.id)) {
+            mergedKnownTags.push(tag)
+          }
+        }
+        setDraftTags(mergedTagIds, mergedKnownTags)
+        setDraftBillable(isBillable || resolved.isBillable)
+      } else {
+        setDraftTags(resolved.tagIds, resolved.knownTags)
+        setDraftBillable(resolved.isBillable)
+      }
+
+      const newEntryVariant = resolveSmartParseVariant(parsed)
+      if (newEntryVariant) {
+        smartParseNonceRef.current += 1
+        const seed = createSmartParseSeed(parsed, smartParseNonceRef.current)
+        if (seed) setSmartParseSeed(seed)
+        setTrackerMode('duration')
+      } else if (!wasPendingSave || !existingSeed) {
+        setSmartParseSeed(null)
+        setTrackerMode('timer')
+      }
+
+      exitSmartParseMode()
+      setPendingSmartParseSave(true)
+    } catch (error) {
+      setSmartParseError(apiErrorMessage(error, 'Could not parse that description.'))
+    } finally {
+      setIsParsingSmartEntry(false)
+    }
+  }
+
   const clearTemplateSelection = () => {
     setSelectedTemplateId(null)
     setTemplateSeed(null)
@@ -125,12 +234,61 @@ export function TrackerBar() {
     }
     setTrackerMode(mode)
     clearShareNotice()
+    exitSmartParseMode()
+    clearPendingSmartParseSave()
     if (mode !== 'templates') {
       clearTemplateSelection()
     }
   }
 
+  const dismissPendingSmartParse = () => {
+    clearPendingSmartParseSave()
+    clearDraft()
+    clearTemplateSelection()
+    clearShareNotice()
+    setTrackerMode('timer')
+  }
+
+  const associations: TimeEntryAssociations = {
+    projectId,
+    projectTaskId,
+    tagIds,
+    isBillable,
+  }
+
+  useEffect(() => {
+    if (!pendingSmartParseSave) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        clearPendingSmartParseSave()
+        clearDraft()
+        clearTemplateSelection()
+        clearShareNotice()
+        setTrackerMode('timer')
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [pendingSmartParseSave, clearDraft])
+
+  const handlePendingSmartParseSave = async () => {
+    if (!smartParseSeed && trackerMode === 'timer') {
+      try {
+        await start(description.trim() || undefined, associations)
+        clearPendingSmartParseSave()
+      } catch {
+        // TimerContext surfaces the error.
+      }
+      return
+    }
+
+    await entryRef.current?.saveEntry()
+  }
+
   const handleDescriptionEnter = () => {
+    if (pendingSmartParseSave) {
+      return
+    }
     if (trackerMode === 'timer') {
       timerRef.current?.toggle()
       return
@@ -164,17 +322,8 @@ export function TrackerBar() {
   const handleClearDescriptionAndAssociations = () => {
     clearDraft()
     clearTemplateSelection()
+    clearPendingSmartParseSave()
   }
-
-  const associations: TimeEntryAssociations = useMemo(
-    () => ({
-      projectId,
-      projectTaskId,
-      tagIds,
-      isBillable,
-    }),
-    [projectId, projectTaskId, tagIds, isBillable],
-  )
 
   const projectTaskLabel = projectName
     ? projectTaskName
@@ -194,39 +343,70 @@ export function TrackerBar() {
         ? 'duration'
         : 'range'
 
+  const descriptionDisabled = isInitializing || isToggling || isSavingManual
+
+  const inSmartParseFlow = isSmartParseMode || pendingSmartParseSave
+  const smartParseInputVariant =
+    pendingSmartParseSave && entryVariant ? entryVariant : 'duration'
+  const showSmartParseTimeFields = pendingSmartParseSave && Boolean(entryVariant)
+  const saveDisabled =
+    isSmartParseMode || descriptionDisabled || isSavingManual || isRunning
+
   return (
     <>
       <div className={TIMER_PANEL_CLASS}>
-        {trackerMode === 'duration' ? (
-          <input
-            className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
-            placeholder="What did you work on?"
-            value={description}
-            onChange={(event) => setDraftDescription(event.target.value)}
-            disabled={isInitializing || isSavingManual}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                handleDescriptionEnter()
-              }
-            }}
+        {isSmartParseMode ? (
+          <SmartParseDescriptionField
+            value={smartParseText}
+            onChange={setSmartParseText}
+            onSubmit={() => void handleSmartParseSubmit()}
+            onExit={exitSmartParseMode}
+            disabled={descriptionDisabled}
+            isParsing={isParsingSmartEntry}
+            error={smartParseError}
           />
         ) : (
-          <MentionDescriptionField
-            className="w-full border-none bg-transparent px-6 pt-5 pb-4 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
-            placeholder="What are you working on? Type @ to share with a teammate"
-            value={description}
-            onChange={setDraftDescription}
-            selectedTeammates={mentionedTeammates}
-            onMentionChange={setDraftMentionedTeammates}
-            disabled={isInitializing || isToggling || isSavingManual}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                handleDescriptionEnter()
-              }
-            }}
-          />
+          <div className="flex items-start gap-3 px-6 pt-5 pb-4">
+            <div className="min-w-0 flex-1">
+              {trackerMode === 'duration' ? (
+                <input
+                  className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+                  placeholder="What did you work on?"
+                  value={description}
+                  onChange={(event) => setDraftDescription(event.target.value)}
+                  disabled={descriptionDisabled}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      handleDescriptionEnter()
+                    }
+                  }}
+                />
+              ) : (
+                <MentionDescriptionField
+                  className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+                  placeholder="What are you working on? Type @ to share with a teammate"
+                  value={description}
+                  onChange={setDraftDescription}
+                  selectedTeammates={mentionedTeammates}
+                  onMentionChange={setDraftMentionedTeammates}
+                  disabled={descriptionDisabled}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      handleDescriptionEnter()
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            <SmartParseButton
+              disabled={descriptionDisabled}
+              onClick={toggleSmartParseMode}
+              className="mt-1"
+            />
+          </div>
         )}
 
         {shareNotice ? (
@@ -237,7 +417,7 @@ export function TrackerBar() {
 
         <span aria-hidden="true" className="block h-px w-full bg-brand-gradient" />
 
-        <div className="flex min-h-[5.5rem] flex-wrap items-center gap-x-2 gap-y-3 border-t border-navy/[0.06] bg-surface-muted/25 px-4 py-3.5">
+        <div className="flex min-h-[5.5rem] flex-wrap items-center gap-x-2 gap-y-3 border-t border-navy/[0.06] bg-surface-muted/25 px-6 py-3.5">
           <div ref={projectButtonRef} className="relative">
             <IconButton
               name="projects"
@@ -298,7 +478,9 @@ export function TrackerBar() {
             onClick={() => setDraftBillable(!isBillable)}
           />
 
-          {(projectTaskLabel || selectedTags.length > 0) && (
+          {(projectTaskLabel ||
+            selectedTags.length > 0 ||
+            showSmartParseTimeFields) && (
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               {projectTaskLabel ? (
                 <MetadataBubble
@@ -315,6 +497,27 @@ export function TrackerBar() {
                   onRemove={() => removeDraftTag(tag.id)}
                 />
               ))}
+              {showSmartParseTimeFields ? (
+                <TimeEntryInput
+                  key={`smart-parse-${smartParseInputVariant}-${smartParseSeed?.nonce ?? 'draft'}`}
+                  ref={pendingSmartParseSave ? entryRef : undefined}
+                  variant={smartParseInputVariant}
+                  description={description}
+                  mentionedTeammates={mentionedTeammates}
+                  onShared={setShareNotice}
+                  onClearDescription={handleClearDescriptionAndAssociations}
+                  onClearMentions={() => setDraftMentionedTeammates([])}
+                  onClearShareNotice={clearShareNotice}
+                  associations={associations}
+                  mode={trackerMode}
+                  onModeChange={switchMode}
+                  modeMenuDisabled={isRunning}
+                  smartParseSeed={smartParseSeed}
+                  hideActions
+                  fieldsDisabled={isSmartParseMode}
+                  layout="inline"
+                />
+              ) : null}
             </div>
           )}
 
@@ -335,37 +538,62 @@ export function TrackerBar() {
 
           <div className="flex-1" />
 
-          {trackerMode === 'timer' ? (
-            <TimerModeInput
-              ref={timerRef}
-              description={description}
-              setDescription={setDraftDescription}
-              mentionedTeammates={mentionedTeammates}
-              setMentionedTeammates={setDraftMentionedTeammates}
-              onShared={setShareNotice}
-              onClearShareNotice={clearShareNotice}
-              associations={associations}
-              mode={trackerMode}
-              onModeChange={switchMode}
-            />
-          ) : entryVariant ? (
-            <TimeEntryInput
-              key={entryVariant}
-              ref={entryRef}
-              variant={entryVariant}
-              description={description}
-              mentionedTeammates={mentionedTeammates}
-              onShared={setShareNotice}
-              onClearDescription={handleClearDescriptionAndAssociations}
-              onClearMentions={() => setDraftMentionedTeammates([])}
-              onClearShareNotice={clearShareNotice}
-              associations={associations}
-              mode={trackerMode}
-              onModeChange={switchMode}
-              modeMenuDisabled={isRunning}
-              templateSeed={trackerMode === 'templates' ? templateSeed : null}
-            />
-          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {inSmartParseFlow ? (
+              <>
+                {pendingSmartParseSave ? (
+                  <button
+                    type="button"
+                    onClick={dismissPendingSmartParse}
+                    disabled={isSavingManual || isToggling}
+                    className="flex size-9 flex-shrink-0 items-center justify-center rounded-full border border-navy/[0.06] bg-white text-navy/40 shadow-soft transition-colors hover:bg-surface-muted hover:text-navy/70 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Discard parsed entry"
+                  >
+                    <Icon name="x" className="size-4" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={saveDisabled}
+                  onClick={() => void handlePendingSmartParseSave()}
+                  className="flex h-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-gradient px-5 text-sm font-semibold text-white shadow-soft transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSavingManual || isToggling ? 'Saving…' : 'Save'}
+                </button>
+              </>
+            ) : trackerMode === 'timer' ? (
+              <TimerModeInput
+                ref={timerRef}
+                description={description}
+                setDescription={setDraftDescription}
+                mentionedTeammates={mentionedTeammates}
+                setMentionedTeammates={setDraftMentionedTeammates}
+                onShared={setShareNotice}
+                onClearShareNotice={clearShareNotice}
+                associations={associations}
+                mode={trackerMode}
+                onModeChange={switchMode}
+              />
+            ) : entryVariant ? (
+              <TimeEntryInput
+                key={entryVariant}
+                ref={entryRef}
+                variant={entryVariant}
+                description={description}
+                mentionedTeammates={mentionedTeammates}
+                onShared={setShareNotice}
+                onClearDescription={handleClearDescriptionAndAssociations}
+                onClearMentions={() => setDraftMentionedTeammates([])}
+                onClearShareNotice={clearShareNotice}
+                associations={associations}
+                mode={trackerMode}
+                onModeChange={switchMode}
+                modeMenuDisabled={isRunning}
+                templateSeed={trackerMode === 'templates' ? templateSeed : null}
+                smartParseSeed={smartParseSeed}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
 

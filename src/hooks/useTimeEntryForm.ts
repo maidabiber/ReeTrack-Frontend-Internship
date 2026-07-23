@@ -10,6 +10,8 @@ import { useTimer } from './useTimer'
 import type { Teammate } from '../lib/mention'
 import type { TimeEntryAssociations } from '../types/timeEntry'
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
+import type { SmartParseSeed } from '../types/smartTimeParse'
+import { createManualEntryFromSmartParse } from '../lib/smartTimeParse'
 import {
   applyManualFieldChange,
   createDefaultManualEntry,
@@ -150,6 +152,45 @@ export function useTimeEntryForm({
       setDurationInput(formatManualDurationInput(next.durationSeconds))
     },
     [overlapAlert, onClearShareNotice, variant],
+  )
+
+  const applySmartParse = useCallback(
+    (seed: SmartParseSeed) => {
+      setLocalError(null)
+      setDurationParseError(null)
+      setDurationLimitMessage(null)
+      overlapAlert.clearOverlapAlert()
+      onClearShareNotice()
+
+      if (seed.variant === 'duration') {
+        const seconds = Math.max(
+          1,
+          Math.min(seed.durationMinutes * 60, MAX_MANUAL_DURATION_SECONDS),
+        )
+        setDurationOnlySeconds(seconds)
+        setDurationInput(formatManualDurationInput(seconds))
+        setEntryDate(seed.entryDate ?? toDateInputValue(new Date()))
+        return
+      }
+
+      const next = createManualEntryFromSmartParse({
+        description: '',
+        durationMinutes: seed.durationMinutes,
+        matchedProjectId: null,
+        matchedProjectTaskId: null,
+        matchedTagIds: [],
+        isBillable: true,
+        startTime: seed.startTime,
+        endTime: seed.endTime,
+        entryDate: seed.entryDate,
+        confidenceScore: 1,
+      })
+      if (!next) return
+
+      setManualEntry(next)
+      setDurationInput(formatManualDurationInput(next.durationSeconds))
+    },
+    [overlapAlert, onClearShareNotice],
   )
 
   const setStart = (value: string) => {
@@ -345,6 +386,7 @@ export function useTimeEntryForm({
     clearFeedback,
     reset,
     applyTemplate,
+    applySmartParse,
     saveEntry,
   }
 }

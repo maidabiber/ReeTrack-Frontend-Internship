@@ -56,6 +56,7 @@ export function ManualField({
   fieldState = 'default',
   hint,
   hideLabel = false,
+  compact = false,
   variant = 'modal',
 }: {
   label: string
@@ -68,6 +69,7 @@ export function ManualField({
   fieldState?: ManualFieldState
   hint?: string
   hideLabel?: boolean
+  compact?: boolean
   variant?: 'tracker' | 'modal'
 }) {
   const isTracker = variant === 'tracker' && hideLabel
@@ -90,6 +92,31 @@ export function ManualField({
             className,
           )}
         />
+      </label>
+    )
+  }
+
+  if (compact) {
+    return (
+      <label className={hideLabel ? 'inline-flex' : 'flex flex-col gap-1'}>
+        {hideLabel ? null : (
+          <span className="font-display text-sm font-semibold uppercase tracking-wide text-navy/45">
+            {label}
+          </span>
+        )}
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          disabled={disabled}
+          aria-label={hideLabel ? label : undefined}
+          aria-invalid={fieldState === 'error' ? true : undefined}
+          className={`h-7 rounded-md border bg-surface-muted px-2 text-sm text-navy outline-none transition-colors disabled:opacity-60 ${MANUAL_FIELD_STYLES[fieldState]} ${className}`}
+        />
+        {hint ? (
+          <span className="text-xs leading-tight text-navy/50">{hint}</span>
+        ) : null}
       </label>
     )
   }
