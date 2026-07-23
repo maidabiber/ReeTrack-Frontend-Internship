@@ -1,9 +1,10 @@
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
+import type { TimeEntryTag } from '../types/timeEntry'
 import type { PagedResult } from '../types/paged'
 import { apiClient, apiErrorMessage } from './client'
 import { appendListQueryParams, toPagedResult } from './pagination'
 
-/** Mirrors backend TimeEntryTemplateResponse (core fields only). */
+/** Mirrors backend TimeEntryTemplateResponse. */
 interface TimeEntryTemplateResponse {
   id: string
   timeEntryId: string
@@ -15,6 +16,10 @@ interface TimeEntryTemplateResponse {
   endTimeUtc: string | null
   durationSeconds: number
   createdAtUtc: string
+  projectName?: string | null
+  projectColor?: string | null
+  projectTaskName?: string | null
+  tags?: TimeEntryTag[]
 }
 
 function toTemplate(response: TimeEntryTemplateResponse): TimeEntryTemplate {
@@ -29,9 +34,14 @@ function toTemplate(response: TimeEntryTemplateResponse): TimeEntryTemplate {
     endTimeUtc: response.endTimeUtc,
     durationSeconds: response.durationSeconds,
     createdAtUtc: response.createdAtUtc,
-    projectName: null,
-    projectColor: null,
-    taskName: null,
+    projectName: response.projectName ?? null,
+    projectColor: response.projectColor ?? null,
+    taskName: response.projectTaskName ?? null,
+    tags: (response.tags ?? []).map((tag) => ({
+      id: tag.id,
+      name: tag.name,
+      color: tag.color,
+    })),
     isFavourite: true,
     lastUsedAtUtc: response.createdAtUtc,
   }

@@ -166,29 +166,18 @@ export function TimeEntryListItem({
         </button>
 
         {showActions ? (
-          <div className="flex max-w-0 shrink-0 items-center gap-1.5 overflow-hidden opacity-0 transition-[max-width,opacity] duration-200 ease-out group-hover:max-w-[8.5rem] group-hover:opacity-100 group-focus-within:max-w-[8.5rem] group-focus-within:opacity-100">
+          <div className="flex max-w-0 shrink-0 items-center gap-1.5 overflow-hidden opacity-0 transition-[max-width,opacity] duration-200 ease-out group-hover:max-w-[5rem] group-hover:opacity-100 group-focus-within:max-w-[5rem] group-focus-within:opacity-100">
             {canFavourite ? (
-              <>
-                <button
-                  type="button"
-                  title="Add to favourites"
-                  aria-label="Add to favourites"
-                  disabled={isFavouriteBusy || !onFavouriteClick}
-                  onClick={() => onFavouriteClick?.(entry)}
-                  className={ACTION_BUTTON_CLASS}
-                >
-                  <Icon name="star" className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  title="Create entry from template (coming soon)"
-                  aria-label="Create entry from template (coming soon)"
-                  disabled
-                  className={ACTION_BUTTON_CLASS}
-                >
-                  <Icon name="plus" className="h-3.5 w-3.5" />
-                </button>
-              </>
+              <button
+                type="button"
+                title="Add to favourites"
+                aria-label="Add to favourites"
+                disabled={isFavouriteBusy || !onFavouriteClick}
+                onClick={() => onFavouriteClick?.(entry)}
+                className={ACTION_BUTTON_CLASS}
+              >
+                <Icon name="star" className="h-3.5 w-3.5" />
+              </button>
             ) : null}
 
             {canAddMembers ? (

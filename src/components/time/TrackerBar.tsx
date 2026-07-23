@@ -155,6 +155,8 @@ export function TrackerBar() {
       projectName: template.projectName,
       projectColor: template.projectColor,
       projectTaskName: template.taskName,
+      tagIds: template.tags.map((tag) => tag.id),
+      knownTags: template.tags,
       isBillable: template.isBillable,
     })
   }

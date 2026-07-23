@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Icon } from '../ui/Icon'
 import { Modal } from '../ui/Modal'
-import { formatDurationHms } from '../../lib/formatDuration'
-import { formatUtcTimeOfDayLocal } from '../../lib/manualEntry'
 import {
   deleteTimeEntryTemplate,
   listTimeEntryTemplates,
@@ -10,6 +7,7 @@ import {
   timeEntryTemplateApiErrorMessage,
 } from '../../api/timeEntryTemplates'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
+import { TimeEntryTemplateCard } from './TimeEntryTemplateCard'
 
 export function TimeEntryTemplatesPanel({
   selectedTemplateId,
@@ -102,7 +100,7 @@ export function TimeEntryTemplatesPanel({
           className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-navy/15 hover:[&::-webkit-scrollbar-thumb]:bg-navy/25"
         >
           {templates.map((template) => (
-            <TemplateCard
+            <TimeEntryTemplateCard
               key={template.id}
               template={template}
               isSelected={selectedTemplateId === template.id}
@@ -166,96 +164,5 @@ function DeleteFavouriteDialog({
         </button>
       </div>
     </Modal>
-  )
-}
-
-function TemplateCard({
-  template,
-  isSelected,
-  onSelect,
-  onRemove,
-}: {
-  template: TimeEntryTemplate
-  isSelected: boolean
-  onSelect: () => void
-  onRemove: () => void
-}) {
-  const startLabel = formatUtcTimeOfDayLocal(template.startTimeUtc)
-  const endLabel = formatUtcTimeOfDayLocal(template.endTimeUtc)
-  const timeRange =
-    startLabel && endLabel ? `${startLabel} – ${endLabel}` : startLabel ?? null
-
-  return (
-    <article
-      role="button"
-      tabIndex={0}
-      aria-pressed={isSelected}
-      className={`group relative flex w-template-card flex-shrink-0 cursor-pointer flex-col gap-2 rounded-xl border px-3.5 py-3 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-        isSelected
-          ? 'border-brand/45 bg-brand-tint shadow-soft'
-          : 'border-navy/[0.06] bg-surface-muted/35 hover:border-brand/25 hover:bg-brand-tint/40'
-      }`}
-      aria-label={`Use template: ${template.description ?? 'Time entry template'}`}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onSelect()
-        }
-      }}
-    >
-      <button
-        type="button"
-        title="Remove favourite"
-        aria-label="Remove favourite"
-        onClick={(event) => {
-          event.stopPropagation()
-          onRemove()
-        }}
-        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full border border-navy/10 bg-white text-navy/50 opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
-      >
-        <Icon name="x" className="size-icon-sm" />
-      </button>
-
-      <div className="flex items-start gap-2 pr-6">
-        <span
-          aria-hidden="true"
-          className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-gray"
-          style={
-            template.projectColor
-              ? { backgroundColor: template.projectColor }
-              : undefined
-          }
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-caption font-semibold text-navy">
-            {template.projectName ?? 'No project'}
-          </p>
-          {template.taskName ? (
-            <p className="truncate text-micro text-navy/50">{template.taskName}</p>
-          ) : null}
-        </div>
-      </div>
-
-      <p className="line-clamp-2 min-h-[2.5em] text-caption leading-snug text-navy/80">
-        {template.description?.trim() || 'No description'}
-      </p>
-
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-navy/[0.06] pt-2">
-        <div className="min-w-0">
-          <p className="font-mono text-body font-medium tabular-nums text-navy">
-            {formatDurationHms(template.durationSeconds)}
-          </p>
-          {timeRange ? (
-            <p className="truncate text-eyebrow text-navy/45">{timeRange}</p>
-          ) : null}
-        </div>
-        {template.isBillable ? (
-          <span title="Billable">
-            <Icon name="billable" className="size-icon-sm flex-shrink-0 text-navy/40" />
-          </span>
-        ) : null}
-      </div>
-    </article>
   )
 }

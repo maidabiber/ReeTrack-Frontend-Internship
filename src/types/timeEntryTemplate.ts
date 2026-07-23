@@ -1,3 +1,5 @@
+import type { TimeEntryTag } from './timeEntry'
+
 /**
  * Mirrors backend TimeEntryTemplate / TimeEntryTemplateResponse, plus display
  * helpers and a mock-only favourite flag.
@@ -20,6 +22,7 @@ export interface TimeEntryTemplate {
   projectName: string | null
   projectColor: string | null
   taskName: string | null
+  tags: TimeEntryTag[]
 
   /** Mock-only — not on the backend entity yet. */
   isFavourite: boolean

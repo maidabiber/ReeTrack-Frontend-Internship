@@ -55,6 +55,8 @@ export type TimeEntryDraftAction =
       projectName: string | null
       projectColor: string | null
       projectTaskName: string | null
+      tagIds: string[]
+      knownTags: TimeEntryTag[]
       isBillable: boolean
     }
   | { type: 'SYNC_FROM_TIMER'; timer: ActiveTimer }
@@ -107,6 +109,8 @@ export function timeEntryDraftReducer(
         projectName: action.projectName,
         projectColor: action.projectColor,
         projectTaskName: action.projectTaskName,
+        tagIds: action.tagIds,
+        knownTags: action.knownTags,
         isBillable: action.isBillable,
       }
     case 'SYNC_FROM_TIMER':

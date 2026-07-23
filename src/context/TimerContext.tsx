@@ -174,6 +174,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       projectName: string | null
       projectColor: string | null
       projectTaskName: string | null
+      tagIds: string[]
+      knownTags: TimeEntryTag[]
       isBillable: boolean
     }) => {
       dispatchDraft({ type: 'APPLY_TEMPLATE', ...template })
