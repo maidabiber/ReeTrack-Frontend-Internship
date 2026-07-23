@@ -27,7 +27,6 @@ export function MetadataBubble({
           type="button"
           aria-label={`Remove ${label}`}
           onClick={(event) => {
-            console.log(`Removing ${label}`)
             event.stopPropagation()
             onRemove()
           }}

@@ -28,21 +28,24 @@ function IconButton({
   name,
   title,
   active = false,
+  pressed,
   onClick,
 }: {
   name: 'projects' | 'tags' | 'billable'
   title: string
   active?: boolean
+  pressed?: boolean
   onClick?: () => void
 }) {
   return (
     <button
       type="button"
       title={title}
+      aria-pressed={pressed}
       onClick={onClick}
       className={`flex size-control flex-shrink-0 items-center justify-center rounded-md border shadow-soft transition-colors ${
         active
-          ? 'border-brand/40 bg-brand-tint text-navy'
+          ? 'border-brand bg-brand text-white hover:bg-brand-deep'
           : 'border-navy/[0.06] bg-white text-navy/55 hover:border-brand/20 hover:text-navy'
       }`}
     >
@@ -289,10 +292,11 @@ export function TrackerBar() {
             name="billable"
             title={isBillable ? 'Billable' : 'Non-billable'}
             active={isBillable}
+            pressed={isBillable}
             onClick={() => setDraftBillable(!isBillable)}
           />
 
-          {(projectTaskLabel || selectedTags.length > 0 || isBillable) && (
+          {(projectTaskLabel || selectedTags.length > 0) && (
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               {projectTaskLabel ? (
                 <MetadataBubble
@@ -309,13 +313,6 @@ export function TrackerBar() {
                   onRemove={() => removeDraftTag(tag.id)}
                 />
               ))}
-              {isBillable ? (
-                <MetadataBubble
-                  label="Billable"
-                  color="#22C55E"
-                  onRemove={() => setDraftBillable(false)}
-                />
-              ) : null}
             </div>
           )}
 

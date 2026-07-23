@@ -1,7 +1,15 @@
+import { cn } from '../../lib/utils'
+import {
+  MODAL_LABEL_CLASS,
+  MODAL_PICKER_INPUT_CLASS,
+  MODAL_PICKER_VALUE_CLASS,
+  TRACKER_INPUT_CLASS,
+} from '../ui/date-picker/fieldStyles'
+
 export type ManualFieldState = 'default' | 'error' | 'warning'
 
 const MANUAL_FIELD_STYLES: Record<ManualFieldState, string> = {
-  default: 'border-navy/10 focus:border-brand/40',
+  default: 'border-navy/[0.08] focus:border-brand/40',
   error: 'border-orange/30 bg-orange-tint/25 focus:border-orange/45',
   warning: 'border-yellow/35 bg-yellow-tint/40 focus:border-yellow/50',
 }
@@ -47,6 +55,8 @@ export function ManualField({
   disabled,
   fieldState = 'default',
   hint,
+  hideLabel = false,
+  variant = 'modal',
 }: {
   label: string
   type: 'datetime-local' | 'text' | 'date'
@@ -57,24 +67,55 @@ export function ManualField({
   disabled?: boolean
   fieldState?: ManualFieldState
   hint?: string
+  hideLabel?: boolean
+  variant?: 'tracker' | 'modal'
 }) {
+  const isTracker = variant === 'tracker' && hideLabel
+
+  if (isTracker) {
+    return (
+      <label className="block h-9 w-fit">
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          disabled={disabled}
+          aria-label={label}
+          aria-invalid={fieldState === 'error' ? true : undefined}
+          className={cn(
+            TRACKER_INPUT_CLASS,
+            MANUAL_FIELD_STYLES[fieldState],
+            disabled && 'opacity-60',
+            className,
+          )}
+        />
+      </label>
+    )
+  }
+
   return (
-    <label className="flex flex-col gap-1">
-      <span className="font-display text-sm font-semibold uppercase tracking-wide text-navy/45">
-        {label}
-      </span>
+    <div className="flex w-full min-w-0 flex-col">
+      {hideLabel ? null : <span className={MODAL_LABEL_CLASS}>{label}</span>}
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
         disabled={disabled}
+        aria-label={hideLabel ? label : undefined}
         aria-invalid={fieldState === 'error' ? true : undefined}
-        className={`rounded-md border bg-surface-muted px-2.5 py-1.5 text-sm text-navy outline-none transition-colors disabled:opacity-60 ${MANUAL_FIELD_STYLES[fieldState]} ${className}`}
+        className={cn(
+          MODAL_PICKER_INPUT_CLASS,
+          MODAL_PICKER_VALUE_CLASS,
+          MANUAL_FIELD_STYLES[fieldState],
+          disabled && 'opacity-60',
+          className,
+        )}
       />
       {hint ? (
         <span className="text-xs leading-tight text-navy/50">{hint}</span>
       ) : null}
-    </label>
+    </div>
   )
 }

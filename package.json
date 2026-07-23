@@ -14,10 +14,12 @@
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.3",
+    "@internationalized/date": "^3.12.2",
     "boring-avatars": "^2.0.4",
     "clsx": "^2.1.1",
     "papaparse": "^5.5.4",
     "react": "^19.2.7",
+    "react-aria-components": "^1.19.0",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.8.0",

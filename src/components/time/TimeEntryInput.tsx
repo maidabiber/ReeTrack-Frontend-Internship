@@ -1,7 +1,8 @@
-import { forwardRef, useEffect, useImperativeHandle } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo } from 'react'
 import { Icon } from '../ui/Icon'
 import { WeekLockIcon } from '../timesheet/WeekLockBanner'
 import { ManualField, ManualFormNotice } from './ManualField'
+import { ManualDateTimeFields } from './ManualDateTimeFields'
 import { DurationLimitModal } from './durationLimitModal'
 import { OverlapAlertModal } from './overlapAlert'
 import {
@@ -11,7 +12,9 @@ import {
 import type { Teammate } from '../../lib/mention'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
-import { toDatetimeLocalValue } from '../../lib/manualEntry'
+import { dateToCalendarDate } from '../../lib/calendarDate'
+import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
+import { DatePickerField } from '../ui/date-picker/DatePickerField'
 import { TrackerModeMenu, type TrackerMode } from './TrackerModeMenu'
 
 export type TimeEntryInputHandle = {
@@ -85,63 +88,65 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
 
     const { overlapWarning, showOverlapAlert, clearOverlapAlert } = form.overlapAlert
     const isBusy = form.isInitializing || form.isSavingManual
+    const durationEntryDate = useMemo(() => {
+      const parsed = parseDateInput(form.entryDate)
+      return parsed ? dateToCalendarDate(parsed) : dateToCalendarDate(new Date())
+    }, [form.entryDate])
 
     return (
       <>
         <div className="flex min-w-0 flex-col items-end gap-2">
-          <div className="flex flex-wrap items-end justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {variant === 'range' ? (
               <>
-                <ManualField
+                <ManualDateTimeFields
                   label="Start"
-                  type="datetime-local"
-                  value={toDatetimeLocalValue(form.manualEntry.start)}
-                  onChange={form.setStart}
+                  hideLabel
+                  compact
+                  value={form.manualEntry.start}
+                  onChange={(date) => form.setStartFromDate(date)}
                   fieldState={form.timeFieldState}
                   disabled={isBusy}
                 />
-                <ManualField
+                <ManualDateTimeFields
                   label="End"
-                  type="datetime-local"
-                  value={toDatetimeLocalValue(form.manualEntry.end)}
-                  onChange={form.setEnd}
+                  hideLabel
+                  compact
+                  value={form.manualEntry.end}
+                  onChange={(date) => form.setEndFromDate(date)}
                   fieldState={form.timeFieldState}
-                  disabled={isBusy}
-                />
-                <ManualField
-                  label="Duration"
-                  type="text"
-                  value={form.durationInput}
-                  onChange={form.setDuration}
-                  onBlur={form.blurDuration}
-                  hint={form.durationParseError ?? undefined}
-                  fieldState={form.durationParseError ? 'error' : form.durationFieldState}
-                  className="w-manual-time font-mono"
                   disabled={isBusy}
                 />
               </>
             ) : (
-              <>
-                <ManualField
+              <div className="flex items-center gap-2">
+                <DatePickerField
                   label="Date"
-                  type="date"
-                  value={form.entryDate}
-                  onChange={form.setEntryDate}
-                  className="w-duration-date"
+                  hideLabel
+                  compact
+                  value={durationEntryDate}
+                  onChange={(nextDate) =>
+                    form.setEntryDate(
+                      toDateInputValue(
+                        new Date(nextDate.year, nextDate.month - 1, nextDate.day),
+                      ),
+                    )
+                  }
                   disabled={isBusy}
                 />
                 <ManualField
                   label="Duration"
+                  hideLabel
+                  variant="tracker"
                   type="text"
                   value={form.durationInput}
                   onChange={form.setDuration}
                   onBlur={form.blurDuration}
-                  hint={form.durationParseError ?? undefined}
                   fieldState={form.durationParseError ? 'error' : 'default'}
-                  className="w-duration-value font-mono"
+                  className="w-[4.75rem] font-medium tabular-nums"
                   disabled={isBusy}
                 />
-              </>
+              </div>
             )}
 
             {form.weekLock.locked ? (

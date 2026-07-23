@@ -30,6 +30,14 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
   return (
     <div
       className="fixed inset-0 z-100 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-md motion-safe:animate-fade"
@@ -42,17 +50,14 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
       >
-        <div className="relative overflow-hidden rounded-3xl bg-canvas p-modal">
-          {/* Hand-placed brand washes behind the glass (auth-screen character),
-              kept faint so the panel stays the site's neutral paper tone. */}
-          <span
+        <div className="relative rounded-3xl bg-canvas p-modal">
+          <div
             aria-hidden="true"
-            className="absolute -top-16 -right-14 h-40 w-40 rounded-full bg-brand-veil/50"
-          />
-          <span
-            aria-hidden="true"
-            className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-brand-tint/50"
-          />
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+          >
+            <span className="absolute -top-16 -right-14 h-40 w-40 rounded-full bg-brand-veil/50" />
+            <span className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-brand-tint/50" />
+          </div>
 
           <div className="relative">
             <button

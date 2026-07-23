@@ -6,12 +6,12 @@ import {
   createManualEntryFromCalendarEvent,
   formatManualDurationInput,
   MAX_MANUAL_DURATION_SECONDS,
-  parseDatetimeLocal,
   parseDurationInput,
-  toDatetimeLocalValue,
   validateManualEntry,
 } from '../../lib/manualEntry'
 import { Modal } from '../ui/Modal'
+import { ManualDateTimeFields } from './ManualDateTimeFields'
+import { ManualField } from './ManualField'
 
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
@@ -103,37 +103,30 @@ export function CreateEntryModal({
           />
         </div>
 
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <CreateField
+        <div className="mb-3 flex flex-col gap-3">
+          <ManualDateTimeFields
             label="Start"
-            type="datetime-local"
-            value={toDatetimeLocalValue(manualEntry.start)}
-            onChange={(value) => {
-              const parsed = parseDatetimeLocal(value)
-              if (!parsed) return
+            value={manualEntry.start}
+            onChange={(parsed) => {
               setDurationLimitMessage(null)
               overlapAlert.clearOverlapAlert()
               setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
             }}
-            hasError={Boolean(endOrderError)}
+            fieldState={endOrderError ? 'error' : 'default'}
             disabled={isSavingManual}
           />
-          <CreateField
+          <ManualDateTimeFields
             label="End"
-            type="datetime-local"
-            value={toDatetimeLocalValue(manualEntry.end)}
-            onChange={(value) => {
-              const parsed = parseDatetimeLocal(value)
-              if (!parsed) return
+            value={manualEntry.end}
+            onChange={(parsed) => {
               setDurationLimitMessage(null)
               overlapAlert.clearOverlapAlert()
               setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
             }}
-            hint={endOrderError ?? undefined}
-            hasError={Boolean(endOrderError)}
+            fieldState={endOrderError ? 'error' : 'default'}
             disabled={isSavingManual}
           />
-          <CreateField
+          <ManualField
             label="Duration"
             type="text"
             value={durationInput}
@@ -148,6 +141,8 @@ export function CreateEntryModal({
             onBlur={() => setDurationDraft(null)}
             className="font-mono tabular-nums"
             disabled={isSavingManual}
+            hint={endOrderError ?? undefined}
+            fieldState={endOrderError ? 'error' : 'default'}
           />
         </div>
 
@@ -201,44 +196,5 @@ export function CreateEntryModal({
         />
       ) : null}
     </>
-  )
-}
-
-function CreateField({
-  label,
-  type,
-  value,
-  onChange,
-  onBlur,
-  className = '',
-  disabled,
-  hasError = false,
-  hint,
-}: {
-  label: string
-  type: 'datetime-local' | 'text'
-  value: string
-  onChange: (value: string) => void
-  onBlur?: () => void
-  className?: string
-  disabled?: boolean
-  hasError?: boolean
-  hint?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="font-display text-[11.5px] font-semibold text-navy/70">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        disabled={disabled}
-        className={`w-full rounded-[10px] border-[1.5px] px-3 py-[9px] text-[13px] text-navy outline-none focus:border-brand disabled:opacity-60 ${
-          hasError ? 'border-red/40' : 'border-navy/[0.08]'
-        } ${className}`}
-      />
-      {hint ? <span className="text-[11px] leading-tight text-red">{hint}</span> : null}
-    </label>
   )
 }

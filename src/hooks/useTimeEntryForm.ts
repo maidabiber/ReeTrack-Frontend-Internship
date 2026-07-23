@@ -170,6 +170,20 @@ export function useTimeEntryForm({
     setDurationInput(formatManualDurationInput(next.durationSeconds))
   }
 
+  const setStartFromDate = (parsed: Date) => {
+    clearFeedback()
+    const next = applyManualFieldChange(manualEntry, 'start', parsed)
+    setManualEntry(next)
+    setDurationInput(formatManualDurationInput(next.durationSeconds))
+  }
+
+  const setEndFromDate = (parsed: Date) => {
+    clearFeedback()
+    const next = applyManualFieldChange(manualEntry, 'end', parsed)
+    setManualEntry(next)
+    setDurationInput(formatManualDurationInput(next.durationSeconds))
+  }
+
   const setDuration = (value: string) => {
     setDurationInput(value)
     setDurationParseError(null)
@@ -324,6 +338,8 @@ export function useTimeEntryForm({
     overlapAlert,
     setStart,
     setEnd,
+    setStartFromDate,
+    setEndFromDate,
     setDuration,
     blurDuration,
     clearFeedback,

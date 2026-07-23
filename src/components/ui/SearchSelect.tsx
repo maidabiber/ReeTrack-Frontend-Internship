@@ -63,7 +63,7 @@ export function SearchSelect({
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative w-full min-w-0">
       <button
         type="button"
         disabled={disabled}
@@ -91,7 +91,7 @@ export function SearchSelect({
       </button>
 
       {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 z-40 max-h-[280px] w-full min-w-[200px] overflow-hidden rounded-xl bg-white p-menu shadow-dropdown">
+        <div className="absolute inset-x-0 top-[calc(100%+4px)] z-40 max-h-[280px] overflow-hidden rounded-xl bg-white p-menu shadow-dropdown">
           <label className="mb-1 flex items-center gap-1.5 rounded-xs border-control border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
             <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
             <input

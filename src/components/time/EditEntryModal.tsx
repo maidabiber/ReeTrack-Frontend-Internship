@@ -13,15 +13,20 @@ import {
   entryDateToDateInputValue,
   formatManualDurationInput,
   MAX_MANUAL_DURATION_SECONDS,
-  parseDatetimeLocal,
+  parseDateInput,
   parseDurationInput,
-  toDatetimeLocalValue,
+  toDateInputValue,
   validateDurationOnlyEntry,
   validateManualEntry,
 } from '../../lib/manualEntry'
 import type { Task } from '../../types/task'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
+import { ManualDateTimeFields } from './ManualDateTimeFields'
+import { ManualField } from './ManualField'
+import { DatePickerField } from '../ui/date-picker/DatePickerField'
+import { MODAL_LABEL_CLASS } from '../ui/date-picker/fieldStyles'
+import { dateToCalendarDate } from '../../lib/calendarDate'
 
 import { SearchSelect } from '../ui/SearchSelect'
 import { ProjectPicker } from '../pickers/ProjectPicker'
@@ -43,7 +48,6 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const [tagIds, setTagIds] = useState<string[]>(() => entry.tags.map((t) => t.id))
   const [tasks, setTasks] = useState<Task[]>([])
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
-  const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [durationOnlySeconds, setDurationOnlySeconds] = useState(entry.durationSeconds)
   const [durationOnlyInput, setDurationOnlyInput] = useState(() =>
     formatManualDurationInput(entry.durationSeconds),
@@ -55,8 +59,10 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
 
-  const durationInput =
-    durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
+  const durationOnlyCalendarDate = useMemo(() => {
+    const parsed = parseDateInput(durationOnlyDate)
+    return parsed ? dateToCalendarDate(parsed) : dateToCalendarDate(new Date())
+  }, [durationOnlyDate])
 
   const validation = validateManualEntry(manualEntry, [], null)
   const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
@@ -212,9 +218,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         {weekLock.locked && <WeekLockBanner status={weekLock.status} className="mb-4 rounded-lg bg-surface-muted px-3.5 py-2.5" />}
 
         <div className="mb-3">
-          <label className="mb-1.5 block font-display text-label font-semibold text-navy/70">
-            Description
-          </label>
+          <span className={MODAL_LABEL_CLASS}>Description</span>
           <input
             className="w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand"
             placeholder="What did you work on?"
@@ -225,121 +229,130 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         </div>
 
         {isDurationOnly ? (
-          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <EditField
-              label="Date"
-              type="date"
-              value={durationOnlyDate}
-              onChange={setDurationOnlyDate}
-              disabled={isSavingEdit}
-            />
-            <EditField
-              label="Duration"
-              type="text"
-              value={durationOnlyInput}
-              onChange={(value) => {
-                setDurationOnlyInput(value)
-                setDurationParseError(null)
-                setDurationLimitMessage(null)
-                const parsed = parseDurationInput(value)
-                if (parsed === null) return
-                setDurationOnlySeconds(parsed)
-              }}
-              onBlur={() => {
-                const parsed = parseDurationInput(durationOnlyInput)
-                if (durationOnlyInput.trim() && parsed === null) {
-                  setDurationParseError('Use 1:30 or 1:30:00')
-                  return
+          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
+            <div className="min-w-0">
+              <DatePickerField
+                variant="modal"
+                label="Date"
+                value={durationOnlyCalendarDate}
+                onChange={(nextDate) =>
+                  setDurationOnlyDate(
+                    toDateInputValue(new Date(nextDate.year, nextDate.month - 1, nextDate.day)),
+                  )
                 }
-                setDurationParseError(null)
-                setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
-              }}
-              className="font-mono tabular-nums"
-              hasError={Boolean(durationParseError)}
-              hint={durationParseError ?? undefined}
-              disabled={isSavingEdit}
-            />
+                disabled={isSavingEdit}
+              />
+            </div>
+            <div className="min-w-0">
+              <ManualField
+                variant="modal"
+                label="Duration"
+                type="text"
+                value={durationOnlyInput}
+                onChange={(value) => {
+                  setDurationOnlyInput(value)
+                  setDurationParseError(null)
+                  setDurationLimitMessage(null)
+                  const parsed = parseDurationInput(value)
+                  if (parsed === null) return
+                  setDurationOnlySeconds(parsed)
+                }}
+                onBlur={() => {
+                  const parsed = parseDurationInput(durationOnlyInput)
+                  if (durationOnlyInput.trim() && parsed === null) {
+                    setDurationParseError('Use 1:30 or 1:30:00')
+                    return
+                  }
+                  setDurationParseError(null)
+                  setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
+                }}
+                fieldState={durationParseError ? 'error' : 'default'}
+                hint={durationParseError ?? undefined}
+                disabled={isSavingEdit}
+              />
+            </div>
+            <div className="min-w-0">
+              <span className={MODAL_LABEL_CLASS}>Project</span>
+              <ProjectPicker
+                value={projectId}
+                onChange={handleProjectChange}
+                allowClear
+                disabled={isSavingEdit}
+                placeholder="No project"
+              />
+            </div>
+            <div className="min-w-0">
+              <span className={MODAL_LABEL_CLASS}>Task</span>
+              <SearchSelect
+                ariaLabel="Task"
+                options={taskOptions}
+                value={projectTaskId}
+                onChange={setProjectTaskId}
+                placeholder={projectId ? 'No task' : 'Select a project first'}
+                searchPlaceholder="Search tasks…"
+                allowClear
+                disabled={isSavingEdit || !projectId}
+              />
+            </div>
           </div>
         ) : (
-          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <EditField
-              label="Start"
-              type="datetime-local"
-              value={toDatetimeLocalValue(manualEntry.start)}
-              onChange={(value) => {
-                const parsed = parseDatetimeLocal(value)
-                if (!parsed) return
-                setDurationLimitMessage(null)
-                overlapAlert.clearOverlapAlert()
-                setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
-              }}
-              hasError={Boolean(endOrderError)}
-              disabled={isSavingEdit}
-            />
-            <EditField
-              label="End"
-              type="datetime-local"
-              value={toDatetimeLocalValue(manualEntry.end)}
-              onChange={(value) => {
-                const parsed = parseDatetimeLocal(value)
-                if (!parsed) return
-                setDurationLimitMessage(null)
-                overlapAlert.clearOverlapAlert()
-                setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
-              }}
-              hint={endOrderError ?? undefined}
-              hasError={Boolean(endOrderError)}
-              disabled={isSavingEdit}
-            />
-            <EditField
-              label="Duration"
-              type="text"
-              value={durationInput}
-              onChange={(value) => {
-                setDurationDraft(value)
-                setDurationLimitMessage(null)
-                overlapAlert.clearOverlapAlert()
-                const parsed = parseDurationInput(value)
-                if (parsed === null) return
-                setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
-              }}
-              onBlur={() => setDurationDraft(null)}
-              className="font-mono tabular-nums"
-              disabled={isSavingEdit}
-            />
+          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
+            <div className="min-w-0">
+              <ManualDateTimeFields
+                variant="modal"
+                label="Start"
+                value={manualEntry.start}
+                onChange={(parsed) => {
+                  setDurationLimitMessage(null)
+                  overlapAlert.clearOverlapAlert()
+                  setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
+                }}
+                fieldState={endOrderError ? 'error' : 'default'}
+                disabled={isSavingEdit}
+              />
+            </div>
+            <div className="min-w-0">
+              <ManualDateTimeFields
+                variant="modal"
+                label="End"
+                value={manualEntry.end}
+                onChange={(parsed) => {
+                  setDurationLimitMessage(null)
+                  overlapAlert.clearOverlapAlert()
+                  setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
+                }}
+                fieldState={endOrderError ? 'error' : 'default'}
+                disabled={isSavingEdit}
+              />
+            </div>
+            <div className="min-w-0">
+              <span className={MODAL_LABEL_CLASS}>Project</span>
+              <ProjectPicker
+                value={projectId}
+                onChange={handleProjectChange}
+                allowClear
+                disabled={isSavingEdit}
+                placeholder="No project"
+              />
+            </div>
+            <div className="min-w-0">
+              <span className={MODAL_LABEL_CLASS}>Task</span>
+              <SearchSelect
+                ariaLabel="Task"
+                options={taskOptions}
+                value={projectTaskId}
+                onChange={setProjectTaskId}
+                placeholder={projectId ? 'No task' : 'Select a project first'}
+                searchPlaceholder="Search tasks…"
+                allowClear
+                disabled={isSavingEdit || !projectId}
+              />
+            </div>
           </div>
         )}
 
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="font-display text-label font-semibold text-navy/70">Project</span>
-            <ProjectPicker
-              value={projectId}
-              onChange={handleProjectChange}
-              allowClear
-              disabled={isSavingEdit}
-              placeholder="No project"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="font-display text-label font-semibold text-navy/70">Task</span>
-            <SearchSelect
-              ariaLabel="Task"
-              options={taskOptions}
-              value={projectTaskId}
-              onChange={setProjectTaskId}
-              placeholder={projectId ? 'No task' : 'Select a project first'}
-              searchPlaceholder="Search tasks…"
-              allowClear
-              disabled={isSavingEdit || !projectId}
-            />
-          </label>
-        </div>
-
         <div className="mb-3">
-          <span className="mb-1.5 block font-display text-label font-semibold text-navy/70">
-            Tags
-          </span>
+          <span className={MODAL_LABEL_CLASS}>Tags</span>
           <TagMultiSelect
             knownTags={entry.tags}
             selectedIds={tagIds}
@@ -398,44 +411,5 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
         />
       ) : null}
     </>
-  )
-}
-
-function EditField({
-  label,
-  type,
-  value,
-  onChange,
-  onBlur,
-  className = '',
-  disabled,
-  hasError = false,
-  hint,
-}: {
-  label: string
-  type: 'datetime-local' | 'text' | 'date'
-  value: string
-  onChange: (value: string) => void
-  onBlur?: () => void
-  className?: string
-  disabled?: boolean
-  hasError?: boolean
-  hint?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="font-display text-label font-semibold text-navy/70">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        disabled={disabled}
-        className={`w-full rounded-md border-control px-3 py-field text-body text-navy outline-none focus:border-brand disabled:opacity-60 ${
-          hasError ? 'border-red/40' : 'border-navy/[0.08]'
-        } ${className}`}
-      />
-      {hint ? <span className="text-xs leading-tight text-red">{hint}</span> : null}
-    </label>
   )
 }

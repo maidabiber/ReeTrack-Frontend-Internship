@@ -118,7 +118,7 @@ export function TimeEntryListItem({
               ))}
               {entry.isBillable ? (
                 <span className="inline-flex items-center gap-1.5 font-medium text-navy/70">
-                  <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green" />
+                  <span aria-hidden="true" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand" />
                   Billable
                 </span>
               ) : null}
@@ -127,12 +127,18 @@ export function TimeEntryListItem({
                 entry.projectName ||
                 entry.tags.length > 0 ||
                 entry.isBillable) &&
-              (entry.mode === 'Manual' || entry.startedAtUtc) ? (
+              (entry.mode === 'Manual' ||
+                entry.mode === 'DurationOnly' ||
+                entry.mode === 'Timer' ||
+                entry.startedAtUtc) ? (
                 <span aria-hidden="true">·</span>
               ) : null}
               {entry.mode === 'Manual' ? <span>Manual</span> : null}
               {entry.mode === 'DurationOnly' ? <span>Duration only</span> : null}
-              {(entry.mode === 'Manual' || entry.mode === 'DurationOnly') &&
+              {entry.mode === 'Timer' ? <span>Timer</span> : null}
+              {(entry.mode === 'Manual' ||
+                entry.mode === 'DurationOnly' ||
+                entry.mode === 'Timer') &&
               entry.startedAtUtc ? (
                 <span aria-hidden="true">·</span>
               ) : null}

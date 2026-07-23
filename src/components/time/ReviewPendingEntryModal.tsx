@@ -5,13 +5,10 @@ import {
   updatePendingTimeEntry,
 } from '../../api/timeEntries'
 import { Modal } from '../ui/Modal'
+import { ManualDateTimeFields } from './ManualDateTimeFields'
 import {
   applyManualFieldChange,
   createManualEntryFromTimeEntry,
-  formatManualDurationInput,
-  parseDatetimeLocal,
-  parseDurationInput,
-  toDatetimeLocalValue,
   validateManualEntry,
 } from '../../lib/manualEntry'
 import type { TimeEntry } from '../../types/timeEntry'
@@ -36,14 +33,10 @@ export function ReviewPendingEntryModal({
   const [description, setDescription] = useState(entry.description ?? '')
   const [isBillable, setIsBillable] = useState(entry.isBillable)
   const [manualEntry, setManualEntry] = useState(() => createManualEntryFromTimeEntry(entry))
-  const [durationDraft, setDurationDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isApproving, setIsApproving] = useState(false)
-
-  const durationInput =
-    durationDraft ?? formatManualDurationInput(manualEntry.durationSeconds)
 
   const validation = validateManualEntry(
     manualEntry,
@@ -128,47 +121,33 @@ export function ReviewPendingEntryModal({
           />
         </div>
 
-        <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <PendingField
-            label="Start"
-            type="datetime-local"
-            value={toDatetimeLocalValue(manualEntry.start)}
-            onChange={(value) => {
-              const parsed = parseDatetimeLocal(value)
-              if (!parsed) return
-              setOverlapWarning(null)
-              setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
-            }}
-            disabled={isSaving || isApproving}
-          />
-          <PendingField
-            label="End"
-            type="datetime-local"
-            value={toDatetimeLocalValue(manualEntry.end)}
-            onChange={(value) => {
-              const parsed = parseDatetimeLocal(value)
-              if (!parsed) return
-              setOverlapWarning(null)
-              setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
-            }}
-            hint={endOrderError ?? undefined}
-            disabled={isSaving || isApproving}
-          />
-          <PendingField
-            label="Duration"
-            type="text"
-            value={durationInput}
-            onChange={(value) => {
-              setDurationDraft(value)
-              setOverlapWarning(null)
-              const parsed = parseDurationInput(value)
-              if (parsed === null) return
-              setManualEntry((current) => applyManualFieldChange(current, 'duration', parsed))
-            }}
-            onBlur={() => setDurationDraft(null)}
-            className="font-mono tabular-nums"
-            disabled={isSaving || isApproving}
-          />
+        <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
+          <div className="min-w-0">
+            <ManualDateTimeFields
+              variant="modal"
+              label="Start"
+              value={manualEntry.start}
+              onChange={(parsed) => {
+                setOverlapWarning(null)
+                setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
+              }}
+              fieldState={endOrderError ? 'error' : 'default'}
+              disabled={isSaving || isApproving}
+            />
+          </div>
+          <div className="min-w-0">
+            <ManualDateTimeFields
+              variant="modal"
+              label="End"
+              value={manualEntry.end}
+              onChange={(parsed) => {
+                setOverlapWarning(null)
+                setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
+              }}
+              fieldState={endOrderError ? 'error' : 'default'}
+              disabled={isSaving || isApproving}
+            />
+          </div>
         </div>
 
         <label className="mb-3 flex cursor-pointer items-center gap-2.5">
@@ -220,40 +199,5 @@ export function ReviewPendingEntryModal({
         />
       ) : null}
     </>
-  )
-}
-
-function PendingField({
-  label,
-  type,
-  value,
-  onChange,
-  onBlur,
-  className = '',
-  disabled,
-  hint,
-}: {
-  label: string
-  type: 'datetime-local' | 'text'
-  value: string
-  onChange: (value: string) => void
-  onBlur?: () => void
-  className?: string
-  disabled?: boolean
-  hint?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="font-display text-label font-semibold text-navy/70">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        disabled={disabled}
-        className={`w-full rounded-md border-control border-navy/[0.08] px-3 py-field text-body text-navy outline-none focus:border-brand disabled:opacity-60 ${className}`}
-      />
-      {hint ? <span className="text-xs leading-tight text-red">{hint}</span> : null}
-    </label>
   )
 }
