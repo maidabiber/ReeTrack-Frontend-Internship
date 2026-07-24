@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { listTags } from '../../api/tags'
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import type { Tag } from '../../types/tag'
 import { Icon } from '../ui/Icon'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
 /**
  * Multi-select tag control: selected tags render as removable chips, and a
@@ -83,14 +84,8 @@ export function TagMultiSelect({
     [loadedTags],
   )
 
-  useEffect(() => {
-    if (!open || isPopover) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open, isPopover])
+  // A popover variant is dismissed by its own container, not by this listener.
+  useDismissOnOutside(rootRef, open && !isPopover, () => setOpen(false))
 
   const toggle = (id: string) => {
     const nextIds = selectedSet.has(id)

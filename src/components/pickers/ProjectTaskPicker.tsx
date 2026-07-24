@@ -5,6 +5,7 @@ import { usePaginatedList } from '../../hooks/usePaginatedList'
 import type { Project } from '../../types/project'
 import type { Task } from '../../types/task'
 import { Icon } from '../ui/Icon'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
 export type ProjectTaskSelection = {
   projectId: string | null
@@ -91,17 +92,7 @@ export function ProjectTaskPicker({
     onOpenChange(false)
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setQuery('')
-        onOpenChange(false)
-      }
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open, onOpenChange])
+  useDismissOnOutside(rootRef, open, close)
 
   const selectedFromList = useMemo(
     () => projects.find((p) => p.id === projectId) ?? null,

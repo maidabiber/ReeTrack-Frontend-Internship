@@ -21,6 +21,7 @@ import { usePomodoro } from '../../hooks/usePomodoro'
 import { useTimer } from '../../hooks/useTimer'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 import { SmartParseButton } from './SmartParseButton'
 import { SmartParseDescriptionField } from './SmartParseDescriptionField'
 import { parseSmartTimeEntry } from '../../api/smartTimeParse'
@@ -116,16 +117,7 @@ export function TrackerBar() {
     isBillable,
   } = draft
 
-  useEffect(() => {
-    if (!tagsPickerOpen) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (tagsButtonRef.current && !tagsButtonRef.current.contains(event.target as Node)) {
-        setTagsPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [tagsPickerOpen])
+  useDismissOnOutside(tagsButtonRef, tagsPickerOpen, () => setTagsPickerOpen(false))
 
   const clearShareNotice = () => setShareNotice(null)
 

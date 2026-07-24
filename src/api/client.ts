@@ -26,6 +26,12 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
 }
 
+export interface BlobDownload {
+  blob: Blob
+  /** Filename from Content-Disposition when the server provides one. */
+  filename: string | null
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options
 
@@ -53,6 +59,38 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return payload as T
 }
 
+/**
+ * Binary download helper (exports). Keeps credentials:'include' and surfaces
+ * API errors through ApiError so a 403 shows a message instead of a bogus file.
+ */
+export async function requestBlob(path: string, options: RequestOptions = {}): Promise<BlobDownload> {
+  const { body, headers, ...rest } = options
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...rest,
+    credentials: 'include',
+    headers: {
+      Accept: '*/*',
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...headers,
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearSession()
+    }
+
+    const payload = await parseBody(response)
+    throw new ApiError(response.status, response.statusText, payload)
+  }
+
+  const blob = await response.blob()
+  const filename = parseContentDispositionFilename(response.headers.get('Content-Disposition'))
+  return { blob, filename }
+}
+
 async function parseBody(response: Response): Promise<unknown> {
   if (response.status === 204) return null
 
@@ -61,6 +99,23 @@ async function parseBody(response: Response): Promise<unknown> {
     return response.json()
   }
   return response.text()
+}
+
+/** Pulls filename / filename* from a Content-Disposition header. */
+export function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null
+
+  const utf8 = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header)
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1].trim().replace(/^"|"$/g, ''))
+    } catch {
+      return utf8[1].trim().replace(/^"|"$/g, '')
+    }
+  }
+
+  const plain = /filename\s*=\s*("?)([^";]+)\1/i.exec(header)
+  return plain?.[2]?.trim() ?? null
 }
 
 /**

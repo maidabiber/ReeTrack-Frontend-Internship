@@ -34,6 +34,8 @@ export type IconName =
   | 'lock'
   | 'x'
   | 'more'
+  | 'download'
+  | 'alert'
   | 'sparkle'
 
 // Feather-style line icons (24x24, stroke-based) lifted from the mockups.
@@ -201,6 +203,20 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
     <>
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
     </>
   ),
   sparkle: (

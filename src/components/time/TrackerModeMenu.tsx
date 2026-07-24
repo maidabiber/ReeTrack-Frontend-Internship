@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Icon } from '../ui/Icon'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
 export type TrackerMode = 'timer' | 'manual' | 'duration' | 'templates'
 
@@ -32,16 +33,7 @@ export function TrackerModeMenu({
   // Keep the menu closed while disabled without an effect.
   const menuOpen = open && !disabled
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [menuOpen])
+  useDismissOnOutside(rootRef, menuOpen, () => setOpen(false))
 
   return (
     <div ref={rootRef} className="relative">

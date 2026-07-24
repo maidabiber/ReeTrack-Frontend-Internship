@@ -1,3 +1,4 @@
+import { downloadBlob } from '../lib/download'
 import type {
   DayOfWeekHours,
   MemberHours,
@@ -6,7 +7,7 @@ import type {
   SummaryReport,
   TrendPoint,
 } from '../types/report'
-import { apiClient } from './client'
+import { apiClient, requestBlob } from './client'
 
 /** Mirrors backend SummaryReportResponse (camelCase JSON). */
 interface SummaryReportResponse {
@@ -16,6 +17,16 @@ interface SummaryReportResponse {
   projects: ProjectSummaryResponse[]
   members: MemberHoursResponse[]
   generatedAtUtc: string
+  firstEntryDate: string | null
+  generatedByName: string | null
+  basis: ReportBasisResponse
+}
+
+interface ReportBasisResponse {
+  weekendPremium: number
+  holidayPremium: number
+  overtimePremium: number
+  weeklyOvertimeThresholdHours: number
 }
 
 interface ReportKpisResponse {
@@ -29,6 +40,7 @@ interface ReportKpisResponse {
   overtimeHours: number
   weekendHours: number
   holidayHours: number
+  unassignedSeconds: number
 }
 
 interface DayOfWeekHoursResponse {
@@ -47,9 +59,20 @@ interface ProjectSummaryResponse {
   currencyCode: string
   totalSeconds: number
   calculatedCost: number
+  normalCost: number
+  weekendCost: number
+  holidayCost: number
+  overtimeCost: number
   overtimeHours: number
   weekendHours: number
   holidayHours: number
+  clientName: string
+  status: string
+  hourlyRate: number | null
+  fixedFeeAmount: number | null
+  timeEstimateHours: number | null
+  estimateUsedPct: number | null
+  fixedFeeMargin: number | null
 }
 
 interface MemberHoursResponse {
@@ -57,6 +80,8 @@ interface MemberHoursResponse {
   displayName: string
   totalSeconds: number
 }
+
+export type ReportExportFormat = 'csv' | 'xlsx' | 'pdf'
 
 function toKpis(response: ReportKpisResponse): ReportKpis {
   return {
@@ -70,6 +95,7 @@ function toKpis(response: ReportKpisResponse): ReportKpis {
     overtimeHours: response.overtimeHours,
     weekendHours: response.weekendHours,
     holidayHours: response.holidayHours,
+    unassignedSeconds: response.unassignedSeconds,
   }
 }
 
@@ -94,9 +120,20 @@ function toProjectSummary(response: ProjectSummaryResponse): ProjectSummary {
     currencyCode: response.currencyCode,
     totalSeconds: response.totalSeconds,
     calculatedCost: response.calculatedCost,
+    normalCost: response.normalCost,
+    weekendCost: response.weekendCost,
+    holidayCost: response.holidayCost,
+    overtimeCost: response.overtimeCost,
     overtimeHours: response.overtimeHours,
     weekendHours: response.weekendHours,
     holidayHours: response.holidayHours,
+    clientName: response.clientName,
+    status: response.status,
+    hourlyRate: response.hourlyRate,
+    fixedFeeAmount: response.fixedFeeAmount,
+    timeEstimateHours: response.timeEstimateHours,
+    estimateUsedPct: response.estimateUsedPct,
+    fixedFeeMargin: response.fixedFeeMargin,
   }
 }
 
@@ -116,10 +153,30 @@ function toSummaryReport(response: SummaryReportResponse): SummaryReport {
     projects: response.projects.map(toProjectSummary),
     members: response.members.map(toMemberHours),
     generatedAtUtc: response.generatedAtUtc,
+    firstEntryDate: response.firstEntryDate,
+    generatedByName: response.generatedByName,
+    basis: {
+      weekendPremium: response.basis.weekendPremium,
+      holidayPremium: response.basis.holidayPremium,
+      overtimePremium: response.basis.overtimePremium,
+      weeklyOvertimeThresholdHours: response.basis.weeklyOvertimeThresholdHours,
+    },
   }
 }
 
 /** Admin portfolio summary — GET /api/reports/summary. */
 export function getSummaryReport(): Promise<SummaryReport> {
   return apiClient.get<SummaryReportResponse>('/reports/summary').then(toSummaryReport)
+}
+
+const EXPORT_FALLBACK_NAME: Record<ReportExportFormat, string> = {
+  csv: 'reetrack-summary.csv',
+  xlsx: 'reetrack-summary.xlsx',
+  pdf: 'reetrack-summary.pdf',
+}
+
+/** Downloads the summary report as CSV / Excel / PDF. */
+export async function downloadSummaryReport(format: ReportExportFormat): Promise<void> {
+  const { blob, filename } = await requestBlob(`/reports/summary/export?format=${format}`)
+  downloadBlob(filename ?? EXPORT_FALLBACK_NAME[format], blob)
 }

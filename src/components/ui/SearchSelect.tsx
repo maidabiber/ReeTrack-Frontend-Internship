@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
 export interface SearchSelectOption {
   value: string
@@ -41,15 +42,7 @@ export function SearchSelect({
 
   const selected = useMemo(() => options.find((o) => o.value === value) ?? null, [options, value])
 
-  // Close on outside click.
-  useEffect(() => {
-    if (!open) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open])
+  useDismissOnOutside(rootRef, open, () => setOpen(false))
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

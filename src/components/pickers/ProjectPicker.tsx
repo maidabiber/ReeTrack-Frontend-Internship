@@ -3,6 +3,7 @@ import { getProject, listProjects, type ProjectStatusFilter } from '../../api/pr
 import { usePaginatedList } from '../../hooks/usePaginatedList'
 import type { Project } from '../../types/project'
 import { Icon } from '../ui/Icon'
+import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
 /**
  * Single-select project dropdown, grouped by client, with each project's accent
@@ -67,14 +68,7 @@ export function ProjectPicker({
     }
   }, [value, selectedFromList])
 
-  useEffect(() => {
-    if (!open) return
-    const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    return () => document.removeEventListener('mousedown', onPointerDown)
-  }, [open])
+  useDismissOnOutside(rootRef, open, () => setOpen(false))
 
   const groups = useMemo(() => {
     const byClient = new Map<string, Project[]>()
