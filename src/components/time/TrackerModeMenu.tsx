@@ -2,13 +2,12 @@ import { useRef, useState } from 'react'
 import { Icon } from '../ui/Icon'
 import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 
-export type TrackerMode = 'timer' | 'manual' | 'duration' | 'templates'
+export type TrackerMode = 'timer' | 'manual' | 'duration'
 
 const MODE_OPTIONS: { value: TrackerMode; label: string }[] = [
   { value: 'timer', label: 'Timer' },
   { value: 'manual', label: 'Manual' },
   { value: 'duration', label: 'Duration' },
-  { value: 'templates', label: 'Templates' },
 ]
 
 /**

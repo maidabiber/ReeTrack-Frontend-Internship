@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MentionDescriptionField } from './MentionDescriptionField'
 import { TimeEntryTemplatesPanel } from './TimeEntryTemplatesPanel'
+import { TimeEntrySuggestionsPanel } from './TimeEntrySuggestionsPanel'
 import {
   TimeEntryInput,
   type TimeEntryInputHandle,
@@ -221,16 +222,14 @@ export function TrackerBar() {
   }
 
   const switchMode = (mode: TrackerMode) => {
-    if ((mode === 'manual' || mode === 'duration' || mode === 'templates') && isRunning) {
+    if ((mode === 'manual' || mode === 'duration') && isRunning) {
       return
     }
     setTrackerMode(mode)
     clearShareNotice()
     exitSmartParseMode()
     clearPendingSmartParseSave()
-    if (mode !== 'templates') {
-      clearTemplateSelection()
-    }
+    clearTemplateSelection()
   }
 
   const dismissPendingSmartParse = () => {
@@ -285,14 +284,18 @@ export function TrackerBar() {
       timerRef.current?.toggle()
       return
     }
-    if (trackerMode === 'manual' || trackerMode === 'templates' || trackerMode === 'duration') {
+    if (trackerMode === 'manual' || trackerMode === 'duration') {
       void entryRef.current?.saveEntry()
     }
   }
 
   const handleSelectTemplate = (template: TimeEntryTemplate) => {
+    if (isRunning) return
+
     templateNonceRef.current += 1
     clearShareNotice()
+    exitSmartParseMode()
+    clearPendingSmartParseSave()
     setSelectedTemplateId(template.id)
     setTemplateSeed({
       template,
@@ -309,6 +312,7 @@ export function TrackerBar() {
       knownTags: template.tags,
       isBillable: template.isBillable,
     })
+    setTrackerMode(isDurationOnlyTemplate(template) ? 'duration' : 'manual')
   }
 
   const handleClearDescriptionAndAssociations = () => {
@@ -326,14 +330,7 @@ export function TrackerBar() {
   const selectedTags = knownTags.filter((tag) => tagIds.includes(tag.id))
 
   const entryVariant =
-    trackerMode === 'timer'
-      ? null
-      : trackerMode === 'duration' ||
-          (trackerMode === 'templates' &&
-            templateSeed != null &&
-            isDurationOnlyTemplate(templateSeed.template))
-        ? 'duration'
-        : 'range'
+    trackerMode === 'timer' ? null : trackerMode === 'duration' ? 'duration' : 'range'
 
   const descriptionDisabled = isInitializing || isToggling || isSavingManual
 
@@ -581,7 +578,7 @@ export function TrackerBar() {
                 mode={trackerMode}
                 onModeChange={switchMode}
                 modeMenuDisabled={isRunning}
-                templateSeed={trackerMode === 'templates' ? templateSeed : null}
+                templateSeed={templateSeed}
                 smartParseSeed={smartParseSeed}
               />
             ) : null}
@@ -589,14 +586,16 @@ export function TrackerBar() {
         </div>
       </div>
 
-      {trackerMode === 'templates' ? (
-        <div className="mt-3">
-          <TimeEntryTemplatesPanel
-            selectedTemplateId={selectedTemplateId}
-            onSelectTemplate={handleSelectTemplate}
-          />
-        </div>
-      ) : null}
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <TimeEntrySuggestionsPanel
+          selectedTemplateId={selectedTemplateId}
+          onSelectSuggestion={handleSelectTemplate}
+        />
+        <TimeEntryTemplatesPanel
+          selectedTemplateId={selectedTemplateId}
+          onSelectTemplate={handleSelectTemplate}
+        />
+      </div>
     </>
   )
 }

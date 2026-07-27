@@ -13,7 +13,7 @@ export function TimeEntryTemplateCard({
   template: TimeEntryTemplate
   isSelected: boolean
   onSelect: () => void
-  onRemove: () => void
+  onRemove?: () => void
 }) {
   const startLabel = formatUtcTimeOfDayLocal(template.startTimeUtc)
   const endLabel = formatUtcTimeOfDayLocal(template.endTimeUtc)
@@ -45,20 +45,26 @@ export function TimeEntryTemplateCard({
         }
       }}
     >
-      <button
-        type="button"
-        title="Remove favourite"
-        aria-label="Remove favourite"
-        onClick={(event) => {
-          event.stopPropagation()
-          onRemove()
-        }}
-        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full border border-navy/10 bg-white text-navy/50 opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
-      >
-        <Icon name="x" className="size-icon-sm" />
-      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          title="Remove favourite"
+          aria-label="Remove favourite"
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
+          className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full border border-navy/10 bg-white text-navy/50 opacity-0 shadow-soft transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-brand/30 hover:bg-brand-tint hover:text-navy"
+        >
+          <Icon name="x" className="size-icon-sm" />
+        </button>
+      ) : null}
 
-      <p className="line-clamp-2 min-h-[2.5em] pr-6 text-caption leading-snug text-navy/80">
+      <p
+        className={`line-clamp-2 min-h-[2.5em] text-caption leading-snug text-navy/80 ${
+          onRemove ? 'pr-6' : ''
+        }`}
+      >
         {template.description?.trim() || 'No description'}
       </p>
 
