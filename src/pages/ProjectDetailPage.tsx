@@ -216,7 +216,7 @@ export default function ProjectDetailPage() {
             label="Fixed fee"
             value={formatMoney(project.fixedFeeAmount, project.currencyCode) ?? '—'}
           />
-          <InfoRow label="Planned vs actual" value={formatPlannedVsActual(project)} />
+          <InfoRow label="Actual / planned" value={formatPlannedVsActual(project)} />
           <InfoRow label="Created" value={formatDate(project.createdAtUtc)} />
         </div>
 
