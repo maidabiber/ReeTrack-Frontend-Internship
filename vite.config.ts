@@ -15,6 +15,39 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Keep heavy deps in their own chunks so the eager Timer shell stays
+        // under the 500 kB warning even with react-aria on the landing page.
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](?:react-dom|react-router(?:-dom)?|scheduler|react)(?:[\\/]|$)/,
+              priority: 40,
+            },
+            {
+              name: 'recharts',
+              test: /node_modules[\\/]recharts(?:[\\/]|$)/,
+              priority: 30,
+            },
+            {
+              name: 'react-aria',
+              test: /node_modules[\\/](?:react-aria-components|@internationalized)(?:[\\/]|$)/,
+              priority: 25,
+            },
+            {
+              name: 'dicebear',
+              test: /node_modules[\\/]@dicebear(?:[\\/]|$)/,
+              priority: 20,
+            },
+          ],
+        },
+        strictExecutionOrder: true,
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

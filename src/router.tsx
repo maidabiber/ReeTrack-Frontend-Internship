@@ -3,20 +3,22 @@ import { AuthGate } from './components/auth/AuthGate'
 import { PublicAuthPage } from './components/auth/PublicAuthPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ALL_NAV_ITEMS } from './config/navigation'
-import PlaceholderPage from './pages/PlaceholderPage'
 import TimerPage from './pages/TimerPage'
-import MembersPage from './pages/MembersPage'
-import BillableRatesPage from './pages/BillableRatesPage'
-import ClientsPage from './pages/ClientsPage'
-import ProjectsPage from './pages/ProjectsPage'
-import ProjectDetailPage from './pages/ProjectDetailPage'
-import TagsPage from './pages/TagsPage'
-import ApprovalsPage from './pages/ApprovalsPage'
-import ReportsPage from './pages/ReportsPage'
-import TimesheetReviewPage from './pages/TimesheetReviewPage'
-import OnboardingPage from './pages/OnboardingPage'
-import SignInPage from './pages/SignInPage'
-import ProfilePage from './pages/ProfilePage'
+import {
+  ApprovalsPage,
+  BillableRatesPage,
+  ClientsPage,
+  MembersPage,
+  OnboardingPage,
+  PlaceholderPage,
+  ProfilePage,
+  ProjectDetailPage,
+  ProjectsPage,
+  ReportsPage,
+  SignInPage,
+  TagsPage,
+  TimesheetReviewPage,
+} from './pages/lazyPages'
 
 // Screens that have a real implementation; everything else falls back to a
 // PlaceholderPage until its own screen is built.

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { FloatingPomodoroWidget } from '../time/FloatingPomodoroWidget'
@@ -12,7 +13,15 @@ export function AppLayout() {
     <div className="min-h-screen bg-canvas text-navy">
       <Sidebar />
       <main className="ml-[216px] flex min-h-screen min-w-0 flex-col">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center px-10 py-16 text-body text-navy/50">
+              Loading…
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
       <FloatingPomodoroWidget />
     </div>

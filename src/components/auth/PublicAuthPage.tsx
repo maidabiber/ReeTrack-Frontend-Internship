@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getSetupStatus } from '../../api/setup'
@@ -59,5 +59,15 @@ export function PublicAuthPage({
     return <Navigate to="/" replace />
   }
 
-  return children
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-white text-navy">
+          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-navy/20 border-t-navy" />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  )
 }
