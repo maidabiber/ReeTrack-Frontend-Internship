@@ -28,7 +28,7 @@ import { WeekEntriesList } from './WeekEntriesList'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
 import { billableSplit, hoursPerDay, projectTotals } from '../../lib/timesheetStats'
-import { invalidateWeekLock } from '../../hooks/useWeekLock'
+import { syncWeekLock } from '../../hooks/useWeekLock'
 import type { MyWeekTimesheet, WeekStatus, WeekSummary } from '../../types/timesheet'
 
 
@@ -107,6 +107,8 @@ export function TimesheetView() {
         setWeek(weekData)
         setError(null)
         setFetchedWeek(weekStartIso)
+        // Keep timer/calendar lock in sync (e.g. unlock after an admin send-back).
+        syncWeekLock(weekStartIso, weekData.timesheet?.status ?? null)
       })
       .catch((cause) => {
         if (cancelled) return
@@ -166,8 +168,8 @@ export function TimesheetView() {
       .then(() => {
         setConfirmAction(null)
         setNotice('Timesheet submitted for approval.')
-        // Drop cached lock state so the timer/calendar lock this week at once.
-        invalidateWeekLock()
+        // Lock timer/calendar for this week immediately (no focus wait).
+        syncWeekLock(weekStartIso, 'Submitted')
         refresh()
       })
       .catch((cause) => setActionError(apiErrorMessage(cause, 'Could not submit this week.')))
@@ -182,8 +184,8 @@ export function TimesheetView() {
       .then(() => {
         setConfirmAction(null)
         setNotice('Submission withdrawn — this week is editable again.')
-        // Drop cached lock state so the timer/calendar unlock this week at once.
-        invalidateWeekLock()
+        // Unlock timer/calendar for this week immediately (no focus wait).
+        syncWeekLock(weekStartIso, null)
         refresh()
       })
       .catch((cause) => setActionError(apiErrorMessage(cause, 'Could not withdraw this submission.')))

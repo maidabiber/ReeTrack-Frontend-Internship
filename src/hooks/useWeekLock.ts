@@ -14,7 +14,7 @@ import type { TimesheetStatus } from '../types/timesheet'
  * backend's TimesheetWeek.ToWeekStart), so the timer bar, manual form and
  * calendar querying the same week share one fetch instead of each hitting the
  * API. The cache refreshes on window focus and can be invalidated after a
- * submit/withdraw so the lock reflects the change without a reload.
+ * submit/withdraw/send-back so the lock reflects the change without a reload.
  */
 
 export type WeekLockStatus = Extract<TimesheetStatus, 'Submitted' | 'Approved'> | null
@@ -37,10 +37,22 @@ export function weekLockMessage(status: WeekLockStatus): string {
 
 const cache = new Map<string, Omit<WeekLock, 'weekStartIso'>>()
 const inflight = new Map<string, Promise<void>>()
+/** Bumped to drop stale in-flight probes when sync/invalidate races a load. */
+const epoch = new Map<string, number>()
 const listeners = new Set<() => void>()
 
 function notify() {
   for (const listener of listeners) listener()
+}
+
+function lockFromStatus(status: TimesheetStatus | null | undefined): Omit<WeekLock, 'weekStartIso'> {
+  const locked = status === 'Submitted' || status === 'Approved'
+  return { status: locked ? status : null, locked }
+}
+
+function bump(weekStartIso: string) {
+  epoch.set(weekStartIso, (epoch.get(weekStartIso) ?? 0) + 1)
+  inflight.delete(weekStartIso)
 }
 
 /**
@@ -57,19 +69,20 @@ function load(weekStartIso: string): Promise<void> {
   const existing = inflight.get(weekStartIso)
   if (existing) return existing
 
+  const myEpoch = epoch.get(weekStartIso) ?? 0
   const promise = getMyWeekTimesheet(weekStartIso)
     .then((week) => {
-      const status = week.timesheet?.status ?? null
-      const locked = status === 'Submitted' || status === 'Approved'
-      cache.set(weekStartIso, { status: locked ? status : null, locked })
+      if ((epoch.get(weekStartIso) ?? 0) !== myEpoch) return
+      cache.set(weekStartIso, lockFromStatus(week.timesheet?.status ?? null))
     })
     .catch(() => {
+      if ((epoch.get(weekStartIso) ?? 0) !== myEpoch) return
       // Leave the week unknown (unlocked) on error — the backend 409 is the
       // real guard, so a failed lock probe must never block editing outright.
       cache.set(weekStartIso, UNLOCKED)
     })
     .finally(() => {
-      inflight.delete(weekStartIso)
+      if (inflight.get(weekStartIso) === promise) inflight.delete(weekStartIso)
       notify()
     })
 
@@ -77,11 +90,32 @@ function load(weekStartIso: string): Promise<void> {
   return promise
 }
 
-/** Drop cached lock state (all weeks, or one) so the next read refetches. */
-export function invalidateWeekLock(weekStartIso?: string) {
-  if (weekStartIso) cache.delete(weekStartIso)
-  else cache.clear()
+/**
+ * Apply an authoritative timesheet status (e.g. from TimesheetView's own fetch)
+ * so timer/calendar unlock immediately when a week is Rejected without waiting
+ * for window focus.
+ */
+export function syncWeekLock(weekStartIso: string, status: TimesheetStatus | null) {
+  bump(weekStartIso)
+  cache.set(weekStartIso, lockFromStatus(status))
   notify()
+}
+
+/** Drop cached lock state and refetch (all weeks, or one). */
+export function invalidateWeekLock(weekStartIso?: string) {
+  if (weekStartIso) {
+    bump(weekStartIso)
+    cache.delete(weekStartIso)
+    notify()
+    void load(weekStartIso)
+    return
+  }
+
+  const keys = [...cache.keys()]
+  for (const key of keys) bump(key)
+  cache.clear()
+  notify()
+  for (const key of keys) void load(key)
 }
 
 /**

@@ -22,6 +22,7 @@ import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
+import { invalidateWeekLock } from '../hooks/useWeekLock'
 import { formatDurationHms } from '../lib/formatDuration'
 import { parseDateInput } from '../lib/manualEntry'
 import type {
@@ -315,6 +316,7 @@ function ReviewDetailModal({
   onClose: () => void
   onReviewed: (message: string) => void
 }) {
+  const { user } = useAuth()
   const [detail, setDetail] = useState<AdminTimesheetDetail | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [comment, setComment] = useState('')
@@ -356,11 +358,12 @@ function ReviewDetailModal({
     const request =
       kind === 'approve' ? approveTimesheet(item.id, trimmed) : rejectTimesheet(item.id, trimmed)
     request
-      .then(() =>
+      .then(() => {
+        if (item.userId === user?.id) invalidateWeekLock(item.weekStartDate)
         onReviewed(
           kind === 'approve' ? `${name}'s timesheet approved.` : `${name}'s timesheet sent back.`,
-        ),
-      )
+        )
+      })
       .catch((cause) => {
         setActionError(apiErrorMessage(cause, `Could not ${kind} this timesheet.`))
         setPending(null)
