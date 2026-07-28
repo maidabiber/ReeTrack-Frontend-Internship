@@ -13,12 +13,17 @@ export function DirectoryHeader({
   count,
   actionLabel,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
 }: {
   title: string
   /** Row count beside the title; pass null to hide it (loading / error). */
   count: number | null
   actionLabel: string
   onAction: (event: React.MouseEvent) => void
+  /** Optional text button shown before the primary + action. */
+  secondaryActionLabel?: string
+  onSecondaryAction?: (event: React.MouseEvent) => void
 }) {
   return (
     <header className="flex items-center justify-between gap-4">
@@ -30,15 +35,26 @@ export function DirectoryHeader({
           </span>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onAction}
-        aria-label={actionLabel}
-        title={actionLabel}
-        className="flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep"
-      >
-        <Icon name="plus" className="size-icon-md" />
-      </button>
+      <div className="flex flex-shrink-0 items-center gap-2">
+        {secondaryActionLabel && onSecondaryAction && (
+          <button
+            type="button"
+            onClick={onSecondaryAction}
+            className="flex h-9 items-center rounded-full border-control border-navy bg-transparent px-4 font-display text-body font-semibold text-navy transition-colors hover:bg-navy/[0.08]"
+          >
+            {secondaryActionLabel}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onAction}
+          aria-label={actionLabel}
+          title={actionLabel}
+          className="flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-deep"
+        >
+          <Icon name="plus" className="size-icon-md" />
+        </button>
+      </div>
     </header>
   )
 }

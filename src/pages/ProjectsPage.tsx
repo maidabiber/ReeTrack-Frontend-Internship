@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ProjectModal } from '../components/projects/ProjectModal'
+import { JiraImportModal } from '../components/integrations/JiraImportModal'
 import {
   DirectoryHeader,
   DirectorySearch,
@@ -54,6 +55,7 @@ export default function ProjectsPage() {
   const [tab, setTab] = useState<ProjectStatusFilter>('active')
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>(null)
+  const [jiraImportOpen, setJiraImportOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -139,6 +141,11 @@ export default function ProjectsPage() {
           onAction={(event) => {
             event.stopPropagation()
             setModal({ mode: 'create' })
+          }}
+          secondaryActionLabel="Import from Jira"
+          onSecondaryAction={(event) => {
+            event.stopPropagation()
+            setJiraImportOpen(true)
           }}
         />
 
@@ -234,6 +241,21 @@ export default function ProjectsPage() {
               setModal(null)
               refresh()
               showNotice(created ? `${saved.name} was added.` : `${saved.name} was updated.`)
+            }}
+          />
+        )}
+
+        {jiraImportOpen && (
+          <JiraImportModal
+            onClose={() => setJiraImportOpen(false)}
+            onImported={(message) => {
+              refresh()
+              showNotice(message)
+            }}
+            onIntegrated={(_projectId, message) => {
+              setJiraImportOpen(false)
+              refresh()
+              showNotice(message)
             }}
           />
         )}
