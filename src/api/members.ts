@@ -1,6 +1,12 @@
 import type { InvitationStatus, Role, User, UserStatus } from '../types/user'
 import { ROLE_IDS } from '../types/user'
+import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
+import {
+  appendListQueryParams,
+  type ListQueryOptions,
+  toPagedResult,
+} from './pagination'
 
 /**
  * Members and invitations API (MembersController / InvitationsController).
@@ -38,6 +44,8 @@ export interface Member extends User {
   pendingInvitationId: string | null
 }
 
+export type ListMembersOptions = ListQueryOptions
+
 function toMember(response: MemberResponse): Member {
   return {
     id: response.id,
@@ -54,10 +62,14 @@ function toMember(response: MemberResponse): Member {
   }
 }
 
-export function listMembers(): Promise<Member[]> {
+export function listMembers(options: ListMembersOptions = {}): Promise<PagedResult<Member>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, options)
+  const qs = params.toString()
+
   return apiClient
-    .get<MemberResponse[]>('/members')
-    .then((members) => members.map(toMember))
+    .get<PagedResult<MemberResponse>>(`/members${qs ? `?${qs}` : ''}`)
+    .then((result) => toPagedResult(result, toMember))
 }
 
 export function inviteMember(email: string, role: Role): Promise<Member> {

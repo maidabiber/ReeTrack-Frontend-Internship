@@ -31,6 +31,7 @@ import {
   type InvitationListItem,
   type Member,
 } from '../api/members'
+import { fetchAllPages } from '../api/pagination'
 import { getCurrentUserHourlyRate } from '../api/userHourlyRates'
 import {
   downloadInviteCsvTemplate,
@@ -125,7 +126,7 @@ export default function MembersPage() {
   useEffect(() => {
     let cancelled = false
 
-    listMembers()
+    fetchAllPages((page, pageSize) => listMembers({ page, pageSize }))
       .then((loaded) => enrichMembersWithRates(loaded))
       .then((loaded) => {
         if (cancelled) return

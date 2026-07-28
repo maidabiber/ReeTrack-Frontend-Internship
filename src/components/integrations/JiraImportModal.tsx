@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listClients } from '../../api/clients'
 import { getJiraConnection, listJiraProjects } from '../../api/jira'
 import { integrationApiErrorMessage } from '../../api/integrations'
+import { fetchAllPages } from '../../api/pagination'
 import type { Client } from '../../types/client'
 import type { JiraRemoteProject } from '../../types/jira'
 import { Modal } from '../ui/Modal'
@@ -49,7 +50,7 @@ export function JiraImportModal({
         setNotConfigured(false)
         const [projectList, clientList] = await Promise.all([
           listJiraProjects(),
-          listClients('active'),
+          fetchAllPages((page, pageSize) => listClients('active', { page, pageSize })),
         ])
         if (cancelled) return
         setProjects(projectList)

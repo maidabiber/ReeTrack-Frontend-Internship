@@ -58,7 +58,7 @@ export default function ProjectDetailPage() {
   // Members are stable across the session; load them once.
   useEffect(() => {
     let cancelled = false
-    listMembers()
+    fetchAllPages((page, pageSize) => listMembers({ page, pageSize }))
       .then((loaded) => !cancelled && setMembers(loaded))
       .catch(() => undefined)
     return () => {

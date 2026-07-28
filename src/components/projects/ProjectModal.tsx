@@ -4,6 +4,7 @@ import { ColorSwatchPicker } from '../ui/ColorSwatchPicker'
 import { SearchSelect } from '../ui/SearchSelect'
 import { apiErrorMessage } from '../../api/client'
 import { listClients } from '../../api/clients'
+import { fetchAllPages } from '../../api/pagination'
 import { listCurrencies, type Currency } from '../../api/currencies'
 import { createProject, updateProject, type ProjectInput } from '../../api/projects'
 import type { Client } from '../../types/client'
@@ -71,7 +72,7 @@ export function ProjectModal({
   // selectable even if it was since archived.
   useEffect(() => {
     let cancelled = false
-    listClients('active')
+    fetchAllPages((page, pageSize) => listClients('active', { page, pageSize }))
       .then((loaded) => {
         if (cancelled) return
         if (project && !loaded.some((c) => c.id === project.clientId)) {

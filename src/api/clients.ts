@@ -1,5 +1,11 @@
 import type { Client } from '../types/client'
+import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
+import {
+  appendListQueryParams,
+  type ListQueryOptions,
+  toPagedResult,
+} from './pagination'
 
 /**
  * Clients API (ClientsController, RT-45/RT-153). Reads are member-accessible;
@@ -7,6 +13,8 @@ import { apiClient } from './client'
  */
 
 export type ClientStatusFilter = 'active' | 'archived' | 'all'
+
+export type ListClientsOptions = ListQueryOptions
 
 /** Mirrors backend ClientResponse. */
 interface ClientResponse {
@@ -27,10 +35,16 @@ function toClient(response: ClientResponse): Client {
   }
 }
 
-export function listClients(status: ClientStatusFilter = 'active'): Promise<Client[]> {
+export function listClients(
+  status: ClientStatusFilter = 'active',
+  options: ListClientsOptions = {},
+): Promise<PagedResult<Client>> {
+  const params = new URLSearchParams({ status })
+  appendListQueryParams(params, options)
+
   return apiClient
-    .get<ClientResponse[]>(`/clients?status=${status}`)
-    .then((clients) => clients.map(toClient))
+    .get<PagedResult<ClientResponse>>(`/clients?${params.toString()}`)
+    .then((result) => toPagedResult(result, toClient))
 }
 
 export function createClient(name: string): Promise<Client> {

@@ -25,6 +25,7 @@ import {
   updateClient,
   type ClientStatusFilter,
 } from '../api/clients'
+import { fetchAllPages } from '../api/pagination'
 import { listProjects } from '../api/projects'
 import { clientCoverUrl, projectCoverUrl } from '../lib/projectCover'
 import { formatBillingSummary } from '../lib/projectFormat'
@@ -60,7 +61,7 @@ export default function ClientsPage() {
   useEffect(() => {
     let cancelled = false
 
-    listClients(tab)
+    fetchAllPages((page, pageSize) => listClients(tab, { page, pageSize }))
       .then((loaded) => {
         if (cancelled) return
         setClients(loaded)
