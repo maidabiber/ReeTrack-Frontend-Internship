@@ -35,6 +35,11 @@ export type IconName =
   | 'x'
   | 'more'
   | 'download'
+  | 'filter'
+  | 'folder-open'
+  | 'refresh'
+  | 'save'
+  | 'trash'
   | 'alert'
   | 'sparkle'
 
@@ -210,6 +215,32 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
+    </>
+  ),
+  filter: <path d="M3 5h18l-7 8v6l-4 2v-8z" />,
+  'folder-open': (
+    <>
+      <path d="M3 7v10a2 2 0 0 0 2 2h12a2 2 0 0 0 1.9-1.4L22 9H9l-2 3" />
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2" />
+    </>
+  ),
+  refresh: (
+    <>
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0 0 20.5 15" />
+    </>
+  ),
+  save: (
+    <>
+      <path d="M5 3h12l4 4v14H3V3z" />
+      <path d="M7 3v6h10V3M7 21v-8h10v8" />
+    </>
+  ),
+  trash: (
+    <>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 15H6L5 6m3 0V3h8v3M10 11v6M14 11v6" />
     </>
   ),
   alert: (

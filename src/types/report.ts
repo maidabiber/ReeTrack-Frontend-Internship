@@ -79,6 +79,9 @@ export interface SummaryReport {
   generatedAtUtc: string
   /** ISO date of the earliest confirmed entry; null when nothing is logged. */
   firstEntryDate: string | null
+  /** Inclusive UTC date filters applied to this report. */
+  filterFromDate: string | null
+  filterToDate: string | null
   /** Display name of the admin who ran the report; null when unresolvable. */
   generatedByName: string | null
   /** The rules the figures were produced under. */

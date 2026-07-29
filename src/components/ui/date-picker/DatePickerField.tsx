@@ -25,8 +25,9 @@ import { PickerCalendar } from './PickerCalendar'
 
 type DatePickerFieldProps = {
   label: string
-  value: CalendarDate
+  value: CalendarDate | null
   onChange: (value: CalendarDate) => void
+  placeholder?: string
   disabled?: boolean
   fieldState?: ManualFieldState
   hideLabel?: boolean
@@ -39,6 +40,7 @@ export function DatePickerField({
   label,
   value,
   onChange,
+  placeholder = 'Choose date',
   disabled = false,
   fieldState = 'default',
   hideLabel = false,
@@ -52,11 +54,16 @@ export function DatePickerField({
     : compact
       ? TRIGGER_BUTTON_SIZES.date.compact
       : TRIGGER_BUTTON_SIZES.date.default
-  const formatted = compact && !isModal ? formatPickerDate(value, true) : formatPickerDateLabel(value)
+  const formatted = value
+    ? compact && !isModal
+      ? formatPickerDate(value, true)
+      : formatPickerDateLabel(value)
+    : placeholder
 
   return (
     <DatePicker
       value={value}
+      aria-label={hideLabel ? label : undefined}
       onChange={(next) => {
         if (next) onChange(next)
       }}

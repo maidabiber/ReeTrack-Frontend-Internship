@@ -70,12 +70,14 @@ export function SegmentedTabs<T extends string>({
   onChange: (next: T) => void
 }) {
   return (
-    <div className="flex rounded-full bg-white p-segment shadow-soft">
+    <div className="flex rounded-full bg-white p-segment shadow-soft" role="tablist">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
+          role="tab"
+          aria-selected={value === option.value}
           className={`rounded-full px-3.5 py-compact font-mono text-eyebrow font-medium tracking-[0.12em] uppercase transition-colors ${
             value === option.value ? 'bg-navy text-cream' : 'text-navy/55 hover:text-navy'
           }`}

@@ -1,4 +1,5 @@
 import { downloadBlob } from '../lib/download'
+import { toReportSearchParams } from '../lib/reportQuery'
 import type {
   DayOfWeekHours,
   MemberHours,
@@ -7,7 +8,10 @@ import type {
   SummaryReport,
   TrendPoint,
 } from '../types/report'
-import { apiClient, requestBlob } from './client'
+import type { ReportFilterSet, ReportGroupBy, ReportQuery } from '../types/reportQuery'
+import type { PagedResult } from '../types/paged'
+import { apiClient, requestBlob, type RequestOptions } from './client'
+import { appendListQueryParams, toPagedResult, type ListQueryOptions } from './pagination'
 
 /** Mirrors backend SummaryReportResponse (camelCase JSON). */
 interface SummaryReportResponse {
@@ -18,6 +22,8 @@ interface SummaryReportResponse {
   members: MemberHoursResponse[]
   generatedAtUtc: string
   firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
   generatedByName: string | null
   basis: ReportBasisResponse
 }
@@ -79,6 +85,27 @@ interface MemberHoursResponse {
   userId: string
   displayName: string
   totalSeconds: number
+}
+
+interface ReportFilterSetResponse {
+  id: string
+  name: string
+  query: ReportQueryResponse
+  schemaVersion: number
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+interface ReportQueryResponse {
+  userIds: string[]
+  projectIds: string[]
+  clientIds: string[]
+  taskIds: string[]
+  tagIds: string[]
+  billable: boolean | null
+  from: string | null
+  to: string | null
+  groupBy: string[]
 }
 
 export type ReportExportFormat = 'csv' | 'xlsx' | 'pdf'
@@ -145,6 +172,20 @@ function toMemberHours(response: MemberHoursResponse): MemberHours {
   }
 }
 
+function toReportQuery(response: ReportQueryResponse): ReportQuery {
+  return {
+    userIds: response.userIds ?? [],
+    projectIds: response.projectIds ?? [],
+    clientIds: response.clientIds ?? [],
+    taskIds: response.taskIds ?? [],
+    tagIds: response.tagIds ?? [],
+    billable: response.billable ?? null,
+    from: response.from ?? null,
+    to: response.to ?? null,
+    groupBy: (response.groupBy ?? []).map((value) => value as ReportGroupBy),
+  }
+}
+
 function toSummaryReport(response: SummaryReportResponse): SummaryReport {
   return {
     kpis: toKpis(response.kpis),
@@ -154,6 +195,8 @@ function toSummaryReport(response: SummaryReportResponse): SummaryReport {
     members: response.members.map(toMemberHours),
     generatedAtUtc: response.generatedAtUtc,
     firstEntryDate: response.firstEntryDate,
+    filterFromDate: response.filterFromDate ?? null,
+    filterToDate: response.filterToDate ?? null,
     generatedByName: response.generatedByName,
     basis: {
       weekendPremium: response.basis.weekendPremium,
@@ -164,9 +207,34 @@ function toSummaryReport(response: SummaryReportResponse): SummaryReport {
   }
 }
 
+function toFilterSet(response: ReportFilterSetResponse): ReportFilterSet {
+  return {
+    id: response.id,
+    name: response.name,
+    query: toReportQuery(response.query),
+    schemaVersion: response.schemaVersion,
+    createdAtUtc: response.createdAtUtc,
+    updatedAtUtc: response.updatedAtUtc,
+  }
+}
+
+function reportPath(base: string, query: ReportQuery, extra?: Record<string, string>): string {
+  const params = toReportSearchParams(query)
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) params.set(key, value)
+  }
+  const qs = params.toString()
+  return qs ? `${base}?${qs}` : base
+}
+
 /** Admin portfolio summary — GET /api/reports/summary. */
-export function getSummaryReport(): Promise<SummaryReport> {
-  return apiClient.get<SummaryReportResponse>('/reports/summary').then(toSummaryReport)
+export function getSummaryReport(
+  query: ReportQuery,
+  options?: RequestOptions,
+): Promise<SummaryReport> {
+  return apiClient
+    .get<SummaryReportResponse>(reportPath('/reports/summary', query), options)
+    .then(toSummaryReport)
 }
 
 const EXPORT_FALLBACK_NAME: Record<ReportExportFormat, string> = {
@@ -175,8 +243,49 @@ const EXPORT_FALLBACK_NAME: Record<ReportExportFormat, string> = {
   pdf: 'reetrack-summary.pdf',
 }
 
-/** Downloads the summary report as CSV / Excel / PDF. */
-export async function downloadSummaryReport(format: ReportExportFormat): Promise<void> {
-  const { blob, filename } = await requestBlob(`/reports/summary/export?format=${format}`)
+/** Downloads the summary report as CSV / Excel / PDF with the same applied filters. */
+export async function downloadSummaryReport(
+  format: ReportExportFormat,
+  query: ReportQuery,
+): Promise<void> {
+  const { blob, filename } = await requestBlob(
+    reportPath('/reports/summary/export', query, { format }),
+  )
   downloadBlob(filename ?? EXPORT_FALLBACK_NAME[format], blob)
+}
+
+export function listReportFilterSets(
+  options: ListQueryOptions = {},
+): Promise<PagedResult<ReportFilterSet>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, options)
+  const qs = params.toString()
+  return apiClient
+    .get<PagedResult<ReportFilterSetResponse>>(
+      `/reports/filter-sets${qs ? `?${qs}` : ''}`,
+    )
+    .then((result) => toPagedResult(result, toFilterSet))
+}
+
+export function createReportFilterSet(
+  name: string,
+  query: ReportQuery,
+): Promise<ReportFilterSet> {
+  return apiClient
+    .post<ReportFilterSetResponse>('/reports/filter-sets', { name, query })
+    .then(toFilterSet)
+}
+
+export function updateReportFilterSet(
+  id: string,
+  name: string,
+  query: ReportQuery,
+): Promise<ReportFilterSet> {
+  return apiClient
+    .put<ReportFilterSetResponse>(`/reports/filter-sets/${id}`, { name, query })
+    .then(toFilterSet)
+}
+
+export function deleteReportFilterSet(id: string): Promise<void> {
+  return apiClient.delete(`/reports/filter-sets/${id}`).then(() => undefined)
 }

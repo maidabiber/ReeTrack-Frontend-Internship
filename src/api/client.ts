@@ -21,7 +21,7 @@ export class ApiError extends Error {
   }
 }
 
-interface RequestOptions extends Omit<RequestInit, 'body'> {
+export interface RequestOptions extends Omit<RequestInit, 'body'> {
   /** JSON-serialisable request body; sets the Content-Type header automatically. */
   body?: unknown
 }

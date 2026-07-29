@@ -15,14 +15,20 @@ import {
 
 export type TaskStatusFilter = 'open' | 'done' | 'all'
 
-export type ListTasksOptions = ListQueryOptions
+export type ListTasksOptions = ListQueryOptions & {
+  projectIds?: string[]
+}
 
 /** Mirrors backend TaskResponse. */
 interface TaskResponse {
   id: string
   projectId: string
+  clientId: string
   name: string
   status: TaskStatus
+  projectName?: string | null
+  projectColor?: string | null
+  clientName?: string | null
   assignedToUserId: string | null
   assignedToName: string | null
   timeEstimateHours: number | null
@@ -33,8 +39,12 @@ function toTask(response: TaskResponse): Task {
   return {
     id: response.id,
     projectId: response.projectId,
+    clientId: response.clientId,
     name: response.name,
     status: response.status,
+    projectName: response.projectName ?? null,
+    projectColor: response.projectColor ?? null,
+    clientName: response.clientName ?? null,
     assignedToUserId: response.assignedToUserId,
     assignedToName: response.assignedToName,
     timeEstimateHours: response.timeEstimateHours,
@@ -55,15 +65,30 @@ export function listTasks(
     .then((result) => toPagedResult(result, toTask))
 }
 
-/** Open tasks across all projects, optionally filtered by name / project name. */
-export function listOpenTasks(options: ListTasksOptions = {}): Promise<PagedResult<Task>> {
-  const params = new URLSearchParams()
+/**
+ * Tasks across all projects (timer + report pickers).
+ * Default `open` keeps the timer picker excluding completed work.
+ * Reports use `status=all` so historical completed tasks remain filterable.
+ */
+export function listTasksAcrossProjects(
+  status: TaskStatusFilter = 'open',
+  options: ListTasksOptions = {},
+): Promise<PagedResult<Task>> {
+  const params = new URLSearchParams({ status })
+  if (options.projectIds) {
+    for (const id of options.projectIds) params.append('projectIds', id)
+  }
   appendListQueryParams(params, options)
   const qs = params.toString()
 
   return apiClient
-    .get<PagedResult<TaskResponse>>(`/tasks${qs ? `?${qs}` : ''}`)
+    .get<PagedResult<TaskResponse>>(`/tasks?${qs}`)
     .then((result) => toPagedResult(result, toTask))
+}
+
+/** Open tasks across all projects — timer picker convenience wrapper. */
+export function listOpenTasks(options: ListTasksOptions = {}): Promise<PagedResult<Task>> {
+  return listTasksAcrossProjects('open', options)
 }
 
 export interface TaskInput {

@@ -17,6 +17,7 @@ export type ProjectStatusFilter = 'active' | 'archived' | 'all'
 
 export interface ListProjectsOptions extends ListQueryOptions {
   clientId?: string
+  clientIds?: string[]
 }
 
 /** Mirrors backend ProjectResponse. */
@@ -62,6 +63,9 @@ export function listProjects(
 ): Promise<PagedResult<Project>> {
   const params = new URLSearchParams({ status })
   if (options.clientId) params.set('clientId', options.clientId)
+  if (options.clientIds) {
+    for (const id of options.clientIds) params.append('clientIds', id)
+  }
   appendListQueryParams(params, options)
 
   return apiClient

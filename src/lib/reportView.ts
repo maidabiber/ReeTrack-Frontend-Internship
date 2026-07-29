@@ -100,10 +100,17 @@ export function formatFullDate(isoDate: string): string {
 }
 
 /**
- * The window the report covers. Date filtering isn't built yet, so this is always
- * all-time — stated explicitly so lifetime totals aren't misread as recent figures.
+ * The window the report covers. Prefers the applied filter dates from the API;
+ * falls back to all-time (with first entry when known).
  */
 export function formatPeriodLabel(report: SummaryReport): string {
+  const from = report.filterFromDate
+  const to = report.filterToDate
+
+  if (from && to) return `${formatFullDate(from)} – ${formatFullDate(to)}`
+  if (from) return `From ${formatFullDate(from)}`
+  if (to) return `Through ${formatFullDate(to)}`
+
   if (!report.firstEntryDate) return 'All time'
   return `All time · ${formatFullDate(report.firstEntryDate)} – ${formatFullDate(report.generatedAtUtc)}`
 }

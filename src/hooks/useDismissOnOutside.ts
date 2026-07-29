@@ -6,6 +6,10 @@ interface DismissOptions {
    * that already handles Escape, and closing both at once is rarely what's wanted.
    */
   closeOnEscape?: boolean
+  /** Portalled descendants that should count as inside the popover. */
+  ignoreSelector?: string
+  /** Nested overlays that should consume Escape before this popover. */
+  ignoreEscapeSelector?: string
 }
 
 /**
@@ -18,7 +22,11 @@ export function useDismissOnOutside(
   ref: RefObject<HTMLElement | null>,
   open: boolean,
   onDismiss: () => void,
-  { closeOnEscape = false }: DismissOptions = {},
+  {
+    closeOnEscape = false,
+    ignoreSelector,
+    ignoreEscapeSelector,
+  }: DismissOptions = {},
 ): void {
   const dismissRef = useRef(onDismiss)
 
@@ -32,7 +40,11 @@ export function useDismissOnOutside(
     if (!open) return
 
     const onPointerDown = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) dismissRef.current()
+      const target = event.target
+      if (!ref.current || !(target instanceof Node)) return
+      if (ref.current.contains(target)) return
+      if (ignoreSelector && target instanceof Element && target.closest(ignoreSelector)) return
+      dismissRef.current()
     }
 
     document.addEventListener('mousedown', onPointerDown)
@@ -42,7 +54,9 @@ export function useDismissOnOutside(
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') dismissRef.current()
+      if (event.key !== 'Escape') return
+      if (ignoreEscapeSelector && document.querySelector(ignoreEscapeSelector)) return
+      dismissRef.current()
     }
 
     document.addEventListener('keydown', onKeyDown)
@@ -50,5 +64,5 @@ export function useDismissOnOutside(
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [ref, open, closeOnEscape])
+  }, [ref, open, closeOnEscape, ignoreSelector, ignoreEscapeSelector])
 }
