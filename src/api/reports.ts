@@ -2,6 +2,9 @@ import { downloadBlob } from '../lib/download'
 import { toReportSearchParams } from '../lib/reportQuery'
 import type {
   DayOfWeekHours,
+  DetailedEntry,
+  DetailedGroup,
+  DetailedReport,
   MemberHours,
   ProjectSummary,
   ReportKpis,
@@ -85,6 +88,61 @@ interface MemberHoursResponse {
   userId: string
   displayName: string
   totalSeconds: number
+}
+
+interface DetailedReportResponse {
+  kpis: ReportKpisResponse
+  basis: ReportBasisResponse
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  entries: DetailedEntryResponse[]
+  page: number
+  pageSize: number
+  totalCount: number
+  groups: DetailedGroupResponse[]
+}
+
+interface DetailedEntryResponse {
+  entryId: string
+  entryDate: string
+  startedAtUtc: string | null
+  endedAtUtc: string | null
+  userId: string
+  displayName: string
+  clientId: string | null
+  clientName: string | null
+  projectId: string | null
+  projectName: string | null
+  taskId: string | null
+  taskName: string | null
+  tags: string[]
+  description: string | null
+  isBillable: boolean
+  durationSeconds: number
+  currencyCode: string | null
+  calculatedCost: number
+  normalCost: number
+  weekendCost: number
+  holidayCost: number
+  overtimeCost: number
+  overtimeHours: number
+  weekendHours: number
+  holidayHours: number
+  isWeekend: boolean
+  isHoliday: boolean
+}
+
+interface DetailedGroupResponse {
+  label: string
+  keys: string[]
+  totalSeconds: number
+  calculatedCost: number
+  entryCount: number
+  startIndex: number
+  endIndexExclusive: number
 }
 
 interface ReportFilterSetResponse {
@@ -172,6 +230,72 @@ function toMemberHours(response: MemberHoursResponse): MemberHours {
   }
 }
 
+function toDetailedEntry(response: DetailedEntryResponse): DetailedEntry {
+  return {
+    entryId: response.entryId,
+    entryDate: response.entryDate,
+    startedAtUtc: response.startedAtUtc,
+    endedAtUtc: response.endedAtUtc,
+    userId: response.userId,
+    displayName: response.displayName,
+    clientId: response.clientId,
+    clientName: response.clientName,
+    projectId: response.projectId,
+    projectName: response.projectName,
+    taskId: response.taskId,
+    taskName: response.taskName,
+    tags: response.tags ?? [],
+    description: response.description,
+    isBillable: response.isBillable,
+    durationSeconds: response.durationSeconds,
+    currencyCode: response.currencyCode,
+    calculatedCost: response.calculatedCost,
+    normalCost: response.normalCost,
+    weekendCost: response.weekendCost,
+    holidayCost: response.holidayCost,
+    overtimeCost: response.overtimeCost,
+    overtimeHours: response.overtimeHours,
+    weekendHours: response.weekendHours,
+    holidayHours: response.holidayHours,
+    isWeekend: response.isWeekend,
+    isHoliday: response.isHoliday,
+  }
+}
+
+function toDetailedGroup(response: DetailedGroupResponse): DetailedGroup {
+  return {
+    label: response.label,
+    keys: response.keys ?? [],
+    totalSeconds: response.totalSeconds,
+    calculatedCost: response.calculatedCost,
+    entryCount: response.entryCount,
+    startIndex: response.startIndex,
+    endIndexExclusive: response.endIndexExclusive,
+  }
+}
+
+function toDetailedReport(response: DetailedReportResponse): DetailedReport {
+  return {
+    kpis: toKpis(response.kpis),
+    basis: {
+      weekendPremium: response.basis.weekendPremium,
+      holidayPremium: response.basis.holidayPremium,
+      overtimePremium: response.basis.overtimePremium,
+      weeklyOvertimeThresholdHours: response.basis.weeklyOvertimeThresholdHours,
+    },
+    generatedAtUtc: response.generatedAtUtc,
+    generatedByName: response.generatedByName,
+    firstEntryDate: response.firstEntryDate,
+    filterFromDate: response.filterFromDate ?? null,
+    filterToDate: response.filterToDate ?? null,
+    entries: (response.entries ?? []).map(toDetailedEntry),
+    page: response.page,
+    pageSize: response.pageSize,
+    totalCount: response.totalCount,
+    groups: (response.groups ?? []).map(toDetailedGroup),
+  }
+}
+
 function toReportQuery(response: ReportQueryResponse): ReportQuery {
   return {
     userIds: response.userIds ?? [],
@@ -252,6 +376,40 @@ export async function downloadSummaryReport(
     reportPath('/reports/summary/export', query, { format }),
   )
   downloadBlob(filename ?? EXPORT_FALLBACK_NAME[format], blob)
+}
+
+const DETAILED_EXPORT_FALLBACK: Record<ReportExportFormat, string> = {
+  csv: 'reetrack-detailed.csv',
+  xlsx: 'reetrack-detailed.xlsx',
+  pdf: 'reetrack-detailed.pdf',
+}
+
+/** Admin detailed audit report — GET /api/reports/detailed. */
+export function getDetailedReport(
+  query: ReportQuery,
+  options?: RequestOptions & { page?: number; pageSize?: number },
+): Promise<DetailedReport> {
+  const { page = 1, pageSize = 50, ...request } = options ?? {}
+  return apiClient
+    .get<DetailedReportResponse>(
+      reportPath('/reports/detailed', query, {
+        page: String(page),
+        pageSize: String(pageSize),
+      }),
+      request,
+    )
+    .then(toDetailedReport)
+}
+
+/** Downloads the detailed report as CSV / Excel / PDF (full filtered set). */
+export async function downloadDetailedReport(
+  format: ReportExportFormat,
+  query: ReportQuery,
+): Promise<void> {
+  const { blob, filename } = await requestBlob(
+    reportPath('/reports/detailed/export', query, { format }),
+  )
+  downloadBlob(filename ?? DETAILED_EXPORT_FALLBACK[format], blob)
 }
 
 export function listReportFilterSets(

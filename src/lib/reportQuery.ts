@@ -1,4 +1,4 @@
-import type { ReportQuery } from '../types/reportQuery'
+import type { ReportGroupBy, ReportQuery } from '../types/reportQuery'
 
 const FILTER_ARRAY_KEYS = [
   'userIds',
@@ -53,6 +53,13 @@ export function reportQueryKey(query: ReportQuery): string {
 
 export function queriesEqual(left: ReportQuery, right: ReportQuery): boolean {
   return reportQueryKey(left) === reportQueryKey(right)
+}
+
+/** Toggle a groupBy chip in the draft query (Apply still required). */
+export function toggleGroupBy(draft: ReportQuery, value: ReportGroupBy): ReportGroupBy[] {
+  return draft.groupBy.includes(value)
+    ? draft.groupBy.filter((item) => item !== value)
+    : [...draft.groupBy, value]
 }
 
 export function toReportSearchParams(query: ReportQuery): URLSearchParams {

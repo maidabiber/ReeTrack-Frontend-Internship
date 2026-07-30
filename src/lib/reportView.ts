@@ -1,7 +1,15 @@
 import type { ProjectHours } from '../components/charts/ProjectBreakdown'
 import type { WeekTrendPoint } from '../components/charts/RecentWeeksTrend'
 import type { WeekDayHours } from '../components/charts/WeekHoursBarChart'
-import type { DayOfWeekHours, ProjectSummary, SummaryReport, TrendPoint } from '../types/report'
+import type { DayOfWeekHours, ProjectSummary, ReportBasis, SummaryReport, TrendPoint } from '../types/report'
+
+/** Shared period fields on Summary and Detailed reports. */
+export type ReportPeriodFields = {
+  filterFromDate: string | null
+  filterToDate: string | null
+  firstEntryDate: string | null
+  generatedAtUtc: string
+}
 
 const DAY_SHORT: Record<string, string> = {
   Monday: 'Mon',
@@ -103,7 +111,7 @@ export function formatFullDate(isoDate: string): string {
  * The window the report covers. Prefers the applied filter dates from the API;
  * falls back to all-time (with first entry when known).
  */
-export function formatPeriodLabel(report: SummaryReport): string {
+export function formatPeriodLabel(report: ReportPeriodFields): string {
   const from = report.filterFromDate
   const to = report.filterToDate
 
@@ -120,7 +128,7 @@ export function formatPeriodLabel(report: SummaryReport): string {
  * page and the exports state the same caveats. Weekend / overtime money is not checkable
  * without the premiums that produced it.
  */
-export function basisLines(report: SummaryReport): string[] {
+export function basisLines(report: { basis: ReportBasis }): string[] {
   const { basis } = report
   const pct = (fraction: number) => `${Number((fraction * 100).toFixed(2))}%`
   const hours = Number(basis.weeklyOvertimeThresholdHours.toFixed(2))

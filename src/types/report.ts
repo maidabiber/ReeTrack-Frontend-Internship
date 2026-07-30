@@ -87,3 +87,59 @@ export interface SummaryReport {
   /** The rules the figures were produced under. */
   basis: ReportBasis
 }
+
+/** RT-51 — entry-level audit report. */
+export interface DetailedEntry {
+  entryId: string
+  entryDate: string
+  startedAtUtc: string | null
+  endedAtUtc: string | null
+  userId: string
+  displayName: string
+  clientId: string | null
+  clientName: string | null
+  projectId: string | null
+  projectName: string | null
+  taskId: string | null
+  taskName: string | null
+  tags: string[]
+  description: string | null
+  isBillable: boolean
+  durationSeconds: number
+  currencyCode: string | null
+  calculatedCost: number
+  normalCost: number
+  weekendCost: number
+  holidayCost: number
+  overtimeCost: number
+  overtimeHours: number
+  weekendHours: number
+  holidayHours: number
+  isWeekend: boolean
+  isHoliday: boolean
+}
+
+export interface DetailedGroup {
+  label: string
+  keys: string[]
+  totalSeconds: number
+  calculatedCost: number
+  entryCount: number
+  startIndex: number
+  endIndexExclusive: number
+}
+
+export interface DetailedReport {
+  kpis: ReportKpis
+  basis: ReportBasis
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  entries: DetailedEntry[]
+  page: number
+  pageSize: number
+  totalCount: number
+  groups: DetailedGroup[]
+}

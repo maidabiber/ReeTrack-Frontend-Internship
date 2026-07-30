@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { apiErrorMessage } from '../api/client'
-import { downloadSummaryReport, type ReportExportFormat } from '../api/reports'
+import {
+  downloadDetailedReport,
+  downloadSummaryReport,
+  type ReportExportFormat,
+} from '../api/reports'
 import { BillableSplitCard } from '../components/charts/BillableSplitCard'
 import { ProjectBreakdown } from '../components/charts/ProjectBreakdown'
 import { RecentWeeksTrend } from '../components/charts/RecentWeeksTrend'
@@ -8,6 +12,7 @@ import { WeekHoursBarChart } from '../components/charts/WeekHoursBarChart'
 import { formatHoursLabel } from '../components/charts/chartFormat'
 import { AttentionCard } from '../components/reports/AttentionCard'
 import { ChartCard, EmptyNote } from '../components/reports/ChartCard'
+import { DetailedReportPanel } from '../components/reports/DetailedReportPanel'
 import { ExportMenu } from '../components/reports/ExportMenu'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
@@ -16,6 +21,7 @@ import { Icon } from '../components/ui/Icon'
 import { StatTile } from '../components/ui/StatTile'
 import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
+import { toggleGroupBy } from '../lib/reportQuery'
 import {
   basisLines,
   buildAttentionItems,
@@ -39,7 +45,7 @@ const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
 ]
 
 /**
- * RT-50 / RT-54 — admin portfolio reports. Nav is adminOnly; the page also
+ * RT-50 / RT-51 / RT-54 — admin portfolio reports. Nav is adminOnly; the page also
  * gates itself because routes aren't role-guarded. Backend is [Authorize(Roles="Admin")].
  */
 export default function ReportsPage() {
@@ -71,6 +77,10 @@ function ReportsWorkspace() {
     activeTab,
     setActiveTab,
     summary,
+    detailed,
+    detailedPage,
+    setDetailedPage,
+    detailedPageSize,
     isLoading,
     error,
     isDirty,
@@ -83,11 +93,20 @@ function ReportsWorkspace() {
   const [exportError, setExportError] = useState<string | null>(null)
   const [exporting, setExporting] = useState<ReportExportFormat | null>(null)
 
+  const periodReport =
+    activeTab === 'detailed' ? detailed : activeTab === 'summary' ? summary : null
+  const canExport =
+    (activeTab === 'summary' && !!summary) || (activeTab === 'detailed' && !!detailed)
+
   async function handleExport(format: ReportExportFormat) {
     setExporting(format)
     setExportError(null)
     try {
-      await downloadSummaryReport(format, appliedQuery)
+      if (activeTab === 'detailed') {
+        await downloadDetailedReport(format, appliedQuery)
+      } else {
+        await downloadSummaryReport(format, appliedQuery)
+      }
     } catch (cause) {
       setExportError(apiErrorMessage(cause, 'Could not download the export.'))
     } finally {
@@ -100,13 +119,13 @@ function ReportsWorkspace() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-xl font-bold text-navy">Reports</h1>
-          {summary && activeTab === 'summary' ? (
+          {periodReport ? (
             <p className="mt-1 font-mono text-xs uppercase tracking-[0.12em] text-navy/45">
-              {formatPeriodLabel(summary)}
+              {formatPeriodLabel(periodReport)}
             </p>
           ) : null}
         </div>
-        {activeTab === 'summary' && summary ? (
+        {canExport ? (
           <ExportMenu exporting={exporting} onExport={handleExport} disabled={isLoading} />
         ) : null}
       </div>
@@ -139,7 +158,7 @@ function ReportsWorkspace() {
         </div>
       ) : null}
 
-      {error && activeTab === 'summary' ? (
+      {error && (activeTab === 'summary' || activeTab === 'detailed') ? (
         <div className="mb-4 rounded-lg bg-red-tint px-4 py-3 text-body text-red" role="alert">
           {error}
         </div>
@@ -153,6 +172,18 @@ function ReportsWorkspace() {
 
       {activeTab === 'summary' ? (
         <SummaryReportPanel report={summary} isLoading={isLoading} />
+      ) : activeTab === 'detailed' ? (
+        <DetailedReportPanel
+          report={detailed}
+          isLoading={isLoading}
+          page={detailedPage}
+          pageSize={detailedPageSize}
+          onPageChange={setDetailedPage}
+          draftGroupBy={draftQuery.groupBy}
+          onToggleGroupBy={(value) =>
+            patchDraft({ groupBy: toggleGroupBy(draftQuery, value) })
+          }
+        />
       ) : (
         <ComingSoonPanel type={activeTab} />
       )}
@@ -160,19 +191,18 @@ function ReportsWorkspace() {
   )
 }
 
-function ComingSoonPanel({ type }: { type: Exclude<ReportType, 'summary'> }) {
-  const copy: Record<Exclude<ReportType, 'summary'>, { title: string; body: string }> = {
-    detailed: {
-      title: 'Detailed report',
-      body: 'Entry-level breakdown arrives in a follow-up PR. Filters above are already shared.',
-    },
+function ComingSoonPanel({ type }: { type: Exclude<ReportType, 'summary' | 'detailed'> }) {
+  const copy: Record<
+    Exclude<ReportType, 'summary' | 'detailed'>,
+    { title: string; body: string }
+  > = {
     workload: {
       title: 'Workload report',
       body: 'Employee × client/project workload arrives next. Your applied filters will carry over.',
     },
     profitability: {
       title: 'Profitability report',
-      body: 'Revenue, labour cost, and margin views land after Detailed and Workload.',
+      body: 'Revenue, labour cost, and margin views land after Workload.',
     },
   }
   const panel = copy[type]
