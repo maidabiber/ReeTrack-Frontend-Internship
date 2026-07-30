@@ -42,6 +42,7 @@ export type IconName =
   | 'trash'
   | 'alert'
   | 'sparkle'
+  | 'bell'
 
 // Feather-style line icons (24x24, stroke-based) lifted from the mockups.
 const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNode> = {
@@ -255,6 +256,12 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
       <path d="M12 3l1.2 4.2L17.5 8.5 13.2 9.7 12 14l-1.2-4.3L6.5 8.5l4.3-1.3L12 3z" />
       <path d="M19 14l.7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7L19 14z" />
       <path d="M5 15l.5 1.7L7.2 17.2 5.5 17.7 5 19.4 4.5 17.7 2.8 17.2 4.5 16.7 5 15z" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </>
   ),
 }

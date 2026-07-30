@@ -55,6 +55,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/hubs': {
+        target: `https://localhost:${BACKEND_HTTP_PORT}`,
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
 })

@@ -9,6 +9,7 @@ import {
   BillableRatesPage,
   ClientsPage,
   MembersPage,
+  NotificationsPage,
   OnboardingPage,
   PlaceholderPage,
   ProfilePage,
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
       // Timesheet deep link (decision emails): Timer page with the timesheet view open.
       { path: 'timesheet', element: <TimerPage /> },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
     ],
   },
 ])
