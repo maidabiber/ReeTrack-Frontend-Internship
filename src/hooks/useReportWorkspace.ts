@@ -1,39 +1,168 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiErrorMessage } from '../api/client'
-import { getDetailedReport, getSummaryReport } from '../api/reports'
+import {
+  getDetailedReport,
+  getProfitabilityReport,
+  getSummaryReport,
+  getWorkloadReport,
+} from '../api/reports'
 import {
   cloneReportQuery,
   defaultReportQuery,
   queriesEqual,
   reportQueryKey,
 } from '../lib/reportQuery'
-import type { DetailedReport, SummaryReport } from '../types/report'
 import type { ReportQuery, ReportType } from '../types/reportQuery'
 
-type SummaryCache = Map<string, SummaryReport>
-type DetailedCache = Map<string, DetailedReport>
-
 const DETAILED_PAGE_SIZE = 50
+
+/**
+ * Fetch-with-cache for one report tab: caches by key, tracks its own loading state,
+ * and writes failures into the shared `setError` the caller passes in (all four report
+ * tabs share one error banner — see `useReportWorkspace`, this must not become per-tab).
+ * `fetcher` only needs to be stable for the inputs it closes over (wrap it in
+ * `useCallback` at the call site) — this hook re-fetches whenever `active`, `cacheKey`
+ * or `fetcher` change.
+ */
+function useCachedReport<T>(
+  active: boolean,
+  cacheKey: string,
+  fetcher: (signal: AbortSignal) => Promise<T>,
+  errorMessage: string,
+  setError: (message: string | null) => void,
+) {
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(active)
+  const cacheRef = useRef<Map<string, T>>(new Map())
+
+  const clearCache = useCallback(() => {
+    cacheRef.current.clear()
+  }, [])
+
+  useEffect(() => {
+    if (!active) return
+
+    let cancelled = false
+    const controller = new AbortController()
+
+    void (async () => {
+      await Promise.resolve()
+      if (cancelled) return
+
+      const cached = cacheRef.current.get(cacheKey)
+      if (cached) {
+        setData(cached)
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const loaded = await fetcher(controller.signal)
+        if (cancelled) return
+        cacheRef.current.set(cacheKey, loaded)
+        setData(loaded)
+        setError(null)
+      } catch (cause) {
+        if (cancelled || controller.signal.aborted) return
+        setData(null)
+        setError(apiErrorMessage(cause, errorMessage))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [active, cacheKey, fetcher, errorMessage, setError])
+
+  return { data, loading, clearCache }
+}
 
 export function useReportWorkspace() {
   const [draftQuery, setDraftQuery] = useState<ReportQuery>(() => defaultReportQuery())
   const [appliedQuery, setAppliedQuery] = useState<ReportQuery>(() => defaultReportQuery())
   const [activeTab, setActiveTab] = useState<ReportType>('summary')
-  const [summary, setSummary] = useState<SummaryReport | null>(null)
-  const [detailed, setDetailed] = useState<DetailedReport | null>(null)
   const [detailedPage, setDetailedPage] = useState(1)
-  const [summaryLoading, setSummaryLoading] = useState(true)
-  const [detailedLoading, setDetailedLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const summaryCacheRef = useRef<SummaryCache>(new Map())
-  const detailedCacheRef = useRef<DetailedCache>(new Map())
   const appliedKey = useMemo(() => reportQueryKey(appliedQuery), [appliedQuery])
   const detailedCacheKey = `${appliedKey}|p=${detailedPage}`
   const isDirty = !queriesEqual(draftQuery, appliedQuery)
+
+  const summaryFetcher = useCallback(
+    (signal: AbortSignal) => getSummaryReport(appliedQuery, { signal }),
+    [appliedQuery],
+  )
+  const detailedFetcher = useCallback(
+    (signal: AbortSignal) =>
+      getDetailedReport(appliedQuery, { page: detailedPage, pageSize: DETAILED_PAGE_SIZE, signal }),
+    [appliedQuery, detailedPage],
+  )
+  const workloadFetcher = useCallback(
+    (signal: AbortSignal) => getWorkloadReport(appliedQuery, { signal }),
+    [appliedQuery],
+  )
+  const profitabilityFetcher = useCallback(
+    (signal: AbortSignal) => getProfitabilityReport(appliedQuery, { signal }),
+    [appliedQuery],
+  )
+
+  const {
+    data: summary,
+    loading: summaryLoading,
+    clearCache: clearSummaryCache,
+  } = useCachedReport(
+    activeTab === 'summary',
+    appliedKey,
+    summaryFetcher,
+    'Could not load the summary report. Is the backend running?',
+    setError,
+  )
+  const {
+    data: detailed,
+    loading: detailedLoading,
+    clearCache: clearDetailedCache,
+  } = useCachedReport(
+    activeTab === 'detailed',
+    detailedCacheKey,
+    detailedFetcher,
+    'Could not load the detailed report. Is the backend running?',
+    setError,
+  )
+  const {
+    data: workload,
+    loading: workloadLoading,
+    clearCache: clearWorkloadCache,
+  } = useCachedReport(
+    activeTab === 'workload',
+    appliedKey,
+    workloadFetcher,
+    'Could not load the workload report. Is the backend running?',
+    setError,
+  )
+  const {
+    data: profitability,
+    loading: profitabilityLoading,
+    clearCache: clearProfitabilityCache,
+  } = useCachedReport(
+    activeTab === 'profitability',
+    appliedKey,
+    profitabilityFetcher,
+    'Could not load the profitability report. Is the backend running?',
+    setError,
+  )
+
   const isLoading =
     (activeTab === 'summary' && summaryLoading) ||
-    (activeTab === 'detailed' && detailedLoading)
+    (activeTab === 'detailed' && detailedLoading) ||
+    (activeTab === 'workload' && workloadLoading) ||
+    (activeTab === 'profitability' && profitabilityLoading)
 
   const patchDraft = useCallback((patch: Partial<ReportQuery>) => {
     setDraftQuery((previous) => {
@@ -55,109 +184,26 @@ export function useReportWorkspace() {
     setDraftQuery(cloneReportQuery(query))
   }, [])
 
+  const clearCaches = useCallback(() => {
+    clearSummaryCache()
+    clearDetailedCache()
+    clearWorkloadCache()
+    clearProfitabilityCache()
+  }, [clearSummaryCache, clearDetailedCache, clearWorkloadCache, clearProfitabilityCache])
+
   const applyFilters = useCallback(() => {
-    summaryCacheRef.current.clear()
-    detailedCacheRef.current.clear()
+    clearCaches()
     setDetailedPage(1)
     setAppliedQuery(cloneReportQuery(draftQuery))
-  }, [draftQuery])
+  }, [clearCaches, draftQuery])
 
   const resetFilters = useCallback(() => {
     const next = defaultReportQuery()
-    summaryCacheRef.current.clear()
-    detailedCacheRef.current.clear()
+    clearCaches()
     setDetailedPage(1)
     setDraftQuery(next)
     setAppliedQuery(cloneReportQuery(next))
-  }, [])
-
-  useEffect(() => {
-    if (activeTab !== 'summary') return
-
-    let cancelled = false
-    const controller = new AbortController()
-
-    void (async () => {
-      await Promise.resolve()
-      if (cancelled) return
-
-      const cached = summaryCacheRef.current.get(appliedKey)
-      if (cached) {
-        setSummary(cached)
-        setSummaryLoading(false)
-        setError(null)
-        return
-      }
-
-      setSummaryLoading(true)
-      setError(null)
-
-      try {
-        const loaded = await getSummaryReport(appliedQuery, { signal: controller.signal })
-        if (cancelled) return
-        summaryCacheRef.current.set(appliedKey, loaded)
-        setSummary(loaded)
-        setError(null)
-      } catch (cause) {
-        if (cancelled || controller.signal.aborted) return
-        setSummary(null)
-        setError(apiErrorMessage(cause, 'Could not load the summary report. Is the backend running?'))
-      } finally {
-        if (!cancelled) setSummaryLoading(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [activeTab, appliedKey, appliedQuery])
-
-  useEffect(() => {
-    if (activeTab !== 'detailed') return
-
-    let cancelled = false
-    const controller = new AbortController()
-
-    void (async () => {
-      await Promise.resolve()
-      if (cancelled) return
-
-      const cached = detailedCacheRef.current.get(detailedCacheKey)
-      if (cached) {
-        setDetailed(cached)
-        setDetailedLoading(false)
-        setError(null)
-        return
-      }
-
-      setDetailedLoading(true)
-      setError(null)
-
-      try {
-        const loaded = await getDetailedReport(appliedQuery, {
-          page: detailedPage,
-          pageSize: DETAILED_PAGE_SIZE,
-          signal: controller.signal,
-        })
-        if (cancelled) return
-        detailedCacheRef.current.set(detailedCacheKey, loaded)
-        setDetailed(loaded)
-        setError(null)
-      } catch (cause) {
-        if (cancelled || controller.signal.aborted) return
-        setDetailed(null)
-        setError(apiErrorMessage(cause, 'Could not load the detailed report. Is the backend running?'))
-      } finally {
-        if (!cancelled) setDetailedLoading(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [activeTab, appliedKey, appliedQuery, detailedCacheKey, detailedPage])
+  }, [clearCaches])
 
   return {
     draftQuery,
@@ -166,6 +212,8 @@ export function useReportWorkspace() {
     setActiveTab,
     summary,
     detailed,
+    workload,
+    profitability,
     detailedPage,
     setDetailedPage,
     detailedPageSize: DETAILED_PAGE_SIZE,

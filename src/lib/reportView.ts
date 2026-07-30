@@ -1,7 +1,7 @@
 import type { ProjectHours } from '../components/charts/ProjectBreakdown'
 import type { WeekTrendPoint } from '../components/charts/RecentWeeksTrend'
 import type { WeekDayHours } from '../components/charts/WeekHoursBarChart'
-import type { DayOfWeekHours, ProjectSummary, ReportBasis, SummaryReport, TrendPoint } from '../types/report'
+import type { DayOfWeekHours, ProjectSummary, SummaryReport, TrendPoint } from '../types/report'
 
 /** Shared period fields on Summary and Detailed reports. */
 export type ReportPeriodFields = {
@@ -121,27 +121,6 @@ export function formatPeriodLabel(report: ReportPeriodFields): string {
 
   if (!report.firstEntryDate) return 'All time'
   return `All time · ${formatFullDate(report.firstEntryDate)} – ${formatFullDate(report.generatedAtUtc)}`
-}
-
-/**
- * The rules behind the figures, mirroring ReportFormat.BasisLines on the server so the
- * page and the exports state the same caveats. Weekend / overtime money is not checkable
- * without the premiums that produced it.
- */
-export function basisLines(report: { basis: ReportBasis }): string[] {
-  const { basis } = report
-  const pct = (fraction: number) => `${Number((fraction * 100).toFixed(2))}%`
-  const hours = Number(basis.weeklyOvertimeThresholdHours.toFixed(2))
-
-  return [
-    'Confirmed time entries only; pending and rejected time is excluded.',
-    `Weekend +${pct(basis.weekendPremium)}, holiday +${pct(basis.holidayPremium)}, overtime +${pct(
-      basis.overtimePremium,
-    )} above ${hours}h per person per week.`,
-    'Cost is internal labour cost from member hourly rates, not client revenue.',
-    'Amounts are never summed across currencies.',
-    'Days, weekends and holidays are determined in UTC.',
-  ]
 }
 
 export interface TrendDelta {

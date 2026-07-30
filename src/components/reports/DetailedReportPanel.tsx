@@ -1,6 +1,6 @@
 import { formatHoursLabel } from '../charts/chartFormat'
 import { StatTile } from '../ui/StatTile'
-import { basisLines, formatFullDate, formatReportMoney } from '../../lib/reportView'
+import { formatFullDate, formatReportMoney } from '../../lib/reportView'
 import type { DetailedEntry, DetailedReport } from '../../types/report'
 import type { ReportGroupBy } from '../../types/reportQuery'
 import { EmptyNote } from './ChartCard'
@@ -185,21 +185,11 @@ export function DetailedReportPanel({
         </div>
       </div>
 
-      <details className="rounded-2xl bg-white px-5 py-4 shadow-card">
-        <summary className="cursor-pointer font-display text-sm font-bold text-navy">
-          Basis &amp; assumptions
-        </summary>
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-body text-navy/60">
-          {basisLines(report).map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        {report.generatedByName ? (
-          <p className="mt-3 text-caption text-navy/45">
-            Generated {formatFullDate(report.generatedAtUtc)} by {report.generatedByName}
-          </p>
-        ) : null}
-      </details>
+      {report.generatedByName ? (
+        <p className="text-caption text-navy/45">
+          Generated {formatFullDate(report.generatedAtUtc)} by {report.generatedByName}
+        </p>
+      ) : null}
     </div>
   )
 }

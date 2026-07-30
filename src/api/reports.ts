@@ -1,17 +1,25 @@
 import { downloadBlob } from '../lib/download'
 import { toReportSearchParams } from '../lib/reportQuery'
 import type {
+  CurrencyFinancialKpis,
   DayOfWeekHours,
   DetailedEntry,
   DetailedGroup,
   DetailedReport,
   MemberHours,
+  MemberLabourCost,
+  ProfitabilityReport,
+  ProjectProfitability,
   ProjectSummary,
   ReportKpis,
   SummaryReport,
   TrendPoint,
+  WeeklyFinancialTrend,
+  WorkloadAllocation,
+  WorkloadReport,
+  WorkloadSchedule,
 } from '../types/report'
-import type { ReportFilterSet, ReportGroupBy, ReportQuery } from '../types/reportQuery'
+import type { ReportFilterSet, ReportGroupBy, ReportQuery, ReportType } from '../types/reportQuery'
 import type { PagedResult } from '../types/paged'
 import { apiClient, requestBlob, type RequestOptions } from './client'
 import { appendListQueryParams, toPagedResult, type ListQueryOptions } from './pagination'
@@ -143,6 +151,103 @@ interface DetailedGroupResponse {
   entryCount: number
   startIndex: number
   endIndexExclusive: number
+}
+
+interface WorkloadReportResponse {
+  kpis: ReportKpisResponse
+  basis: ReportBasisResponse
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  allocations: WorkloadAllocationResponse[]
+  grandTotalSeconds: number
+  grandTotalBillableSeconds: number
+  schedule: WorkloadScheduleResponse[]
+}
+
+interface WorkloadAllocationResponse {
+  userId: string
+  displayName: string
+  clientId: string | null
+  clientName: string
+  projectId: string | null
+  projectName: string
+  totalSeconds: number
+  billableSeconds: number
+  pctOfMemberTotal: number
+}
+
+interface WorkloadScheduleResponse {
+  label: string
+  hours: number
+  pctOfTotalHours: number
+}
+
+interface ProfitabilityReportResponse {
+  kpis: ReportKpisResponse
+  basis: ReportBasisResponse
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  byCurrency: CurrencyFinancialKpisResponse[]
+  weeklyTrend: WeeklyFinancialTrendResponse[]
+  projects: ProjectProfitabilityResponse[]
+  members: MemberLabourCostResponse[]
+  revenueBasisLines: string[]
+}
+
+interface CurrencyFinancialKpisResponse {
+  currencyCode: string
+  revenue: number
+  cost: number
+  margin: number
+  marginPct: number | null
+  billableHours: number
+  totalSeconds: number
+  projectCount: number
+}
+
+interface WeeklyFinancialTrendResponse {
+  weekStartDate: string
+  currencyCode: string
+  revenue: number
+  cost: number
+  margin: number
+}
+
+interface ProjectProfitabilityResponse {
+  projectId: string
+  name: string
+  currencyCode: string
+  clientName: string
+  status: string
+  billingModel: string
+  hourlyRate: number | null
+  fixedFeeAmount: number | null
+  timeEstimateHours: number | null
+  estimateUsedPct: number | null
+  totalSeconds: number
+  billableSeconds: number
+  revenue: number
+  calculatedCost: number
+  normalCost: number
+  weekendCost: number
+  holidayCost: number
+  overtimeCost: number
+  margin: number
+  marginPct: number | null
+}
+
+interface MemberLabourCostResponse {
+  userId: string
+  displayName: string
+  currencyCode: string
+  totalSeconds: number
+  labourCost: number
 }
 
 interface ReportFilterSetResponse {
@@ -296,6 +401,129 @@ function toDetailedReport(response: DetailedReportResponse): DetailedReport {
   }
 }
 
+function toWorkloadAllocation(response: WorkloadAllocationResponse): WorkloadAllocation {
+  return {
+    userId: response.userId,
+    displayName: response.displayName,
+    clientId: response.clientId,
+    clientName: response.clientName,
+    projectId: response.projectId,
+    projectName: response.projectName,
+    totalSeconds: response.totalSeconds,
+    billableSeconds: response.billableSeconds,
+    pctOfMemberTotal: response.pctOfMemberTotal,
+  }
+}
+
+function toWorkloadSchedule(response: WorkloadScheduleResponse): WorkloadSchedule {
+  return {
+    label: response.label,
+    hours: response.hours,
+    pctOfTotalHours: response.pctOfTotalHours,
+  }
+}
+
+function toWorkloadReport(response: WorkloadReportResponse): WorkloadReport {
+  return {
+    kpis: toKpis(response.kpis),
+    basis: {
+      weekendPremium: response.basis.weekendPremium,
+      holidayPremium: response.basis.holidayPremium,
+      overtimePremium: response.basis.overtimePremium,
+      weeklyOvertimeThresholdHours: response.basis.weeklyOvertimeThresholdHours,
+    },
+    generatedAtUtc: response.generatedAtUtc,
+    generatedByName: response.generatedByName,
+    firstEntryDate: response.firstEntryDate,
+    filterFromDate: response.filterFromDate ?? null,
+    filterToDate: response.filterToDate ?? null,
+    allocations: (response.allocations ?? []).map(toWorkloadAllocation),
+    grandTotalSeconds: response.grandTotalSeconds,
+    grandTotalBillableSeconds: response.grandTotalBillableSeconds,
+    schedule: (response.schedule ?? []).map(toWorkloadSchedule),
+  }
+}
+
+function toCurrencyFinancial(response: CurrencyFinancialKpisResponse): CurrencyFinancialKpis {
+  return {
+    currencyCode: response.currencyCode,
+    revenue: response.revenue,
+    cost: response.cost,
+    margin: response.margin,
+    marginPct: response.marginPct,
+    billableHours: response.billableHours,
+    totalSeconds: response.totalSeconds,
+    projectCount: response.projectCount,
+  }
+}
+
+function toWeeklyFinancial(response: WeeklyFinancialTrendResponse): WeeklyFinancialTrend {
+  return {
+    weekStartDate: response.weekStartDate,
+    currencyCode: response.currencyCode,
+    revenue: response.revenue,
+    cost: response.cost,
+    margin: response.margin,
+  }
+}
+
+function toProjectProfitability(response: ProjectProfitabilityResponse): ProjectProfitability {
+  return {
+    projectId: response.projectId,
+    name: response.name,
+    currencyCode: response.currencyCode,
+    clientName: response.clientName,
+    status: response.status,
+    billingModel: response.billingModel,
+    hourlyRate: response.hourlyRate,
+    fixedFeeAmount: response.fixedFeeAmount,
+    timeEstimateHours: response.timeEstimateHours,
+    estimateUsedPct: response.estimateUsedPct,
+    totalSeconds: response.totalSeconds,
+    billableSeconds: response.billableSeconds,
+    revenue: response.revenue,
+    calculatedCost: response.calculatedCost,
+    normalCost: response.normalCost,
+    weekendCost: response.weekendCost,
+    holidayCost: response.holidayCost,
+    overtimeCost: response.overtimeCost,
+    margin: response.margin,
+    marginPct: response.marginPct,
+  }
+}
+
+function toMemberLabourCost(response: MemberLabourCostResponse): MemberLabourCost {
+  return {
+    userId: response.userId,
+    displayName: response.displayName,
+    currencyCode: response.currencyCode,
+    totalSeconds: response.totalSeconds,
+    labourCost: response.labourCost,
+  }
+}
+
+function toProfitabilityReport(response: ProfitabilityReportResponse): ProfitabilityReport {
+  return {
+    kpis: toKpis(response.kpis),
+    basis: {
+      weekendPremium: response.basis.weekendPremium,
+      holidayPremium: response.basis.holidayPremium,
+      overtimePremium: response.basis.overtimePremium,
+      weeklyOvertimeThresholdHours: response.basis.weeklyOvertimeThresholdHours,
+    },
+    generatedAtUtc: response.generatedAtUtc,
+    generatedByName: response.generatedByName,
+    firstEntryDate: response.firstEntryDate,
+    filterFromDate: response.filterFromDate ?? null,
+    filterToDate: response.filterToDate ?? null,
+    byCurrency: (response.byCurrency ?? []).map(toCurrencyFinancial),
+    weeklyTrend: (response.weeklyTrend ?? []).map(toWeeklyFinancial),
+    projects: (response.projects ?? []).map(toProjectProfitability),
+    members: (response.members ?? []).map(toMemberLabourCost),
+    revenueBasisLines: response.revenueBasisLines ?? [],
+  }
+}
+
 function toReportQuery(response: ReportQueryResponse): ReportQuery {
   return {
     userIds: response.userIds ?? [],
@@ -361,29 +589,6 @@ export function getSummaryReport(
     .then(toSummaryReport)
 }
 
-const EXPORT_FALLBACK_NAME: Record<ReportExportFormat, string> = {
-  csv: 'reetrack-summary.csv',
-  xlsx: 'reetrack-summary.xlsx',
-  pdf: 'reetrack-summary.pdf',
-}
-
-/** Downloads the summary report as CSV / Excel / PDF with the same applied filters. */
-export async function downloadSummaryReport(
-  format: ReportExportFormat,
-  query: ReportQuery,
-): Promise<void> {
-  const { blob, filename } = await requestBlob(
-    reportPath('/reports/summary/export', query, { format }),
-  )
-  downloadBlob(filename ?? EXPORT_FALLBACK_NAME[format], blob)
-}
-
-const DETAILED_EXPORT_FALLBACK: Record<ReportExportFormat, string> = {
-  csv: 'reetrack-detailed.csv',
-  xlsx: 'reetrack-detailed.xlsx',
-  pdf: 'reetrack-detailed.pdf',
-}
-
 /** Admin detailed audit report — GET /api/reports/detailed. */
 export function getDetailedReport(
   query: ReportQuery,
@@ -401,15 +606,47 @@ export function getDetailedReport(
     .then(toDetailedReport)
 }
 
-/** Downloads the detailed report as CSV / Excel / PDF (full filtered set). */
-export async function downloadDetailedReport(
+/** Admin workload matrix — GET /api/reports/workload. */
+export function getWorkloadReport(
+  query: ReportQuery,
+  options?: RequestOptions,
+): Promise<WorkloadReport> {
+  return apiClient
+    .get<WorkloadReportResponse>(reportPath('/reports/workload', query), options)
+    .then(toWorkloadReport)
+}
+
+/** Admin profitability report — GET /api/reports/profitability. */
+export function getProfitabilityReport(
+  query: ReportQuery,
+  options?: RequestOptions,
+): Promise<ProfitabilityReport> {
+  return apiClient
+    .get<ProfitabilityReportResponse>(reportPath('/reports/profitability', query), options)
+    .then(toProfitabilityReport)
+}
+
+const EXPORT_FALLBACK_NAME: Record<ReportType, Record<ReportExportFormat, string>> = {
+  summary: { csv: 'reetrack-summary.csv', xlsx: 'reetrack-summary.xlsx', pdf: 'reetrack-summary.pdf' },
+  detailed: { csv: 'reetrack-detailed.csv', xlsx: 'reetrack-detailed.xlsx', pdf: 'reetrack-detailed.pdf' },
+  workload: { csv: 'reetrack-workload.csv', xlsx: 'reetrack-workload.xlsx', pdf: 'reetrack-workload.pdf' },
+  profitability: {
+    csv: 'reetrack-profitability.csv',
+    xlsx: 'reetrack-profitability.xlsx',
+    pdf: 'reetrack-profitability.pdf',
+  },
+}
+
+/** Downloads a report export as CSV / Excel / PDF with the same applied filters. */
+export async function downloadReport(
+  kind: ReportType,
   format: ReportExportFormat,
   query: ReportQuery,
 ): Promise<void> {
   const { blob, filename } = await requestBlob(
-    reportPath('/reports/detailed/export', query, { format }),
+    reportPath(`/reports/${kind}/export`, query, { format }),
   )
-  downloadBlob(filename ?? DETAILED_EXPORT_FALLBACK[format], blob)
+  downloadBlob(filename ?? EXPORT_FALLBACK_NAME[kind][format], blob)
 }
 
 export function listReportFilterSets(

@@ -1,41 +1,20 @@
 import { useState } from 'react'
 import { apiErrorMessage } from '../api/client'
-import {
-  downloadDetailedReport,
-  downloadSummaryReport,
-  type ReportExportFormat,
-} from '../api/reports'
-import { BillableSplitCard } from '../components/charts/BillableSplitCard'
-import { ProjectBreakdown } from '../components/charts/ProjectBreakdown'
-import { RecentWeeksTrend } from '../components/charts/RecentWeeksTrend'
-import { WeekHoursBarChart } from '../components/charts/WeekHoursBarChart'
-import { formatHoursLabel } from '../components/charts/chartFormat'
-import { AttentionCard } from '../components/reports/AttentionCard'
-import { ChartCard, EmptyNote } from '../components/reports/ChartCard'
+import { downloadReport, type ReportExportFormat } from '../api/reports'
 import { DetailedReportPanel } from '../components/reports/DetailedReportPanel'
 import { ExportMenu } from '../components/reports/ExportMenu'
+import { ProfitabilityReportPanel } from '../components/reports/ProfitabilityReportPanel'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
+import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
+import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
 import { Icon } from '../components/ui/Icon'
-import { StatTile } from '../components/ui/StatTile'
 import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
 import { toggleGroupBy } from '../lib/reportQuery'
-import {
-  basisLines,
-  buildAttentionItems,
-  formatPeriodLabel,
-  formatReportMoney,
-  toActivityChartData,
-  toProjectBreakdownData,
-  toWeeklyTrendChartData,
-  trendDelta,
-} from '../lib/reportView'
-import type { SummaryReport } from '../types/report'
+import { formatPeriodLabel } from '../lib/reportView'
 import type { ReportType } from '../types/reportQuery'
-
-const TOP_N = 5
 
 const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
   { value: 'summary', label: 'Summary' },
@@ -45,7 +24,7 @@ const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
 ]
 
 /**
- * RT-50 / RT-51 / RT-54 — admin portfolio reports. Nav is adminOnly; the page also
+ * RT-50 / RT-51 / RT-52 / RT-53 / RT-54 — admin portfolio reports. Nav is adminOnly; the page also
  * gates itself because routes aren't role-guarded. Backend is [Authorize(Roles="Admin")].
  */
 export default function ReportsPage() {
@@ -78,6 +57,8 @@ function ReportsWorkspace() {
     setActiveTab,
     summary,
     detailed,
+    workload,
+    profitability,
     detailedPage,
     setDetailedPage,
     detailedPageSize,
@@ -94,19 +75,27 @@ function ReportsWorkspace() {
   const [exporting, setExporting] = useState<ReportExportFormat | null>(null)
 
   const periodReport =
-    activeTab === 'detailed' ? detailed : activeTab === 'summary' ? summary : null
+    activeTab === 'detailed'
+      ? detailed
+      : activeTab === 'workload'
+        ? workload
+        : activeTab === 'profitability'
+          ? profitability
+          : activeTab === 'summary'
+            ? summary
+            : null
+
   const canExport =
-    (activeTab === 'summary' && !!summary) || (activeTab === 'detailed' && !!detailed)
+    (activeTab === 'summary' && !!summary) ||
+    (activeTab === 'detailed' && !!detailed) ||
+    (activeTab === 'workload' && !!workload) ||
+    (activeTab === 'profitability' && !!profitability)
 
   async function handleExport(format: ReportExportFormat) {
     setExporting(format)
     setExportError(null)
     try {
-      if (activeTab === 'detailed') {
-        await downloadDetailedReport(format, appliedQuery)
-      } else {
-        await downloadSummaryReport(format, appliedQuery)
-      }
+      await downloadReport(activeTab, format, appliedQuery)
     } catch (cause) {
       setExportError(apiErrorMessage(cause, 'Could not download the export.'))
     } finally {
@@ -158,7 +147,7 @@ function ReportsWorkspace() {
         </div>
       ) : null}
 
-      {error && (activeTab === 'summary' || activeTab === 'detailed') ? (
+      {error ? (
         <div className="mb-4 rounded-lg bg-red-tint px-4 py-3 text-body text-red" role="alert">
           {error}
         </div>
@@ -184,225 +173,11 @@ function ReportsWorkspace() {
             patchDraft({ groupBy: toggleGroupBy(draftQuery, value) })
           }
         />
+      ) : activeTab === 'workload' ? (
+        <WorkloadReportPanel report={workload} isLoading={isLoading} />
       ) : (
-        <ComingSoonPanel type={activeTab} />
+        <ProfitabilityReportPanel report={profitability} isLoading={isLoading} />
       )}
     </div>
   )
-}
-
-function ComingSoonPanel({ type }: { type: Exclude<ReportType, 'summary' | 'detailed'> }) {
-  const copy: Record<
-    Exclude<ReportType, 'summary' | 'detailed'>,
-    { title: string; body: string }
-  > = {
-    workload: {
-      title: 'Workload report',
-      body: 'Employee × client/project workload arrives next. Your applied filters will carry over.',
-    },
-    profitability: {
-      title: 'Profitability report',
-      body: 'Revenue, labour cost, and margin views land after Workload.',
-    },
-  }
-  const panel = copy[type]
-
-  return (
-    <div className="rounded-2xl bg-white px-5 py-16 text-center shadow-card">
-      <h2 className="font-display text-lg font-bold text-navy">{panel.title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-body text-navy/55">{panel.body}</p>
-    </div>
-  )
-}
-
-function SummaryReportPanel({
-  report,
-  isLoading,
-}: {
-  report: SummaryReport | null
-  isLoading: boolean
-}) {
-  const [showAllProjects, setShowAllProjects] = useState(false)
-  const [showAllMembers, setShowAllMembers] = useState(false)
-
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl bg-white px-5 py-16 text-center text-body text-navy/50 shadow-card">
-        Loading summary…
-      </div>
-    )
-  }
-
-  if (!report) return null
-
-  const activityData = toActivityChartData(report.activity)
-  const trendData = toWeeklyTrendChartData(report.weeklyTrend)
-  const projectData = toProjectBreakdownData(report.projects, report.kpis.unassignedSeconds)
-  const attention = buildAttentionItems(report)
-  const hoursDelta = trendDelta(report.weeklyTrend)
-
-  const visibleProjectData = showAllProjects ? projectData : projectData.slice(0, TOP_N)
-  const visibleProjects = showAllProjects ? report.projects : report.projects.slice(0, TOP_N)
-  const visibleMembers = showAllMembers ? report.members : report.members.slice(0, TOP_N)
-
-  return (
-    <div className="space-y-4">
-      {attention.length > 0 ? <AttentionCard items={attention} /> : null}
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        <StatTile
-          label="Total logged"
-          value={formatHoursLabel(report.kpis.totalSeconds)}
-          delta={
-            hoursDelta
-              ? { pct: hoursDelta.pct, caption: `vs prior ${hoursDelta.weeks} weeks` }
-              : undefined
-          }
-        />
-        <StatTile label="Billable" value={`${formatPct(report.kpis.billablePct)}%`} />
-        <StatTile label="Entries" value={String(report.kpis.entryCount)} />
-        <StatTile label="Active members" value={String(report.kpis.activeMembers)} />
-        <StatTile label="Active projects" value={String(report.kpis.activeProjects)} />
-        <StatTile label="Overtime" value={formatDecimalHours(report.kpis.overtimeHours)} />
-        <StatTile label="Weekend" value={formatDecimalHours(report.kpis.weekendHours)} />
-        <StatTile label="Holiday" value={formatDecimalHours(report.kpis.holidayHours)} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Activity by day">
-          <WeekHoursBarChart data={activityData} />
-        </ChartCard>
-        <ChartCard title="Billable split">
-          <BillableSplitCard
-            split={{
-              billableSeconds: report.kpis.billableSeconds,
-              nonBillableSeconds: report.kpis.nonBillableSeconds,
-              totalSeconds: report.kpis.totalSeconds,
-              billablePct: report.kpis.billablePct,
-            }}
-          />
-        </ChartCard>
-      </div>
-
-      <ChartCard title="Weekly trend">
-        <RecentWeeksTrend data={trendData} />
-      </ChartCard>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="By project"
-          action={
-            <ShowAllToggle
-              total={projectData.length}
-              showingAll={showAllProjects}
-              onToggle={() => setShowAllProjects((value) => !value)}
-            />
-          }
-        >
-          {projectData.length === 0 ? (
-            <EmptyNote text="No project-linked time yet." />
-          ) : (
-            <>
-              <ProjectBreakdown data={visibleProjectData} />
-              <ul className="mt-4 space-y-2 border-t border-navy/8 pt-3">
-                {visibleProjects.map((project) => (
-                  <li
-                    key={project.projectId}
-                    className="flex items-baseline justify-between gap-3 text-caption"
-                  >
-                    <span className="min-w-0 truncate text-navy">
-                      {project.name}
-                      {project.clientName ? (
-                        <span className="text-navy/45"> · {project.clientName}</span>
-                      ) : null}
-                    </span>
-                    <span className="shrink-0 font-mono tabular-nums text-navy/70">
-                      {formatReportMoney(project.calculatedCost, project.currencyCode)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </ChartCard>
-
-        <ChartCard
-          title="By member"
-          action={
-            <ShowAllToggle
-              total={report.members.length}
-              showingAll={showAllMembers}
-              onToggle={() => setShowAllMembers((value) => !value)}
-            />
-          }
-        >
-          {report.members.length === 0 ? (
-            <EmptyNote text="No confirmed time yet." />
-          ) : (
-            <ul className="space-y-2">
-              {visibleMembers.map((member) => (
-                <li
-                  key={member.userId}
-                  className="flex items-baseline justify-between gap-3 text-body"
-                >
-                  <span className="min-w-0 truncate text-navy">{member.displayName}</span>
-                  <span className="shrink-0 font-mono tabular-nums text-navy/70">
-                    {formatHoursLabel(member.totalSeconds)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </ChartCard>
-      </div>
-
-      <details className="rounded-2xl bg-white px-5 py-4 shadow-card">
-        <summary className="cursor-pointer text-caption font-medium text-navy/60">
-          Basis &amp; assumptions
-        </summary>
-        <ul className="mt-3 space-y-1.5">
-          {basisLines(report).map((line) => (
-            <li key={line} className="text-caption text-navy/55">
-              {line}
-            </li>
-          ))}
-        </ul>
-      </details>
-
-      <p className="text-xs text-navy/40">
-        Generated {new Date(report.generatedAtUtc).toLocaleString()}
-        {report.generatedByName ? ` · by ${report.generatedByName}` : ''}
-      </p>
-    </div>
-  )
-}
-
-function ShowAllToggle({
-  total,
-  showingAll,
-  onToggle,
-}: {
-  total: number
-  showingAll: boolean
-  onToggle: () => void
-}) {
-  if (total <= TOP_N) return null
-
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="text-caption font-medium text-brand transition hover:text-brand-deep"
-    >
-      {showingAll ? `Show top ${TOP_N}` : `Show all ${total}`}
-    </button>
-  )
-}
-
-function formatPct(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
-}
-
-function formatDecimalHours(hours: number): string {
-  return formatHoursLabel(Math.round(hours * 3600))
 }

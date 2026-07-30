@@ -143,3 +143,102 @@ export interface DetailedReport {
   totalCount: number
   groups: DetailedGroup[]
 }
+
+/** RT-52 — member × client × project hours. */
+export interface WorkloadAllocation {
+  userId: string
+  displayName: string
+  clientId: string | null
+  clientName: string
+  projectId: string | null
+  projectName: string
+  totalSeconds: number
+  billableSeconds: number
+  pctOfMemberTotal: number
+}
+
+export interface WorkloadSchedule {
+  label: string
+  hours: number
+  pctOfTotalHours: number
+}
+
+export interface WorkloadReport {
+  kpis: ReportKpis
+  basis: ReportBasis
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  allocations: WorkloadAllocation[]
+  grandTotalSeconds: number
+  grandTotalBillableSeconds: number
+  schedule: WorkloadSchedule[]
+}
+
+/** RT-53 — revenue / cost / margin. */
+export interface CurrencyFinancialKpis {
+  currencyCode: string
+  revenue: number
+  cost: number
+  margin: number
+  marginPct: number | null
+  billableHours: number
+  totalSeconds: number
+  projectCount: number
+}
+
+export interface WeeklyFinancialTrend {
+  weekStartDate: string
+  currencyCode: string
+  revenue: number
+  cost: number
+  margin: number
+}
+
+export interface ProjectProfitability {
+  projectId: string
+  name: string
+  currencyCode: string
+  clientName: string
+  status: string
+  billingModel: string
+  hourlyRate: number | null
+  fixedFeeAmount: number | null
+  timeEstimateHours: number | null
+  estimateUsedPct: number | null
+  totalSeconds: number
+  billableSeconds: number
+  revenue: number
+  calculatedCost: number
+  normalCost: number
+  weekendCost: number
+  holidayCost: number
+  overtimeCost: number
+  margin: number
+  marginPct: number | null
+}
+
+export interface MemberLabourCost {
+  userId: string
+  displayName: string
+  currencyCode: string
+  totalSeconds: number
+  labourCost: number
+}
+
+export interface ProfitabilityReport {
+  kpis: ReportKpis
+  basis: ReportBasis
+  generatedAtUtc: string
+  generatedByName: string | null
+  firstEntryDate: string | null
+  filterFromDate: string | null
+  filterToDate: string | null
+  byCurrency: CurrencyFinancialKpis[]
+  weeklyTrend: WeeklyFinancialTrend[]
+  projects: ProjectProfitability[]
+  members: MemberLabourCost[]
+  revenueBasisLines: string[]
+}
