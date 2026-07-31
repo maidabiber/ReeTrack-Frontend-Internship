@@ -1,7 +1,9 @@
 import { Icon } from '../ui/Icon'
 import { useTimer } from '../../hooks/useTimer'
 import { useTimeTotals } from '../../hooks/useTimeTotals'
+import { useMyHourTarget } from '../../hooks/useMyHourTarget'
 import { formatDurationHms } from '../../lib/formatDuration'
+import { formatLoggedVsTarget, targetSecondsForMode } from '../../lib/hourTargetProgress'
 
 export type TimerContentView = 'list' | 'calendar' | 'timesheet'
 
@@ -18,6 +20,19 @@ export function Toolbar({
     activeTimer,
     elapsedSeconds,
   )
+  const { target } = useMyHourTarget()
+
+  const todayTargetSeconds =
+    target?.mode === 'Daily'
+      ? targetSecondsForMode('Daily', target.targetHours, {
+          isWorkdayToday: target.isWorkdayToday,
+        })
+      : null
+
+  const weekTargetSeconds =
+    target?.mode === 'Weekly'
+      ? targetSecondsForMode('Weekly', target.targetHours)
+      : null
 
   return (
     <div className="mb-1 flex w-full flex-wrap items-center gap-4">
@@ -30,7 +45,7 @@ export function Toolbar({
         <span>
           TODAY TOTAL
           <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
-            {formatDurationHms(todayTotalSeconds)}
+            {formatLoggedVsTarget(todayTotalSeconds, todayTargetSeconds, formatDurationHms)}
           </b>
         </span>
       </div>
@@ -38,7 +53,7 @@ export function Toolbar({
         <span>
           WEEK TOTAL
           <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
-            {formatDurationHms(weekTotalSeconds)}
+            {formatLoggedVsTarget(weekTotalSeconds, weekTargetSeconds, formatDurationHms)}
           </b>
         </span>
       </div>

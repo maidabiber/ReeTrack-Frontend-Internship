@@ -8,6 +8,7 @@ import {
   ApprovalsPage,
   BillableRatesPage,
   ClientsPage,
+  GoalsPage,
   MembersPage,
   NotificationsPage,
   OnboardingPage,
@@ -26,6 +27,7 @@ import {
 const PAGES: Record<string, React.ReactElement> = {
   '/members': <MembersPage />,
   '/billable-rates': <BillableRatesPage />,
+  '/goals': <GoalsPage />,
   '/clients': <ClientsPage />,
   '/projects': <ProjectsPage />,
   '/tags': <TagsPage />,

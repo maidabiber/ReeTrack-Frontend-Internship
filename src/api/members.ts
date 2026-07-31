@@ -25,6 +25,8 @@ interface MemberResponse {
   emailVerified: boolean
   lastLoginAtUtc: string | null
   pendingInvitationId: string | null
+  hourTargetMode: string | null
+  hourTargetHours: number | null
 }
 
 interface CreateInvitationResponse {
@@ -56,6 +58,13 @@ function toMember(response: MemberResponse): Member {
     status: (response.status as UserStatus) ?? 'Active',
     rate: null,
     rateCurrencyCode: null,
+    hourTargetMode:
+      response.hourTargetMode === 'Weekly'
+        ? 'Weekly'
+        : response.hourTargetMode === 'Daily'
+          ? 'Daily'
+          : null,
+    hourTargetHours: response.hourTargetHours ?? null,
     emailVerified: response.emailVerified,
     lastLoginAtUtc: response.lastLoginAtUtc,
     pendingInvitationId: response.pendingInvitationId,

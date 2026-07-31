@@ -29,6 +29,9 @@ export interface User {
   /** Current hourly rate amount; null when not loaded or missing. */
   rate: number | null
   rateCurrencyCode: string | null
+  /** Per-user hour target override; null means app default. */
+  hourTargetMode: 'Daily' | 'Weekly' | null
+  hourTargetHours: number | null
   emailVerified: boolean
   lastLoginAtUtc: string | null
 }

@@ -26,8 +26,10 @@ import { Modal } from '../ui/Modal'
 import { Pill } from '../ui/Pill'
 import { WeekEntriesList } from './WeekEntriesList'
 import { formatDurationHms } from '../../lib/formatDuration'
+import { formatLoggedVsTarget, resolveWeekTargetSeconds } from '../../lib/hourTargetProgress'
 import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
 import { billableSplit, hoursPerDay, projectTotals } from '../../lib/timesheetStats'
+import { useMyHourTarget } from '../../hooks/useMyHourTarget'
 import { syncWeekLock } from '../../hooks/useWeekLock'
 import type { MyWeekTimesheet, WeekStatus, WeekSummary } from '../../types/timesheet'
 
@@ -143,6 +145,7 @@ export function TimesheetView() {
     }
   }, [refreshKey])
 
+  const { target: hourTarget } = useMyHourTarget()
   const timesheet = week?.timesheet ?? null
   const status: WeekStatus = timesheet?.status ?? 'None'
   const entries = useMemo(() => week?.entries ?? [], [week])
@@ -151,6 +154,10 @@ export function TimesheetView() {
   const todayInWeek = useMemo(() => weekDays.findIndex(isToday), [weekDays])
   const todayIndex = todayInWeek >= 0 ? todayInWeek : undefined
   const perProject = useMemo(() => projectTotals(entries), [entries])
+  const weekTargetSeconds = useMemo(
+    () => (hourTarget ? resolveWeekTargetSeconds(hourTarget, weekStart) : null),
+    [hourTarget, weekStart],
+  )
   const trendData = useMemo(
     () =>
       [...recentWeeks].reverse().map((summary) => ({
@@ -299,7 +306,10 @@ export function TimesheetView() {
           )}
 
           <div className="mb-4 grid grid-cols-3 gap-4">
-            <StatTile label="Total logged" value={formatDurationHms(split.totalSeconds)} />
+            <StatTile
+              label="Total logged"
+              value={formatLoggedVsTarget(split.totalSeconds, weekTargetSeconds, formatDurationHms)}
+            />
             <StatTile label="Billable" value={`${split.billablePct}%`} />
             <StatTile
               label="Projects"

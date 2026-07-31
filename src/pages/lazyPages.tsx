@@ -5,6 +5,7 @@ import { lazy } from 'react'
 export const PlaceholderPage = lazy(() => import('./PlaceholderPage'))
 export const MembersPage = lazy(() => import('./MembersPage'))
 export const BillableRatesPage = lazy(() => import('./BillableRatesPage'))
+export const GoalsPage = lazy(() => import('./GoalsPage'))
 export const ClientsPage = lazy(() => import('./ClientsPage'))
 export const ProjectsPage = lazy(() => import('./ProjectsPage'))
 export const ProjectDetailPage = lazy(() => import('./ProjectDetailPage'))

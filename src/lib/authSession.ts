@@ -64,6 +64,8 @@ export function toSessionUser(apiUser: {
     status: 'Active',
     rate: null,
     rateCurrencyCode: null,
+    hourTargetMode: null,
+    hourTargetHours: null,
     emailVerified: true,
     lastLoginAtUtc: null,
   }
