@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { calendarApiErrorMessage, getCalendarView } from '../../api/calendar'
+import { getCalendarView } from '../../api/calendar'
+import { apiErrorMessage } from '../../api/client'
 import { listHolidays } from '../../api/holidays'
 import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
@@ -115,7 +116,7 @@ export function EventCalendar() {
       .catch((error) => {
         if (cancelled) return
         setLoadError(
-          calendarApiErrorMessage(error, 'Could not load calendar data. Is the backend running?'),
+          apiErrorMessage(error, 'Could not load calendar data. Is the backend running?'),
         )
         setFetchedKey(requestKey)
       })

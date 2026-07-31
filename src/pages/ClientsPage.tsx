@@ -18,13 +18,13 @@ import {
 } from '../components/directory/DirectoryTable'
 import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
 import {
-  clientApiErrorMessage,
   createClient,
   deleteClient,
   listClients,
   updateClient,
   type ClientStatusFilter,
 } from '../api/clients'
+import { apiErrorMessage } from '../api/client'
 import { fetchAllPages } from '../api/pagination'
 import { listProjects } from '../api/projects'
 import { clientCoverUrl, projectCoverUrl } from '../lib/projectCover'
@@ -69,7 +69,7 @@ export default function ClientsPage() {
       })
       .catch((error) => {
         if (cancelled) return
-        setLoadError(clientApiErrorMessage(error, 'Could not load clients. Is the backend running?'))
+        setLoadError(apiErrorMessage(error, 'Could not load clients. Is the backend running?'))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -108,7 +108,7 @@ export default function ClientsPage() {
         showNotice(updated.isActive ? `${updated.name} was restored.` : `${updated.name} was archived.`)
       })
       .catch((error) =>
-        showNotice(clientApiErrorMessage(error, `Could not update ${client.name}.`)),
+        showNotice(apiErrorMessage(error, `Could not update ${client.name}.`)),
       )
   }
 
@@ -121,7 +121,7 @@ export default function ClientsPage() {
         showNotice(`${client.name} was deleted.`)
       })
       .catch((error) =>
-        showNotice(clientApiErrorMessage(error, `Could not delete ${client.name}.`)),
+        showNotice(apiErrorMessage(error, `Could not delete ${client.name}.`)),
       )
   }
 
@@ -449,7 +449,7 @@ function ClientModal({
     request
       .then((saved) => onSaved(saved, client === null))
       .catch((saveError) => {
-        setError(clientApiErrorMessage(saveError, 'Could not save the client. Please try again.'))
+        setError(apiErrorMessage(saveError, 'Could not save the client. Please try again.'))
         setIsSaving(false)
       })
   }

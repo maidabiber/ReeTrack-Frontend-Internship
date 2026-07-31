@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ApiError } from '../../api/client'
-import { timeEntryApiErrorMessage } from '../../api/timeEntries'
+import { ApiError, apiErrorMessage } from '../../api/client'
 import { useEntryAssociations } from '../../hooks/useEntryAssociations'
 import { useTimer } from '../../hooks/useTimer'
 import { useWeekLock } from '../../hooks/useWeekLock'
@@ -105,16 +104,16 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
       onClose()
     } catch (err) {
       if (isDurationLimitError(err)) {
-        setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+        setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
         return
       }
 
       if (err instanceof ApiError && err.status === 403) {
-        setError(timeEntryApiErrorMessage(err, 'This entry cannot be edited.'))
+        setError(apiErrorMessage(err, 'This entry cannot be edited.'))
         return
       }
 
-      setError(timeEntryApiErrorMessage(err, 'Could not save changes.'))
+      setError(apiErrorMessage(err, 'Could not save changes.'))
     }
   }
 
@@ -143,17 +142,17 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
       onOtherError: (err) => {
         if (isDurationLimitError(err)) {
           setDurationLimitMessage(
-            timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE),
+            apiErrorMessage(err, DURATION_LIMIT_MESSAGE),
           )
           return
         }
 
         if (err instanceof ApiError && err.status === 403) {
-          setError(timeEntryApiErrorMessage(err, 'This entry cannot be edited.'))
+          setError(apiErrorMessage(err, 'This entry cannot be edited.'))
           return
         }
 
-        setError(timeEntryApiErrorMessage(err, 'Could not save changes.'))
+        setError(apiErrorMessage(err, 'Could not save changes.'))
       },
     })
   }

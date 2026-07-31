@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
+import { apiErrorMessage } from '../api/client'
 import { NoticeBanner, LoadErrorState, DirectorySearch } from '../components/directory/DirectoryControls'
 import { EditHourTargetModal } from '../components/members/EditHourTargetModal'
 import { UserAvatar } from '../components/ui/UserAvatar'
-import { listMembers, memberApiErrorMessage, type Member } from '../api/members'
-import {
-  getHourTargetSettings,
-  hourTargetApiErrorMessage,
-  updateHourTargetSettings,
-} from '../api/hourTargets'
+import { listMembers, type Member } from '../api/members'
+import { getHourTargetSettings, updateHourTargetSettings } from '../api/hourTargets'
 import type { HourTargetMode, HourTargetSettings } from '../types/hourTarget'
 
 const PAGE_SIZE = 20
@@ -58,7 +55,7 @@ export default function GoalsPage() {
         setDraft(loaded)
       })
       .catch((error) =>
-        setLoadError(hourTargetApiErrorMessage(error, 'Could not load hour target settings.')),
+        setLoadError(apiErrorMessage(error, 'Could not load hour target settings.')),
       )
       .finally(() => setIsLoading(false))
   }
@@ -75,7 +72,7 @@ export default function GoalsPage() {
       })
       .catch((error) => {
         if (cancelled) return
-        setLoadError(hourTargetApiErrorMessage(error, 'Could not load hour target settings.'))
+        setLoadError(apiErrorMessage(error, 'Could not load hour target settings.'))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -113,7 +110,7 @@ export default function GoalsPage() {
       })
       .catch((error) => {
         if (cancelled) return
-        setMembersError(memberApiErrorMessage(error, 'Could not load members.'))
+        setMembersError(apiErrorMessage(error, 'Could not load members.'))
       })
       .finally(() => {
         if (!cancelled) setMembersLoading(false)
@@ -134,7 +131,7 @@ export default function GoalsPage() {
         showNotice('Hour target default was saved.')
       })
       .catch((error) =>
-        showNotice(hourTargetApiErrorMessage(error, 'Could not save hour target settings.')),
+        showNotice(apiErrorMessage(error, 'Could not save hour target settings.')),
       )
       .finally(() => setIsSaving(false))
   }

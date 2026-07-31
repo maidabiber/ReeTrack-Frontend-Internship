@@ -2,20 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { NoticeBanner, LoadErrorState } from '../components/directory/DirectoryControls'
 import {
   getRateMultiplierSettings,
-  rateMultiplierSettingsApiErrorMessage,
   updateRateMultiplierSettings,
 } from '../api/rateMultiplierSettings'
 import {
   createCustomHoliday,
   deleteCustomHoliday,
   getHolidayCalendarSettings,
-  holidaysApiErrorMessage,
   listHolidayCalendars,
   listHolidays,
   setHolidayActive,
   syncHolidays,
   updateHolidayCalendarSettings,
 } from '../api/holidays'
+import { apiErrorMessage } from '../api/client'
 import {
   addDays,
   formatMonthYear,
@@ -68,7 +67,7 @@ export default function BillableRatesPage() {
       .catch((error) => {
         if (cancelled) return
         setLoadError(
-          rateMultiplierSettingsApiErrorMessage(error, 'Could not load rate multiplier settings.'),
+          apiErrorMessage(error, 'Could not load rate multiplier settings.'),
         )
       })
       .finally(() => {
@@ -98,7 +97,7 @@ export default function BillableRatesPage() {
       })
       .catch((error) =>
         showNotice(
-          rateMultiplierSettingsApiErrorMessage(error, 'Could not save rate multiplier settings.'),
+          apiErrorMessage(error, 'Could not save rate multiplier settings.'),
         ),
       )
       .finally(() => setIsSaving(false))
@@ -141,7 +140,7 @@ export default function BillableRatesPage() {
                 })
                 .catch((error) =>
                   setLoadError(
-                    rateMultiplierSettingsApiErrorMessage(
+                    apiErrorMessage(
                       error,
                       'Could not load rate multiplier settings.',
                     ),
@@ -259,7 +258,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
       })
       .catch((error) => {
         if (cancelled) return
-        setLoadError(holidaysApiErrorMessage(error, 'Could not load holidays.'))
+        setLoadError(apiErrorMessage(error, 'Could not load holidays.'))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -277,7 +276,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
     Promise.all([listHolidayCalendars(), getHolidayCalendarSettings(), listHolidays()])
       .then(applyLoadedData)
       .catch((error) =>
-        setLoadError(holidaysApiErrorMessage(error, 'Could not load holidays.')),
+        setLoadError(apiErrorMessage(error, 'Could not load holidays.')),
       )
       .finally(() => setIsLoading(false))
   }
@@ -286,7 +285,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
     listHolidays()
       .then(setHolidays)
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, 'Could not refresh holiday list.')),
+        onNotice(apiErrorMessage(error, 'Could not refresh holiday list.')),
       )
 
   const handleApplyCalendar = () => {
@@ -304,7 +303,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
         return refreshHolidays()
       })
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, 'Could not apply holiday calendar.')),
+        onNotice(apiErrorMessage(error, 'Could not apply holiday calendar.')),
       )
       .finally(() => setIsApplying(false))
   }
@@ -317,7 +316,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
         return refreshHolidays()
       })
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, 'Could not refresh holiday calendar.')),
+        onNotice(apiErrorMessage(error, 'Could not refresh holiday calendar.')),
       )
       .finally(() => setIsSyncing(false))
   }
@@ -329,7 +328,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
         setHolidays((current) => current.map((item) => (item.id === updated.id ? updated : item)))
       })
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, 'Could not update holiday.')),
+        onNotice(apiErrorMessage(error, 'Could not update holiday.')),
       )
       .finally(() => setPendingToggleId(null))
   }
@@ -342,7 +341,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
         onNotice(`${holiday.name} was deleted.`)
       })
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, `Could not delete ${holiday.name}.`)),
+        onNotice(apiErrorMessage(error, `Could not delete ${holiday.name}.`)),
       )
       .finally(() => setPendingDeleteId(null))
   }
@@ -365,7 +364,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
         onNotice(`${created.name} was added.`)
       })
       .catch((error) =>
-        onNotice(holidaysApiErrorMessage(error, 'Could not create custom holiday.')),
+        onNotice(apiErrorMessage(error, 'Could not create custom holiday.')),
       )
       .finally(() => setIsCreating(false))
   }

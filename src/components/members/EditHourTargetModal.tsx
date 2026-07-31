@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
+import { apiErrorMessage } from '../../api/client'
 import type { Member } from '../../api/members'
 import {
   clearMemberHourTarget,
   getHourTargetSettings,
-  hourTargetApiErrorMessage,
   upsertMemberHourTarget,
 } from '../../api/hourTargets'
 import type { HourTargetMode, HourTargetSettings } from '../../types/hourTarget'
@@ -58,7 +58,7 @@ export function EditHourTargetModal({
       })
       .catch((err) => {
         if (!cancelled) {
-          setFetchError(hourTargetApiErrorMessage(err, 'Could not load default hour target.'))
+          setFetchError(apiErrorMessage(err, 'Could not load default hour target.'))
         }
       })
 
@@ -81,7 +81,7 @@ export function EditHourTargetModal({
         onSaved({ mode: saved.mode, targetHours: saved.targetHours })
         onClose()
       })
-      .catch((err) => setError(hourTargetApiErrorMessage(err, 'Could not save hour target.')))
+      .catch((err) => setError(apiErrorMessage(err, 'Could not save hour target.')))
       .finally(() => setIsSaving(false))
   }
 
@@ -93,7 +93,7 @@ export function EditHourTargetModal({
         onSaved(null)
         onClose()
       })
-      .catch((err) => setError(hourTargetApiErrorMessage(err, 'Could not clear hour target.')))
+      .catch((err) => setError(apiErrorMessage(err, 'Could not clear hour target.')))
       .finally(() => setIsClearing(false))
   }
 

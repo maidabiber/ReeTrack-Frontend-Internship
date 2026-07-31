@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { timeEntryApiErrorMessage } from '../api/timeEntries'
+import { apiErrorMessage } from '../api/client'
 import { isOverlapConflictError } from '../lib/timeEntryErrors'
 
 export function useOverlapAlert() {
@@ -38,7 +38,7 @@ export function useOverlapAlert() {
     } catch (err) {
       if (isOverlapConflictError(err)) {
         setOverlapWarning(
-          timeEntryApiErrorMessage(err, 'This entry overlaps with an existing entry.'),
+          apiErrorMessage(err, 'This entry overlaps with an existing entry.'),
         )
         return
       }

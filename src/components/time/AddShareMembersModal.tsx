@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listTeammates } from '../../api/teammates'
-import { shareExistingTimeEntry, timeEntryApiErrorMessage } from '../../api/timeEntries'
+import { shareExistingTimeEntry } from '../../api/timeEntries'
+import { apiErrorMessage } from '../../api/client'
 import { filterTeammates, teammateLabel, type Teammate } from '../../lib/mention'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
@@ -94,12 +95,12 @@ export function AddShareMembersModal({
     } catch (err) {
       if (isOverlapConflictError(err)) {
         setOverlapWarning(
-          timeEntryApiErrorMessage(err, 'This entry overlaps with an existing entry.'),
+          apiErrorMessage(err, 'This entry overlaps with an existing entry.'),
         )
         return
       }
 
-      setError(timeEntryApiErrorMessage(err, 'Could not share this entry.'))
+      setError(apiErrorMessage(err, 'Could not share this entry.'))
     } finally {
       setIsSaving(false)
     }

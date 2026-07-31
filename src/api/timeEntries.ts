@@ -365,27 +365,3 @@ export function approvePendingTimeEntry(id: string): Promise<TimeEntry> {
     .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`)
     .then(toTimeEntry)
 }
-
-export function timeEntryApiErrorMessage(error: unknown, fallback: string): string {
-  if (error && typeof error === 'object' && 'body' in error) {
-    const body = (error as { body: unknown }).body
-    if (typeof body === 'string' && body.length > 0) return body
-
-    if (body && typeof body === 'object') {
-      for (const key of ['message', 'title', 'detail'] as const) {
-        const value = (body as Record<string, unknown>)[key]
-        if (typeof value === 'string' && value.length > 0) return value
-      }
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    if (error.message === 'Failed to fetch') {
-      return 'Could not reach the server. Make sure the backend is running.'
-    }
-
-    return error.message
-  }
-
-  return fallback
-}

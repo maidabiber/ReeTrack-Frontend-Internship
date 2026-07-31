@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   disconnectCalendarConnection,
-  integrationApiErrorMessage,
   listCalendarConnections,
   syncCalendarConnection,
 } from '../../api/integrations'
+import { apiErrorMessage } from '../../api/client'
 import { CalendarProviderType, CalendarSyncStatus, type CalendarConnection } from '../../types/integrations'
 import { GoogleCalendarConnectButton } from './GoogleCalendarConnectButton'
 import { Icon } from '../ui/Icon'
@@ -75,7 +75,7 @@ export function GoogleCalendarCard() {
         setReloadKey((key) => key + 1)
       })
       .catch((error) => {
-        setActionError(integrationApiErrorMessage(error, 'Could not sync calendar. Please try again.'))
+        setActionError(apiErrorMessage(error, 'Could not sync calendar. Please try again.'))
       })
       .finally(() => {
         setIsSyncing(false)
@@ -95,7 +95,7 @@ export function GoogleCalendarCard() {
         showNotice('Google Calendar disconnected.')
       })
       .catch((error) => {
-        setActionError(integrationApiErrorMessage(error, 'Could not disconnect calendar. Please try again.'))
+        setActionError(apiErrorMessage(error, 'Could not disconnect calendar. Please try again.'))
       })
       .finally(() => {
         setIsDisconnecting(false)

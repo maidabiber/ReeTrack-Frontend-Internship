@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { timeEntryApiErrorMessage } from '../api/timeEntries'
+import { apiErrorMessage } from '../api/client'
 
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../lib/timeEntryErrors'
 import { useOverlapAlert } from './useOverlapAlert'
@@ -147,11 +147,11 @@ export function useManualEntryForm({
       },
       onOtherError: (err) => {
         if (isDurationLimitError(err)) {
-          setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+          setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
           return
         }
 
-        setLocalError(timeEntryApiErrorMessage(err, 'Could not save the manual entry.'))
+        setLocalError(apiErrorMessage(err, 'Could not save the manual entry.'))
       },
     })
   }

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import {
   approvePendingTimeEntry,
-  timeEntryApiErrorMessage,
   updatePendingTimeEntry,
 } from '../../api/timeEntries'
+import { apiErrorMessage } from '../../api/client'
 import { Modal } from '../ui/Modal'
 import { ManualDateTimeFields } from './ManualDateTimeFields'
 import {
@@ -75,11 +75,11 @@ export function ReviewPendingEntryModal({
     } catch (err) {
       if (isOverlapConflictError(err)) {
         setOverlapWarning(
-          timeEntryApiErrorMessage(err, 'This entry overlaps with an existing entry.'),
+          apiErrorMessage(err, 'This entry overlaps with an existing entry.'),
         )
         return
       }
-      setError(timeEntryApiErrorMessage(err, 'Could not save changes.'))
+      setError(apiErrorMessage(err, 'Could not save changes.'))
     } finally {
       setIsSaving(false)
     }
@@ -92,7 +92,7 @@ export function ReviewPendingEntryModal({
       await approvePendingTimeEntry(entry.id)
       onApproved()
     } catch (err) {
-      setError(timeEntryApiErrorMessage(err, 'Could not approve the entry.'))
+      setError(apiErrorMessage(err, 'Could not approve the entry.'))
     } finally {
       setIsApproving(false)
     }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { timeEntryApiErrorMessage } from '../../api/timeEntries'
+import { apiErrorMessage } from '../../api/client'
 import { useEntryAssociations } from '../../hooks/useEntryAssociations'
 import { useTimer } from '../../hooks/useTimer'
 import { useWeekLock } from '../../hooks/useWeekLock'
@@ -79,11 +79,11 @@ export function CreateEntryModal({
       },
       onOtherError: (err) => {
         if (isDurationLimitError(err)) {
-          setDurationLimitMessage(timeEntryApiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+          setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
           return
         }
 
-        setError(timeEntryApiErrorMessage(err, 'Could not create the time entry.'))
+        setError(apiErrorMessage(err, 'Could not create the time entry.'))
       },
     })
   }

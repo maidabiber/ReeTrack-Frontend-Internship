@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listClients } from '../../api/clients'
 import { getJiraConnection, listJiraProjects } from '../../api/jira'
-import { integrationApiErrorMessage } from '../../api/integrations'
+import { apiErrorMessage } from '../../api/client'
 import { fetchAllPages } from '../../api/pagination'
 import type { Client } from '../../types/client'
 import type { JiraRemoteProject } from '../../types/jira'
@@ -61,7 +61,7 @@ export function JiraImportModal({
       .catch((error) => {
         if (cancelled) return
         setLoadError(
-          integrationApiErrorMessage(error, 'Could not load Jira projects. Is the backend running?'),
+          apiErrorMessage(error, 'Could not load Jira projects. Is the backend running?'),
         )
         setIsLoading(false)
       })

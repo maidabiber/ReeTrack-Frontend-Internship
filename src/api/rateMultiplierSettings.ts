@@ -1,4 +1,4 @@
-import { apiClient, apiErrorMessage } from './client'
+import { apiClient } from './client'
 import type { RateMultiplierSettings } from '../types/rateMultiplierSettings'
 
 interface RateMultiplierSettingsResponse {
@@ -29,8 +29,4 @@ export function updateRateMultiplierSettings(
   return apiClient
     .put<RateMultiplierSettingsResponse>('/rate-multiplier-settings', settings)
     .then(toSettings)
-}
-
-export function rateMultiplierSettingsApiErrorMessage(error: unknown, fallback: string): string {
-  return apiErrorMessage(error, fallback)
 }

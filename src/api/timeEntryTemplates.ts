@@ -1,7 +1,7 @@
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
 import type { TimeEntryTag } from '../types/timeEntry'
 import type { PagedResult } from '../types/paged'
-import { apiClient, apiErrorMessage } from './client'
+import { apiClient } from './client'
 import { appendListQueryParams, toPagedResult } from './pagination'
 
 /** Mirrors backend TimeEntryTemplateResponse. */
@@ -67,10 +67,6 @@ export function createTimeEntryTemplate(timeEntryId: string): Promise<TimeEntryT
 
 export function deleteTimeEntryTemplate(templateId: string): Promise<void> {
   return apiClient.delete(`/time-entry-templates/${templateId}`).then(() => undefined)
-}
-
-export function timeEntryTemplateApiErrorMessage(error: unknown, fallback: string): string {
-  return apiErrorMessage(error, fallback)
 }
 
 /** Fired after templates are created/deleted so panels can refetch. */

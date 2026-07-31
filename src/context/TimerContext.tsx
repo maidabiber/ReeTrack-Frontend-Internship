@@ -10,9 +10,8 @@ import {
   stopTimer,
   updateTimeEntry,
   updateDurationOnlyEntry,
-  timeEntryApiErrorMessage,
 } from '../api/timeEntries'
-import { ApiError } from '../api/client'
+import { ApiError, apiErrorMessage } from '../api/client'
 import { elapsedSecondsSince } from '../lib/formatDuration'
 import type { ActiveTimer, TimeEntry, TimeEntryAssociations, TimeEntryTag } from '../types/timeEntry'
 import { useAuth } from '../hooks/useAuth'
@@ -198,7 +197,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       const timer = await startTimer(description, associations)
       setActiveTimer(timer)
     } catch (err) {
-      setError(timeEntryApiErrorMessage(err, 'Could not start the timer.'))
+      setError(apiErrorMessage(err, 'Could not start the timer.'))
       throw err
     } finally {
       setIsToggling(false)
@@ -236,7 +235,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         setActiveTimer(timerSnapshot)
       }
 
-      setError(timeEntryApiErrorMessage(err, 'Could not stop the timer.'))
+      setError(apiErrorMessage(err, 'Could not stop the timer.'))
       throw err
     } finally {
       setIsToggling(false)
@@ -304,7 +303,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           throw err
         }
 
-        const message = timeEntryApiErrorMessage(err, 'Could not save the manual entry.')
+        const message = apiErrorMessage(err, 'Could not save the manual entry.')
         setError(message)
         throw err
       } finally {
@@ -332,7 +331,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         setEntries((current) => [result.entry, ...current.filter((item) => item.id !== result.entry.id)])
         dispatchDraft({ type: 'RESET' })
       } catch (err) {
-        const message = timeEntryApiErrorMessage(err, 'Could not save the duration entry.')
+        const message = apiErrorMessage(err, 'Could not save the duration entry.')
         setError(message)
         throw err
       } finally {
@@ -392,7 +391,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           throw err
         }
 
-        const message = timeEntryApiErrorMessage(err, 'Could not update the time entry.')
+        const message = apiErrorMessage(err, 'Could not update the time entry.')
         setError(message)
         throw err
       } finally {

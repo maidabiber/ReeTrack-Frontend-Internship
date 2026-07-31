@@ -23,7 +23,6 @@ import {
   listAllowedDomains,
   listInvitations,
   listMembers,
-  memberApiErrorMessage,
   resendInvite,
   revokeInvite,
   updateMember,
@@ -31,6 +30,7 @@ import {
   type InvitationListItem,
   type Member,
 } from '../api/members'
+import { apiErrorMessage } from '../api/client'
 import { fetchAllPages } from '../api/pagination'
 import { getCurrentUserHourlyRate } from '../api/userHourlyRates'
 import {
@@ -134,7 +134,7 @@ export default function MembersPage() {
       })
       .catch((error) => {
         if (cancelled) return
-        setLoadError(memberApiErrorMessage(error, 'Could not load members. Is the backend running?'))
+        setLoadError(apiErrorMessage(error, 'Could not load members. Is the backend running?'))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -210,7 +210,7 @@ export default function MembersPage() {
         showNotice(`Invite re-sent to ${member.email}.`)
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not resend the invite to ${member.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not resend the invite to ${member.email}.`)),
       )
   }
 
@@ -229,7 +229,7 @@ export default function MembersPage() {
         showNotice(`Invite to ${member.email} revoked.`)
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not revoke the invite to ${member.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not revoke the invite to ${member.email}.`)),
       )
   }
 
@@ -244,7 +244,7 @@ export default function MembersPage() {
         showNotice(`${updated.displayName ?? updated.email} is now ${nextRole === 'Admin' ? 'an admin' : 'a member'}.`)
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not change the role of ${member.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not change the role of ${member.email}.`)),
       )
   }
 
@@ -262,7 +262,7 @@ export default function MembersPage() {
         )
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not update ${member.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not update ${member.email}.`)),
       )
   }
 
@@ -652,7 +652,7 @@ function InvitationsCard({
       })
       .catch((error) => {
         if (!cancelled) {
-          setLoadError(memberApiErrorMessage(error, 'Could not load invitations.'))
+          setLoadError(apiErrorMessage(error, 'Could not load invitations.'))
         }
       })
       .finally(() => {
@@ -671,7 +671,7 @@ function InvitationsCard({
         showNotice(`Invite re-sent to ${invitation.email}.`)
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not resend the invite to ${invitation.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not resend the invite to ${invitation.email}.`)),
       )
   }
 
@@ -683,7 +683,7 @@ function InvitationsCard({
         showNotice(`Invite to ${invitation.email} revoked.`)
       })
       .catch((error) =>
-        showNotice(memberApiErrorMessage(error, `Could not revoke the invite to ${invitation.email}.`)),
+        showNotice(apiErrorMessage(error, `Could not revoke the invite to ${invitation.email}.`)),
       )
   }
 
@@ -903,7 +903,7 @@ function InviteModal({
         setIsSending(false)
       })
       .catch((inviteError) => {
-        setError(memberApiErrorMessage(inviteError, 'Could not send the invites. Please try again.'))
+        setError(apiErrorMessage(inviteError, 'Could not send the invites. Please try again.'))
         setIsSending(false)
       })
   }

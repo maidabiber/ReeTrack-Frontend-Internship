@@ -1,6 +1,6 @@
 import type { TimeEntrySuggestion } from '../types/timeEntrySuggestion'
 import type { TimeEntryTemplate } from '../types/timeEntryTemplate'
-import { apiClient, apiErrorMessage } from './client'
+import { apiClient } from './client'
 
 /** Mirrors backend TimeEntrySuggestionResponse. */
 interface TimeEntrySuggestionResponse {
@@ -73,9 +73,5 @@ export function listTimeEntrySuggestions(): Promise<TimeEntrySuggestion[]> {
   return apiClient
     .get<TimeEntrySuggestionResponse[]>('/time-entry-suggestions')
     .then((items) => items.map(toSuggestion))
-}
-
-export function timeEntrySuggestionApiErrorMessage(error: unknown, fallback: string): string {
-  return apiErrorMessage(error, fallback)
 }
 

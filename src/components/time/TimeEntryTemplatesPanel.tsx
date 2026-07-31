@@ -4,8 +4,8 @@ import {
   deleteTimeEntryTemplate,
   listTimeEntryTemplates,
   TIME_ENTRY_TEMPLATES_CHANGED_EVENT,
-  timeEntryTemplateApiErrorMessage,
 } from '../../api/timeEntryTemplates'
+import { apiErrorMessage } from '../../api/client'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import { TimeEntryTemplateCard } from './TimeEntryTemplateCard'
 
@@ -43,7 +43,7 @@ export function TimeEntryTemplatesPanel({
       .catch((error) => {
         if (cancelled) return
         setLoadError(
-          timeEntryTemplateApiErrorMessage(error, 'Could not load favourites.'),
+          apiErrorMessage(error, 'Could not load favourites.'),
         )
         setFetchedKey(reloadKey)
       })
@@ -71,7 +71,7 @@ export function TimeEntryTemplatesPanel({
       setPendingDelete(null)
     } catch (error) {
       setActionError(
-        timeEntryTemplateApiErrorMessage(error, 'Could not remove this favourite.'),
+        apiErrorMessage(error, 'Could not remove this favourite.'),
       )
       setPendingDelete(null)
     } finally {

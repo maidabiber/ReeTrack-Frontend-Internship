@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { integrateJiraProject, syncJiraProject } from '../../api/jira'
-import { integrationApiErrorMessage } from '../../api/integrations'
+import { apiErrorMessage } from '../../api/client'
 import type { Client } from '../../types/client'
 import type { JiraRemoteProject } from '../../types/jira'
 import { SearchSelect } from '../ui/SearchSelect'
@@ -34,7 +34,7 @@ export function JiraProjectRow({
         onIntegrated(result.projectId, result.message)
       })
       .catch((err) => {
-        setError(integrationApiErrorMessage(err, 'Could not integrate project. Please try again.'))
+        setError(apiErrorMessage(err, 'Could not integrate project. Please try again.'))
         setIsBusy(false)
       })
   }
@@ -50,7 +50,7 @@ export function JiraProjectRow({
         onChanged()
       })
       .catch((err) => {
-        setError(integrationApiErrorMessage(err, 'Could not sync project. Please try again.'))
+        setError(apiErrorMessage(err, 'Could not sync project. Please try again.'))
       })
       .finally(() => setIsBusy(false))
   }

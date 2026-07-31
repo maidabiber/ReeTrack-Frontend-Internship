@@ -1,4 +1,4 @@
-import { apiClient, apiErrorMessage } from './client'
+import { apiClient } from './client'
 import type {
   EffectiveHourTarget,
   HourTargetMode,
@@ -87,8 +87,4 @@ export function upsertMemberHourTarget(
 
 export function clearMemberHourTarget(userId: string): Promise<void> {
   return apiClient.delete(`/members/${userId}/hour-target`)
-}
-
-export function hourTargetApiErrorMessage(error: unknown, fallback: string): string {
-  return apiErrorMessage(error, fallback)
 }

@@ -119,18 +119,33 @@ export function parseContentDispositionFilename(header: string | null): string |
 }
 
 /**
- * Extracts the backend's `{ message }` error body, falling back to a default.
- * Generic version of the per-module `*ApiErrorMessage` helpers; new modules use
- * this directly.
+ * Extracts a human-readable message from an API error: the backend's RFC 7807
+ * ProblemDetails `message` (falling back to `title`/`detail`, or a raw string
+ * body), a friendlier message for network failures, or the given fallback.
+ * Canonical version of the per-module `*ApiErrorMessage` helpers, which now
+ * just delegate here.
  */
 export function apiErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'body' in error) {
     const body = (error as { body: unknown }).body
-    if (body && typeof body === 'object' && 'message' in body) {
-      const message = (body as { message: unknown }).message
-      if (typeof message === 'string' && message.length > 0) return message
+    if (typeof body === 'string' && body.length > 0) return body
+
+    if (body && typeof body === 'object') {
+      for (const key of ['message', 'title', 'detail'] as const) {
+        const value = (body as Record<string, unknown>)[key]
+        if (typeof value === 'string' && value.length > 0) return value
+      }
     }
   }
+
+  if (error instanceof Error && error.message) {
+    if (error.message === 'Failed to fetch') {
+      return 'Could not reach the server. Make sure the backend is running.'
+    }
+
+    return error.message
+  }
+
   return fallback
 }
 

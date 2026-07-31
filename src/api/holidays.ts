@@ -1,4 +1,4 @@
-import { apiClient, apiErrorMessage } from './client'
+import { apiClient } from './client'
 import type { Holiday, HolidayCalendar, HolidayCalendarSettings } from '../types/holidays'
 
 interface HolidayResponse {
@@ -71,8 +71,4 @@ export function setHolidayActive(id: string, isActive: boolean): Promise<Holiday
 
 export function deleteCustomHoliday(id: string): Promise<void> {
   return apiClient.delete<null>(`/holidays/${id}`).then(() => undefined)
-}
-
-export function holidaysApiErrorMessage(error: unknown, fallback: string): string {
-  return apiErrorMessage(error, fallback)
 }

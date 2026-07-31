@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   listTimeEntrySuggestions,
   suggestionToTemplateCard,
-  timeEntrySuggestionApiErrorMessage,
 } from '../../api/timeEntrySuggestions'
+import { apiErrorMessage } from '../../api/client'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import { TimeEntryTemplateCard } from './TimeEntryTemplateCard'
 
@@ -30,7 +30,7 @@ export function TimeEntrySuggestionsPanel({
       .catch((error) => {
         if (cancelled) return
         setLoadError(
-          timeEntrySuggestionApiErrorMessage(error, 'Could not load suggestions.'),
+          apiErrorMessage(error, 'Could not load suggestions.'),
         )
       })
       .finally(() => {

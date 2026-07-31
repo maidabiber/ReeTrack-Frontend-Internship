@@ -11,8 +11,8 @@ import { TIME_ENTRY_LIST_CLASS } from '../../lib/pendingEntryStyles'
 import {
   createTimeEntryTemplate,
   notifyTimeEntryTemplatesChanged,
-  timeEntryTemplateApiErrorMessage,
 } from '../../api/timeEntryTemplates'
+import { apiErrorMessage } from '../../api/client'
 import type { TimeEntry } from '../../types/timeEntry'
 
 const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
@@ -60,7 +60,7 @@ export function EntriesCard() {
       notifyTimeEntryTemplatesChanged()
     } catch (err) {
       setFavouriteNotice(
-        timeEntryTemplateApiErrorMessage(err, 'Could not add this entry to favourites.'),
+        apiErrorMessage(err, 'Could not add this entry to favourites.'),
       )
     } finally {
       setFavouriteBusyId(null)
