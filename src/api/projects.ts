@@ -96,6 +96,15 @@ export function createProject(input: ProjectInput): Promise<Project> {
   return apiClient.post<ProjectResponse>('/projects', input).then(toProject)
 }
 
+export function createProjectWithTasks(
+  input: ProjectInput,
+  tasks: CreateTaskBatchInput[],
+): Promise<Project> {
+  return apiClient
+    .post<ProjectResponse>('/projects/with-tasks', { ...input, tasks })
+    .then(toProject)
+}
+
 /**
  * Patch a project. Pass the full ProjectInput (plus optional status) from the
  * edit form; pass only `{ status }` for the archive/restore kebab action.
@@ -109,4 +118,16 @@ export function updateProject(
 
 export function deleteProject(projectId: string): Promise<void> {
   return apiClient.delete(`/projects/${projectId}`).then(() => undefined)
+}
+
+export interface CreateTaskBatchInput {
+  name: string
+  timeEstimateHours: number | null
+}
+
+export function createTasksBatch(
+  projectId: string,
+  tasks: CreateTaskBatchInput[],
+): Promise<void> {
+  return apiClient.post(`/projects/${projectId}/tasks/batch`, { tasks }).then(() => undefined)
 }

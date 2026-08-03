@@ -61,3 +61,13 @@ export function updateClient(
 export function deleteClient(clientId: string): Promise<void> {
   return apiClient.delete(`/clients/${clientId}`).then(() => undefined)
 }
+
+export interface ClientLookup {
+  id: string
+  name: string
+}
+
+export function searchClients(query: string, max = 8): Promise<ClientLookup[]> {
+  const params = new URLSearchParams({ q: query, max: String(max) })
+  return apiClient.get<ClientLookup[]>(`/clients/search?${params}`)
+}

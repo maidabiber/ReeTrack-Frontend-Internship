@@ -6,6 +6,7 @@ import { ALL_NAV_ITEMS } from './config/navigation'
 import TimerPage from './pages/TimerPage'
 import {
   ApprovalsPage,
+  AssistantPage,
   BillableRatesPage,
   ClientsPage,
   GoalsPage,
@@ -34,6 +35,7 @@ const PAGES: Record<string, React.ReactElement> = {
   '/approvals': <ApprovalsPage />,
   '/reports': <ReportsPage />,
   '/timesheet-review': <TimesheetReviewPage />,
+  '/assistant': <AssistantPage />,
 }
 
 // The Timer landing screen (RT-270) is the index route; every other nav

@@ -39,6 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Projects', path: '/projects', icon: 'projects' },
       { label: 'Clients', path: '/clients', icon: 'clients' },
       { label: 'Tags', path: '/tags', icon: 'tags' },
+      { label: 'Assistant', path: '/assistant', icon: 'sparkle' },
     ],
   },
   {
