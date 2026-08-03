@@ -1,9 +1,11 @@
 import { apiClient, apiErrorMessage } from './client'
-import type {
-  DeliveryChannel,
-  NotificationPreference,
-  NotificationType,
-  UpsertNotificationPreference,
+import {
+  isDeliveryChannel,
+  isNotificationType,
+  type DeliveryChannel,
+  type NotificationPreference,
+  type NotificationType,
+  type UpsertNotificationPreference,
 } from '../types/notificationPreferences'
 
 interface NotificationPreferenceResponse {
@@ -15,14 +17,7 @@ interface NotificationPreferenceResponse {
 }
 
 function toPreference(response: NotificationPreferenceResponse): NotificationPreference | null {
-  if (
-    response.notificationType !== 'TimeEntryShared' &&
-    response.notificationType !== 'TimesheetDecision'
-  ) {
-    return null
-  }
-
-  if (response.deliveryChannel !== 'Email' && response.deliveryChannel !== 'InApp') {
+  if (!isNotificationType(response.notificationType) || !isDeliveryChannel(response.deliveryChannel)) {
     return null
   }
 
