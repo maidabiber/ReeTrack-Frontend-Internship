@@ -96,7 +96,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
     try {
       await updateEntry(entry.id, {
         description: description.trim() || undefined,
-        startedAtUtc: entryDateUtc,
+        entryDateUtc,
         durationSeconds: durationOnlySeconds,
         ...associations.payload,
       })

@@ -128,6 +128,24 @@ export function useTimeEntryForm({
     onClearShareNotice()
   }, [reset, onClearMentions, onClearShareNotice])
 
+  const shareAssigneesPayload = () =>
+    mentionedTeammates.length > 0
+      ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
+      : {}
+
+  const notifySharedIfNeeded = () => {
+    const sharedNames = mentionedTeammates.map(
+      (teammate) => teammate.displayName ?? teammate.email,
+    )
+    if (sharedNames.length === 1) {
+      onShared(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
+    } else if (sharedNames.length > 1) {
+      onShared(
+        `Shared with ${sharedNames.length} teammates. They will be notified to approve it.`,
+      )
+    }
+  }
+
   const applyTemplate = useCallback(
     (template: TimeEntryTemplate) => {
       setLocalError(null)
@@ -265,10 +283,6 @@ export function useTimeEntryForm({
       validationError: rangeValidation.error,
       onValidationError: setLocalError,
       save: async () => {
-        const sharedNames = mentionedTeammates.map(
-          (teammate) => teammate.displayName ?? teammate.email,
-        )
-
         await addManualEntry({
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
@@ -277,19 +291,11 @@ export function useTimeEntryForm({
           projectId: associations.projectId,
           projectTaskId: associations.projectTaskId,
           tagIds: associations.tagIds,
-          ...(mentionedTeammates.length > 0
-            ? { assigneeUserIds: mentionedTeammates.map((teammate) => teammate.id) }
-            : {}),
+          ...shareAssigneesPayload(),
         })
 
         resetAfterSave()
-        if (sharedNames.length === 1) {
-          onShared(`Shared with ${sharedNames[0]}. They will be notified to approve it.`)
-        } else if (sharedNames.length > 1) {
-          onShared(
-            `Shared with ${sharedNames.length} teammates. They will be notified to approve it.`,
-          )
-        }
+        notifySharedIfNeeded()
         onClearDescription()
       },
       onOtherError: (err) => {
@@ -334,9 +340,11 @@ export function useTimeEntryForm({
         projectId: associations.projectId,
         projectTaskId: associations.projectTaskId,
         tagIds: associations.tagIds,
+        ...shareAssigneesPayload(),
       })
+      resetAfterSave()
+      notifySharedIfNeeded()
       onClearDescription()
-      reset()
     } catch (err) {
       if (isDurationLimitError(err)) {
         setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))

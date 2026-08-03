@@ -163,55 +163,47 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [activeTimer, start, stop],
   )
 
+  const saveEntry = useCallback(async (request: TimeEntryRequest, fallbackError: string) => {
+    setIsSavingManual(true)
+    setError(null)
+
+    try {
+      let entry: TimeEntry
+      if (request.assigneeUserIds?.length) {
+        const entries = await createSharedTimeEntry(request)
+        entry = entries.find((item) => item.shareGroupId) ?? entries[0]
+      } else {
+        entry = await createTimeEntry(request)
+      }
+
+      if (entry) {
+        setEntries((current) => [entry, ...current.filter((item) => item.id !== entry.id)])
+      }
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        throw err
+      }
+
+      const message = apiErrorMessage(err, fallbackError)
+      setError(message)
+      throw err
+    } finally {
+      setIsSavingManual(false)
+    }
+  }, [])
+
   const addManualEntry = useCallback(
     async (request: TimeEntryRequest) => {
-      setIsSavingManual(true)
-      setError(null)
-
-      try {
-        let entry: TimeEntry
-        if (request.assigneeUserIds?.length) {
-          const entries = await createSharedTimeEntry(request)
-          entry = entries[0]
-        } else {
-          entry = await createTimeEntry(request)
-        }
-
-        if (entry) {
-          setEntries((current) => [entry, ...current.filter((item) => item.id !== entry.id)])
-        }
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 409) {
-          throw err
-        }
-
-        const message = apiErrorMessage(err, 'Could not save the manual entry.')
-        setError(message)
-        throw err
-      } finally {
-        setIsSavingManual(false)
-      }
+      await saveEntry(request, 'Could not save the manual entry.')
     },
-    [],
+    [saveEntry],
   )
 
   const addDurationEntry = useCallback(
     async (request: TimeEntryRequest) => {
-      setIsSavingManual(true)
-      setError(null)
-
-      try {
-        const entry = await createTimeEntry(request)
-        setEntries((current) => [entry, ...current.filter((item) => item.id !== entry.id)])
-      } catch (err) {
-        const message = apiErrorMessage(err, 'Could not save the duration entry.')
-        setError(message)
-        throw err
-      } finally {
-        setIsSavingManual(false)
-      }
+      await saveEntry(request, 'Could not save the duration entry.')
     },
-    [],
+    [saveEntry],
   )
 
   const updateEntry = useCallback(

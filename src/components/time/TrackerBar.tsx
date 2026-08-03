@@ -362,37 +362,21 @@ export function TrackerBar() {
         ) : (
           <div className="flex items-start gap-3 px-6 pt-5 pb-4">
             <div className="min-w-0 flex-1">
-              {trackerMode === 'duration' ? (
-                <input
-                  className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
-                  placeholder="What did you work on?"
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  disabled={descriptionDisabled}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      handleDescriptionEnter()
-                    }
-                  }}
-                />
-              ) : (
-                <MentionDescriptionField
-                  className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
-                  placeholder="What are you working on? Type @ to share with a teammate"
-                  value={description}
-                  onChange={setDescription}
-                  selectedTeammates={mentionedTeammates}
-                  onMentionChange={setMentionedTeammates}
-                  disabled={descriptionDisabled}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      handleDescriptionEnter()
-                    }
-                  }}
-                />
-              )}
+              <MentionDescriptionField
+                className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
+                placeholder="What are you working on? Type @ to share with a teammate"
+                value={description}
+                onChange={setDescription}
+                selectedTeammates={mentionedTeammates}
+                onMentionChange={setMentionedTeammates}
+                disabled={descriptionDisabled}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    handleDescriptionEnter()
+                  }
+                }}
+              />
             </div>
 
             <SmartParseButton

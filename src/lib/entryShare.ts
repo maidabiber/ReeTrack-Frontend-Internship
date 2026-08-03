@@ -17,7 +17,8 @@ export function isSharedByCurrentUser(entry: TimeEntry, currentUserId: string): 
 }
 
 export function isShareableByCurrentUser(entry: TimeEntry, currentUserId: string): boolean {
-  if (entry.isRunning || !entry.startedAtUtc || !entry.endedAtUtc) return false
+  if (entry.isRunning || !entry.startedAtUtc) return false
+  if (entry.mode !== 'DurationOnly' && !entry.endedAtUtc) return false
   if (isPendingSharedWithCurrentUser(entry, currentUserId)) return false
 
   const isOwnConfirmed =

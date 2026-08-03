@@ -13,7 +13,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-canvas text-navy">
       <Sidebar />
-      <main className="relative ml-[216px] flex h-screen min-w-0 flex-col overflow-hidden">
+      <main className="relative ml-[216px] flex min-h-screen min-w-0 flex-col">
         <div className="pointer-events-none absolute top-0 right-0 z-30 p-4 sm:p-5">
           <div className="pointer-events-auto">
             <NotificationBell />

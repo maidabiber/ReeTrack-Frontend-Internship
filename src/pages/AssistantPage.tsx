@@ -101,7 +101,7 @@ export default function AssistantPage() {
   }, [updateDraft])
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col px-10 py-8">
+    <div className="flex h-screen min-h-0 flex-1 flex-col overflow-hidden px-10 py-8">
       <div className="mb-4">
         <h1 className="font-display text-xl font-bold text-navy">Assistant</h1>
         <p className="mt-1 text-sm text-navy/60">
