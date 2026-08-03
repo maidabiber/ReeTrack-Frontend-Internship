@@ -50,6 +50,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       toggle,
       stop,
       shareEntry,
+      setPendingOverlapFromStop,
     } = useTimer()
     const {
       overlapWarning,
@@ -69,7 +70,12 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
 
       const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
       if (assigneeIds.length === 0) {
-        void toggle({ description: trimmedDescription, ...associations })
+        try {
+          const result = await toggle({ description: trimmedDescription, ...associations })
+          if (result) setPendingOverlapFromStop(result)
+        } catch {
+          // TimerContext already surfaces the error.
+        }
         return
       }
 
@@ -83,8 +89,14 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
             (teammate) => teammate.displayName ?? teammate.email,
           )
 
-          const stoppedEntry = await stop({ description: trimmedDescription, ...associations })
-          await shareEntry(stoppedEntry.id, assigneeIds)
+          const stopResult = await stop({ description: trimmedDescription, ...associations })
+          if (stopResult.hasOverlap) {
+            setPendingOverlapFromStop(stopResult)
+            // Defer sharing until the owner resolves their own overlap.
+            return
+          }
+
+          await shareEntry(stopResult.entry.id, assigneeIds)
 
           setMentionedTeammates([])
           setDescription('')
@@ -99,7 +111,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
         onOtherError: () => {},
       })
     }, [
-        associations,
+      associations,
       description,
       isRunning,
       mentionedTeammates,
@@ -108,6 +120,7 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       saveOrShowOverlapAlert,
       setDescription,
       setMentionedTeammates,
+      setPendingOverlapFromStop,
       shareEntry,
       stop,
       toggle,

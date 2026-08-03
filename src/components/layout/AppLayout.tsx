@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { FloatingPomodoroWidget } from '../time/FloatingPomodoroWidget'
+import { TimerOverlapHost } from '../time/TimerOverlapHost'
 import { NotificationBell } from '../notifications/NotificationBell'
 
 /**
@@ -30,6 +31,7 @@ export function AppLayout() {
         </Suspense>
       </main>
       <FloatingPomodoroWidget />
+      <TimerOverlapHost />
     </div>
   )
 }

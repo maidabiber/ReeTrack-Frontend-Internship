@@ -130,6 +130,51 @@ function extractEntries(response: Record<string, unknown>): TimeEntry[] {
   throw new Error('Shared entry response did not include an entries array.')
 }
 
+export interface OverlapEntry {
+  id: string
+  description: string | null
+  startedAtUtc: string
+  endedAtUtc: string | null
+}
+
+export interface StopTimerResult {
+  entry: TimeEntry
+  hasOverlap: boolean
+  overlapMessage: string | null
+  suggestedClipEndedAtUtc: string | null
+  overlappingEntries: OverlapEntry[]
+}
+
+interface OverlapEntryResponse {
+  id: string
+  description: string | null
+  startedAtUtc: string
+  endedAtUtc: string | null
+}
+
+interface StopTimerResponse {
+  entry: TimeEntryResponse
+  hasOverlap: boolean
+  overlapMessage: string | null
+  suggestedClipEndedAtUtc: string | null
+  overlappingEntries?: OverlapEntryResponse[]
+}
+
+function toStopTimerResult(response: StopTimerResponse): StopTimerResult {
+  return {
+    entry: toTimeEntry(response.entry),
+    hasOverlap: Boolean(response.hasOverlap),
+    overlapMessage: response.overlapMessage ?? null,
+    suggestedClipEndedAtUtc: response.suggestedClipEndedAtUtc ?? null,
+    overlappingEntries: (response.overlappingEntries ?? []).map((item) => ({
+      id: item.id,
+      description: item.description,
+      startedAtUtc: item.startedAtUtc,
+      endedAtUtc: item.endedAtUtc,
+    })),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // API functions
 // ---------------------------------------------------------------------------
@@ -152,10 +197,10 @@ export function startTimer(request?: TimeEntryRequest): Promise<ActiveTimer> {
     .then(toActiveTimer)
 }
 
-export function stopTimer(request?: TimeEntryRequest): Promise<TimeEntry> {
+export function stopTimer(request?: TimeEntryRequest): Promise<StopTimerResult> {
   return apiClient
-    .post<TimeEntryResponse>('/time-entries/timer/stop', request ?? {})
-    .then(toTimeEntry)
+    .post<StopTimerResponse>('/time-entries/timer/stop', request ?? {})
+    .then(toStopTimerResult)
 }
 
 export function createTimeEntry(request: TimeEntryRequest): Promise<TimeEntry> {
@@ -168,6 +213,10 @@ export function updateTimeEntry(id: string, request: TimeEntryRequest): Promise<
   return apiClient
     .put<TimeEntryResponse>(`/time-entries/${id}`, request)
     .then(toTimeEntry)
+}
+
+export function deleteTimeEntry(id: string): Promise<void> {
+  return apiClient.delete(`/time-entries/${id}`).then(() => undefined)
 }
 
 export function createSharedTimeEntry(request: TimeEntryRequest): Promise<TimeEntry[]> {

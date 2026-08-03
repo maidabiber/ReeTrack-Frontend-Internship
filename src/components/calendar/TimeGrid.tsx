@@ -44,6 +44,10 @@ interface TimeGridProps {
   isEventEditable?: (event: CalendarEvent) => boolean
   allowHorizontalDrag?: boolean
   holidaysByDate?: ReadonlyMap<string, string>
+  /** Hour of day (0–23) to scroll into view on first mount. Defaults to 8. */
+  initialScrollHour?: number
+  /** When false, hides the weekday/date header row. Defaults to true. */
+  showDayHeader?: boolean
 }
 
 export function TimeGrid({
@@ -59,6 +63,8 @@ export function TimeGrid({
   isEventEditable,
   allowHorizontalDrag = false,
   holidaysByDate,
+  initialScrollHour = SCROLL_TO_HOUR,
+  showDayHeader = true,
 }: TimeGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollRef = useRef<number | null>(null)
@@ -137,10 +143,11 @@ export function TimeGrid({
   useEffect(() => {
     const el = scrollRef.current
     if (!el || didInitScrollRef.current) return
-    el.scrollTop = SCROLL_TO_HOUR * hourHeight
+    const hour = Math.min(23, Math.max(0, initialScrollHour))
+    el.scrollTop = hour * hourHeight
     didInitScrollRef.current = true
     prevHourHeightRef.current = hourHeight
-  }, [hourHeight])
+  }, [hourHeight, initialScrollHour])
 
   useLayoutEffect(() => {
     const el = scrollRef.current
@@ -254,6 +261,7 @@ export function TimeGrid({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {showDayHeader ? (
       <div className="flex flex-shrink-0 border-b border-navy/8 bg-white">
         <div className="w-14 flex-shrink-0" />
         {days.map((day) => {
@@ -296,6 +304,7 @@ export function TimeGrid({
           )
         })}
       </div>
+      ) : null}
 
       <div
         ref={scrollRef}

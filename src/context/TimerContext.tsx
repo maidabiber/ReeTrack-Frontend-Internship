@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import {
   createTimeEntry,
   createSharedTimeEntry,
+  deleteTimeEntry,
   getActiveTimer,
   listTimeEntries,
   shareExistingTimeEntry,
@@ -10,12 +11,28 @@ import {
   stopTimer,
   updateTimeEntry,
 } from '../api/timeEntries'
-import type { TimeEntryRequest } from '../api/timeEntries'
+import type { StopTimerResult, TimeEntryRequest } from '../api/timeEntries'
 import { ApiError, apiErrorMessage } from '../api/client'
 import { elapsedSecondsSince } from '../lib/formatDuration'
 import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
 import { useAuth } from '../hooks/useAuth'
-import { TimerContext } from './timer'
+import {
+  TimerContext,
+  type PendingOverlapStatus,
+  type PendingTimerOverlap,
+} from './timer'
+
+function entryToUpdateRequest(entry: TimeEntry, endedAtUtc: string): TimeEntryRequest {
+  return {
+    description: entry.description ?? undefined,
+    isBillable: entry.isBillable,
+    startedAtUtc: entry.startedAtUtc ?? undefined,
+    endedAtUtc,
+    projectId: entry.projectId,
+    projectTaskId: entry.projectTaskId,
+    tagIds: entry.tags.map((tag) => tag.id),
+  }
+}
 
 export function TimerProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isInitializing: isAuthInitializing } = useAuth()
@@ -27,7 +44,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [isSavingManual, setIsSavingManual] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingOverlap, setPendingOverlap] = useState<PendingTimerOverlap | null>(null)
   const activeTimerRef = useRef<ActiveTimer | null>(null)
+  const pendingOverlapRef = useRef<PendingTimerOverlap | null>(null)
 
   const requestKey = isAuthInitializing
     ? null
@@ -39,6 +58,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     activeTimerRef.current = activeTimer
   }, [activeTimer])
+
+  useEffect(() => {
+    pendingOverlapRef.current = pendingOverlap
+  }, [pendingOverlap])
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
@@ -111,6 +134,57 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const elapsedSeconds =
     tick >= 0 && activeTimer ? elapsedSecondsSince(activeTimer.startedAtUtc) : 0
 
+  const clearPendingOverlap = useCallback(() => {
+    setPendingOverlap(null)
+  }, [])
+
+  const setPendingOverlapFromStop = useCallback((result: StopTimerResult) => {
+    if (!result.hasOverlap) {
+      setPendingOverlap(null)
+      return
+    }
+
+    setPendingOverlap({
+      entry: result.entry,
+      overlapMessage: result.overlapMessage,
+      suggestedClipEndedAtUtc: result.suggestedClipEndedAtUtc,
+      overlappingEntries: result.overlappingEntries,
+      status: 'open',
+    })
+  }, [])
+
+  const setPendingOverlapStatus = useCallback((status: PendingOverlapStatus) => {
+    setPendingOverlap((current) => (current ? { ...current, status } : null))
+  }, [])
+
+  const resolvePendingOverlap = useCallback(async () => {
+    const pending = pendingOverlapRef.current
+    if (!pending) return
+
+    const { entry, suggestedClipEndedAtUtc } = pending
+
+    if (suggestedClipEndedAtUtc) {
+      const updated = await updateTimeEntry(
+        entry.id,
+        entryToUpdateRequest(entry, suggestedClipEndedAtUtc),
+      )
+      setEntries((current) =>
+        current
+          .map((item) => (item.id === updated.id ? updated : item))
+          .sort((a, b) => {
+            const aTime = a.startedAtUtc ? Date.parse(a.startedAtUtc) : 0
+            const bTime = b.startedAtUtc ? Date.parse(b.startedAtUtc) : 0
+            return bTime - aTime
+          }),
+      )
+    } else {
+      await deleteTimeEntry(entry.id)
+      setEntries((current) => current.filter((item) => item.id !== entry.id))
+    }
+
+    setPendingOverlap(null)
+  }, [])
+
   const start = useCallback(async (request?: TimeEntryRequest) => {
     setIsToggling(true)
     setError(null)
@@ -136,9 +210,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const entry = await stopTimer(request)
-      setEntries((current) => [entry, ...current.filter((item) => item.id !== entry.id)])
-      return entry
+      const result = await stopTimer(request)
+      setEntries((current) => [
+        result.entry,
+        ...current.filter((item) => item.id !== result.entry.id),
+      ])
+      return result
     } catch (err) {
       if (timerSnapshot) {
         setActiveTimer(timerSnapshot)
@@ -154,8 +231,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(
     async (request?: TimeEntryRequest) => {
       if (activeTimer) {
-        await stop(request)
-        return
+        return stop(request)
       }
 
       await start(request)
@@ -170,8 +246,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     try {
       let entry: TimeEntry
       if (request.assigneeUserIds?.length) {
-        const entries = await createSharedTimeEntry(request)
-        entry = entries.find((item) => item.shareGroupId) ?? entries[0]
+        const created = await createSharedTimeEntry(request)
+        entry = created.find((item) => item.shareGroupId) ?? created[0]
       } else {
         entry = await createTimeEntry(request)
       }
@@ -222,6 +298,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               return bTime - aTime
             }),
         )
+
+        if (pendingOverlapRef.current?.entry.id === id) {
+          setPendingOverlap(null)
+        }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           throw err
@@ -242,7 +322,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       setError(null)
       try {
         const shared = await shareExistingTimeEntry(entryId, { assigneeUserIds })
-        // Refresh the list to pick up the new pending clones
         await refresh()
         return shared
       } catch (err) {
@@ -265,6 +344,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       isSavingManual,
       isSavingEdit,
       error,
+      pendingOverlap,
       start,
       stop,
       toggle,
@@ -272,6 +352,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       addDurationEntry,
       updateEntry,
       shareEntry,
+      setPendingOverlapFromStop,
+      setPendingOverlapStatus,
+      clearPendingOverlap,
+      resolvePendingOverlap,
       refresh,
     }),
     [
@@ -284,6 +368,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       isSavingManual,
       isSavingEdit,
       error,
+      pendingOverlap,
       start,
       stop,
       toggle,
@@ -291,6 +376,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       addDurationEntry,
       updateEntry,
       shareEntry,
+      setPendingOverlapFromStop,
+      setPendingOverlapStatus,
+      clearPendingOverlap,
+      resolvePendingOverlap,
       refresh,
     ],
   )
