@@ -54,11 +54,28 @@ export function ReportFilterBar({
   isDirty,
   onPatch,
   onReset,
+  onApply,
+  hideClients = false,
+  hideTasks = false,
+  hideMembers = false,
+  hideTags = false,
+  hideBillable = false,
+  singleClient = false,
 }: {
   draft: ReportQuery
   isDirty: boolean
   onPatch: (patch: Partial<ReportQuery>) => void
   onReset: () => void
+  /** When set, Apply sits next to Reset inside the panel (Invoices). */
+  onApply?: () => void
+  /** When true, omit the Clients multi-select (e.g. Invoices picks client outside). */
+  hideClients?: boolean
+  hideTasks?: boolean
+  hideMembers?: boolean
+  hideTags?: boolean
+  hideBillable?: boolean
+  /** Restrict client picker to a single selection (used on Invoices page). */
+  singleClient?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -288,13 +305,28 @@ export function ReportFilterBar({
             <h2 className="font-mono text-eyebrow font-medium tracking-[0.12em] text-navy/60 uppercase">
               Report filters
             </h2>
-            <button
-              type="button"
-              onClick={onReset}
-              className="rounded-full border-control border-navy/20 px-3.5 py-1.5 text-caption font-medium text-navy/70 transition-colors hover:border-navy/35 hover:text-navy"
-            >
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onReset}
+                className="rounded-full border-control border-navy/20 px-3.5 py-1.5 text-caption font-medium text-navy/70 transition-colors hover:border-navy/35 hover:text-navy"
+              >
+                Reset
+              </button>
+              {onApply ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onApply()
+                    setOpen(false)
+                  }}
+                  disabled={!isDirty}
+                  className="rounded-full bg-brand px-3.5 py-1.5 text-caption font-medium text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="mb-4 flex flex-wrap gap-1.5">
@@ -351,27 +383,34 @@ export function ReportFilterBar({
           </div>
         </Field>
 
-        <Field label="Time type">
-          <BillableToggle
-            value={draft.billable}
-            onChange={(billable) => onPatch({ billable })}
-          />
-        </Field>
+        {hideBillable ? null : (
+          <Field label="Time type">
+            <BillableToggle
+              value={draft.billable}
+              onChange={(billable) => onPatch({ billable })}
+            />
+          </Field>
+        )}
           </div>
 
           <div className="mt-3 space-y-3">
-        <Field label="Clients">
+        {hideClients ? null : (
+          <Field label="Clients">
           <ReportEntityMultiSelect
-            selectedIds={draft.clientIds}
-            onChange={(clientIds) =>
-              onPatch(cascadeAfterClientsChange(draft, clientIds, projectClientById, taskProjectById))
-            }
-            fetchPage={fetchClients}
-            knownOptions={knownClients}
-            placeholder="All clients"
-            searchPlaceholder="Search clients…"
-          />
-        </Field>
+              selectedIds={draft.clientIds}
+              onChange={(clientIds) =>
+                onPatch(
+                  cascadeAfterClientsChange(draft, clientIds, projectClientById, taskProjectById),
+                )
+              }
+              fetchPage={fetchClients}
+              knownOptions={knownClients}
+              placeholder="All clients"
+              searchPlaceholder="Search clients…"
+              maxSelected={singleClient ? 1 : undefined}
+            />
+          </Field>
+        )}
 
         <Field label="Projects">
           <ReportEntityMultiSelect
@@ -389,80 +428,86 @@ export function ReportFilterBar({
           />
         </Field>
 
-        <Field label="Tasks">
-          <ReportEntityMultiSelect
-            selectedIds={draft.taskIds}
-            onChange={(taskIds, selected) => {
-              rememberTasks(selected)
-              const added = selected.find((option) => !draft.taskIds.includes(option.id))
-              if (added?.projectId && added.clientId) {
-                onPatch(
-                  pinFromTask(
-                    { taskId: added.id, projectId: added.projectId, clientId: added.clientId },
-                    taskIds,
-                    taskProjectById,
-                  ),
-                )
-                return
+        {hideTasks ? null : (
+          <Field label="Tasks">
+            <ReportEntityMultiSelect
+              selectedIds={draft.taskIds}
+              onChange={(taskIds, selected) => {
+                rememberTasks(selected)
+                const added = selected.find((option) => !draft.taskIds.includes(option.id))
+                if (added?.projectId && added.clientId) {
+                  onPatch(
+                    pinFromTask(
+                      { taskId: added.id, projectId: added.projectId, clientId: added.clientId },
+                      taskIds,
+                      taskProjectById,
+                    ),
+                  )
+                  return
+                }
+                if (taskIds.length === 0) {
+                  onPatch({ taskIds: [] })
+                  return
+                }
+                const first = taskIds[0]
+                const meta = taskMetaById.get(first) ?? selected.find((o) => o.id === first)
+                if (meta && 'projectId' in meta && meta.projectId && meta.clientId) {
+                  onPatch(
+                    pinFromTask(
+                      {
+                        taskId: first,
+                        projectId: meta.projectId,
+                        clientId: meta.clientId,
+                      },
+                      taskIds,
+                      taskProjectById,
+                    ),
+                  )
+                  return
+                }
+                onPatch({ taskIds })
+              }}
+              fetchPage={fetchTasks}
+              knownOptions={knownTasks}
+              placeholder={
+                draft.projectIds.length > 0 ? 'Tasks for selected projects' : 'All tasks'
               }
-              if (taskIds.length === 0) {
-                onPatch({ taskIds: [] })
-                return
-              }
-              const first = taskIds[0]
-              const meta = taskMetaById.get(first) ?? selected.find((o) => o.id === first)
-              if (meta && 'projectId' in meta && meta.projectId && meta.clientId) {
-                onPatch(
-                  pinFromTask(
-                    {
-                      taskId: first,
-                      projectId: meta.projectId,
-                      clientId: meta.clientId,
-                    },
-                    taskIds,
-                    taskProjectById,
-                  ),
-                )
-                return
-              }
-              onPatch({ taskIds })
-            }}
-            fetchPage={fetchTasks}
-            knownOptions={knownTasks}
-            placeholder={
-              draft.projectIds.length > 0 ? 'Tasks for selected projects' : 'All tasks'
-            }
-            searchPlaceholder="Search tasks…"
-          />
-        </Field>
+              searchPlaceholder="Search tasks…"
+            />
+          </Field>
+        )}
 
-        <Field label="Members">
-          <ReportEntityMultiSelect
-            selectedIds={draft.userIds}
-            onChange={(userIds, selected) => {
-              rememberMembers(selected)
-              onPatch({ userIds })
-            }}
-            fetchPage={fetchMembers}
-            knownOptions={knownMembers}
-            placeholder="All members"
-            searchPlaceholder="Search members…"
-          />
-        </Field>
+        {hideMembers ? null : (
+          <Field label="Members">
+            <ReportEntityMultiSelect
+              selectedIds={draft.userIds}
+              onChange={(userIds, selected) => {
+                rememberMembers(selected)
+                onPatch({ userIds })
+              }}
+              fetchPage={fetchMembers}
+              knownOptions={knownMembers}
+              placeholder="All members"
+              searchPlaceholder="Search members…"
+            />
+          </Field>
+        )}
 
-        <Field label="Tags">
-          <ReportEntityMultiSelect
-            selectedIds={draft.tagIds}
-            onChange={(tagIds, selected) => {
-              rememberTags(selected)
-              onPatch({ tagIds })
-            }}
-            fetchPage={fetchTags}
-            knownOptions={knownTags}
-            placeholder="All tags"
-            searchPlaceholder="Search tags…"
-          />
-        </Field>
+        {hideTags ? null : (
+          <Field label="Tags">
+            <ReportEntityMultiSelect
+              selectedIds={draft.tagIds}
+              onChange={(tagIds, selected) => {
+                rememberTags(selected)
+                onPatch({ tagIds })
+              }}
+              fetchPage={fetchTags}
+              knownOptions={knownTags}
+              placeholder="All tags"
+              searchPlaceholder="Search tags…"
+            />
+          </Field>
+        )}
           </div>
         </section>
       ) : null}

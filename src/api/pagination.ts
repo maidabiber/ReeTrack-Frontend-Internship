@@ -5,6 +5,7 @@ export interface ListQueryOptions {
   page?: number
   pageSize?: number
   q?: string
+  clientId?: string
 }
 
 /** Appends page, pageSize, and q onto an existing URLSearchParams. */
@@ -15,6 +16,7 @@ export function appendListQueryParams(
   if (options.page != null) params.set('page', String(options.page))
   if (options.pageSize != null) params.set('pageSize', String(options.pageSize))
   if (options.q?.trim()) params.set('q', options.q.trim())
+  if (options.clientId) params.set('clientId', options.clientId)
 }
 
 /** Maps a backend PagedResult of response DTOs into domain items. */

@@ -28,6 +28,7 @@ export function ReportEntityMultiSelect({
   placeholder,
   searchPlaceholder = 'Search…',
   disabled = false,
+  maxSelected,
   options,
   fetchPage,
   knownOptions = [],
@@ -37,6 +38,8 @@ export function ReportEntityMultiSelect({
   placeholder: string
   searchPlaceholder?: string
   disabled?: boolean
+  /** When set, limits selection to this many items. If 1, behaves like a single-select (replacing). */
+  maxSelected?: number
   options?: ReportEntityOption[]
   fetchPage?: (page: number, pageSize: number, q: string) => Promise<PagedResult<ReportEntityOption>>
   knownOptions?: ReportEntityOption[]
@@ -49,6 +52,7 @@ export function ReportEntityMultiSelect({
     top: number
     left: number
     width: number
+    maxHeight: number
   } | null>(null)
 
   const pagedFetch = useCallback(
@@ -110,6 +114,8 @@ export function ReportEntityMultiSelect({
     ? [...loadedItems].sort((a, b) => a.name.localeCompare(b.name))
     : staticFiltered
 
+  const singleMode = maxSelected === 1
+
   useDismissOnOutside(rootRef, open, () => setOpen(false), {
     closeOnEscape: true,
     ignoreSelector: '[data-report-entity-menu]',
@@ -120,15 +126,29 @@ export function ReportEntityMultiSelect({
     if (!rect) return
     const width = Math.max(rect.width, 220)
     const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))
-    const below = rect.bottom + 4
-    const top = below + 280 <= window.innerHeight
-      ? below
-      : Math.max(8, rect.top - 284)
-    setMenuPosition({ top, left, width })
+    const spaceBelow = window.innerHeight - rect.bottom - 12
+    const spaceAbove = rect.top - 12
+
+    let top: number
+    let maxHeight: number
+
+    if (spaceBelow >= 140 || spaceBelow >= spaceAbove) {
+      top = rect.bottom + 4
+      maxHeight = Math.min(280, Math.max(120, spaceBelow))
+    } else {
+      maxHeight = Math.min(280, Math.max(120, spaceAbove))
+      top = Math.max(8, rect.top - 4 - maxHeight)
+      if (top === 8) {
+        maxHeight = Math.max(100, rect.top - 12)
+      }
+    }
+
+    setMenuPosition({ top, left, width, maxHeight })
   }, [])
 
   useEffect(() => {
     if (!open) return
+    updateMenuPosition()
     window.addEventListener('resize', updateMenuPosition)
     window.addEventListener('scroll', updateMenuPosition, true)
     return () => {
@@ -138,9 +158,19 @@ export function ReportEntityMultiSelect({
   }, [open, updateMenuPosition])
 
   const toggle = (id: string) => {
-    const nextIds = selectedSet.has(id)
-      ? selectedIds.filter((selected) => selected !== id)
-      : [...selectedIds, id]
+    let nextIds: string[]
+    if (selectedSet.has(id)) {
+      // deselect
+      nextIds = selectedIds.filter((selected) => selected !== id)
+    } else if (maxSelected === 1) {
+      // single-select mode: replace current selection
+      nextIds = [id]
+    } else if (maxSelected != null && selectedIds.length >= maxSelected) {
+      // at capacity — do nothing
+      return
+    } else {
+      nextIds = [...selectedIds, id]
+    }
 
     let nextCache = selectedCache
     if (!selectedSet.has(id)) {
@@ -167,54 +197,74 @@ export function ReportEntityMultiSelect({
           open ? 'border-brand' : 'border-navy/[0.08]'
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-brand/60'}`}
       >
-        {selectedOptions.map((option) => (
-          <span
-            key={option.id}
-            className="flex items-center gap-1.5 rounded-full bg-surface-muted py-1 pr-1 pl-2 text-sm font-medium text-navy"
-          >
-            {option.color ? (
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: option.color }}
-              />
-            ) : null}
-            <span
-              className={`max-w-[9rem] truncate ${
-                option.isFallback ? 'font-mono tabular-nums' : ''
-              }`}
-            >
-              {option.name}
+        {singleMode ? (
+          selectedOptions[0] ? (
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5 pl-0.5 text-sm font-medium text-navy">
+              {selectedOptions[0].color ? (
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: selectedOptions[0].color }}
+                />
+              ) : null}
+              <span className="min-w-0 flex-1 truncate">{selectedOptions[0].name}</span>
             </span>
-            {!disabled ? (
-              <button
-                type="button"
-                aria-label={`Remove ${option.name}`}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  toggle(option.id)
-                }}
-                className="flex h-4 w-4 items-center justify-center rounded-full text-navy/45 hover:bg-navy/10 hover:text-navy"
+          ) : null
+        ) : (
+          selectedOptions.map((option) => (
+            <span
+              key={option.id}
+              className="flex items-center gap-1.5 rounded-full bg-surface-muted py-1 pr-1 pl-2 text-sm font-medium text-navy"
+            >
+              {option.color ? (
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: option.color }}
+                />
+              ) : null}
+              <span
+                className={`max-w-[9rem] truncate ${
+                  option.isFallback ? 'font-mono tabular-nums' : ''
+                }`}
               >
-                <span aria-hidden="true" className="text-md leading-none">
-                  ×
-                </span>
-              </button>
-            ) : null}
-          </span>
-        ))}
+                {option.name}
+              </span>
+              {!disabled ? (
+                <button
+                  type="button"
+                  aria-label={`Remove ${option.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    toggle(option.id)
+                  }}
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-navy/45 hover:bg-navy/10 hover:text-navy"
+                >
+                  <span aria-hidden="true" className="text-md leading-none">
+                    ×
+                  </span>
+                </button>
+              ) : null}
+            </span>
+          ))
+        )}
 
         <button
           type="button"
           disabled={disabled}
           onClick={() => {
-            if (!open) updateMenuPosition()
+            if (!open) {
+              rootRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              updateMenuPosition()
+            }
             setOpen((value) => !value)
           }}
           aria-label={open ? 'Close options' : `Choose ${placeholder.toLowerCase()}`}
           aria-expanded={open}
           aria-haspopup="listbox"
-          className="ml-auto flex min-h-6 min-w-12 flex-1 items-center justify-end gap-2 rounded-xs px-1 text-left text-navy/45 outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+          className={`flex min-h-6 items-center justify-end gap-2 rounded-xs px-1 text-left text-navy/45 outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
+            singleMode && selectedOptions.length > 0 ? 'shrink-0' : 'ml-auto min-w-12 flex-1'
+          }`}
         >
           {selectedOptions.length === 0 ? (
             <span className="mr-auto truncate text-md">{placeholder}</span>
@@ -227,10 +277,15 @@ export function ReportEntityMultiSelect({
         ? createPortal(
         <div
           data-report-entity-menu
-          className="fixed z-60 max-h-[280px] overflow-hidden rounded-xl bg-white/95 p-menu shadow-dropdown backdrop-blur-xl"
-          style={menuPosition}
+          className="fixed z-60 flex flex-col overflow-hidden rounded-xl bg-white/95 p-menu shadow-dropdown backdrop-blur-xl"
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            width: menuPosition.width,
+            maxHeight: menuPosition.maxHeight,
+          }}
         >
-          <label className="mb-1 flex items-center gap-1.5 rounded-xs border-control border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
+          <label className="mb-1 flex shrink-0 items-center gap-1.5 rounded-xs border-control border-navy/[0.08] px-2.5 py-1.5 focus-within:border-brand">
             <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
             <input
               autoFocus
@@ -244,10 +299,10 @@ export function ReportEntityMultiSelect({
           </label>
 
           <div
-            className="max-h-[210px] overflow-y-auto"
+            className="min-h-0 flex-1 overflow-y-auto"
             onScroll={fetchPage ? handleScroll : undefined}
             role="listbox"
-            aria-multiselectable="true"
+            aria-multiselectable={!singleMode}
           >
             {error ? (
               <div className="rounded-lg bg-red-tint px-2.5 py-2 text-sm text-red" role="alert">
@@ -270,17 +325,29 @@ export function ReportEntityMultiSelect({
                     aria-selected={checked}
                     className="flex w-full items-center gap-2 rounded-xs px-2.5 py-compact text-left text-caption font-medium text-navy hover:bg-surface-muted"
                   >
-                    <span
-                      className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-xs border-control ${
-                        checked ? 'border-brand bg-brand text-white' : 'border-navy/25'
-                      }`}
-                    >
-                      {checked ? (
+                    {singleMode ? (
+                      <span
+                        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full ${
+                          checked ? 'text-brand' : 'text-transparent'
+                        }`}
+                      >
                         <span aria-hidden="true" className="text-xs leading-none">
-                          ✓
+                          ●
                         </span>
-                      ) : null}
-                    </span>
+                      </span>
+                    ) : (
+                      <span
+                        className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-xs border-control ${
+                          checked ? 'border-brand bg-brand text-white' : 'border-navy/25'
+                        }`}
+                      >
+                        {checked ? (
+                          <span aria-hidden="true" className="text-xs leading-none">
+                            ✓
+                          </span>
+                        ) : null}
+                      </span>
+                    )}
                     {option.color ? (
                       <span
                         aria-hidden="true"

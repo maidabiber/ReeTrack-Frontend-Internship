@@ -6,13 +6,9 @@ import {
   getSummaryReport,
   getWorkloadReport,
 } from '../api/reports'
-import {
-  cloneReportQuery,
-  defaultReportQuery,
-  queriesEqual,
-  reportQueryKey,
-} from '../lib/reportQuery'
-import type { ReportQuery, ReportType } from '../types/reportQuery'
+import { reportQueryKey } from '../lib/reportQuery'
+import type { ReportType } from '../types/reportQuery'
+import { useReportFilterDraft } from './useReportFilterDraft'
 
 const DETAILED_PAGE_SIZE = 50
 
@@ -85,15 +81,21 @@ function useCachedReport<T>(
 }
 
 export function useReportWorkspace() {
-  const [draftQuery, setDraftQuery] = useState<ReportQuery>(() => defaultReportQuery())
-  const [appliedQuery, setAppliedQuery] = useState<ReportQuery>(() => defaultReportQuery())
+  const {
+    draftQuery,
+    appliedQuery,
+    isDirty,
+    patchDraft,
+    replaceDraft,
+    applyFilters: applyDraftFilters,
+    resetFilters: resetDraftFilters,
+  } = useReportFilterDraft()
   const [activeTab, setActiveTab] = useState<ReportType>('summary')
   const [detailedPage, setDetailedPage] = useState(1)
   const [error, setError] = useState<string | null>(null)
 
   const appliedKey = useMemo(() => reportQueryKey(appliedQuery), [appliedQuery])
   const detailedCacheKey = `${appliedKey}|p=${detailedPage}`
-  const isDirty = !queriesEqual(draftQuery, appliedQuery)
 
   const summaryFetcher = useCallback(
     (signal: AbortSignal) => getSummaryReport(appliedQuery, { signal }),
@@ -164,26 +166,6 @@ export function useReportWorkspace() {
     (activeTab === 'workload' && workloadLoading) ||
     (activeTab === 'profitability' && profitabilityLoading)
 
-  const patchDraft = useCallback((patch: Partial<ReportQuery>) => {
-    setDraftQuery((previous) => {
-      const next = cloneReportQuery(previous)
-      if (patch.userIds !== undefined) next.userIds = [...patch.userIds]
-      if (patch.projectIds !== undefined) next.projectIds = [...patch.projectIds]
-      if (patch.clientIds !== undefined) next.clientIds = [...patch.clientIds]
-      if (patch.taskIds !== undefined) next.taskIds = [...patch.taskIds]
-      if (patch.tagIds !== undefined) next.tagIds = [...patch.tagIds]
-      if (patch.groupBy !== undefined) next.groupBy = [...patch.groupBy]
-      if (patch.billable !== undefined) next.billable = patch.billable
-      if (patch.from !== undefined) next.from = patch.from
-      if (patch.to !== undefined) next.to = patch.to
-      return next
-    })
-  }, [])
-
-  const replaceDraft = useCallback((query: ReportQuery) => {
-    setDraftQuery(cloneReportQuery(query))
-  }, [])
-
   const clearCaches = useCallback(() => {
     clearSummaryCache()
     clearDetailedCache()
@@ -194,16 +176,14 @@ export function useReportWorkspace() {
   const applyFilters = useCallback(() => {
     clearCaches()
     setDetailedPage(1)
-    setAppliedQuery(cloneReportQuery(draftQuery))
-  }, [clearCaches, draftQuery])
+    applyDraftFilters()
+  }, [clearCaches, applyDraftFilters])
 
   const resetFilters = useCallback(() => {
-    const next = defaultReportQuery()
     clearCaches()
     setDetailedPage(1)
-    setDraftQuery(next)
-    setAppliedQuery(cloneReportQuery(next))
-  }, [clearCaches])
+    resetDraftFilters()
+  }, [clearCaches, resetDraftFilters])
 
   return {
     draftQuery,
