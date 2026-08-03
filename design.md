@@ -276,13 +276,17 @@ card `w-auth` · timer field widths per token list in `index.css`.
 ## 8. Page scaffolding
 
 In-app screens sit on the shell's `canvas` in a **centered column**
-(`max-w-page`, `px-10 py-8`); only the sidebar is full-height. Directory
-pages (Projects, Members, Tags, Clients) share this skeleton:
+(`max-w-page`, shared `PAGE_PAD` from `components/layout/pageChrome.ts` —
+`px-4 sm:px-6 lg:px-10 py-6 lg:py-8`). At `lg+` the ink sidebar is fixed and
+full-height; below `lg` it becomes an off-canvas drawer opened from the mobile
+top bar. Directory pages (Projects, Members, Tags, Clients) share this skeleton:
 
 ```tsx
+import { PAGE_PAD } from '../components/layout/pageChrome'
+
 export default function ThingsPage() {
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-baseline gap-2">
@@ -307,6 +311,43 @@ Register the page in `config/navigation.ts`.
 Standalone auth screens are unchanged: white paper, tilted brand blobs, the
 gradient-framed card (or `LogoMark` + trademark hairline when there's no
 card). Mirror `pages/SignInPage.tsx`.
+
+### Responsive conventions
+
+Three breakpoints, each with a specific meaning here — don't invent others:
+
+- **`sm` (640px)** — phone → large phone. Chrome gets breathing room (padding,
+  full labels instead of abbreviations); layout structure doesn't change yet.
+- **`md` (768px)** — the point where two-column layouts and the calendar's week
+  view become viable. Below it, panels that need real width (a 7-column week
+  grid, a side-by-side detail pane) collapse to a single mobile-appropriate view
+  rather than being crushed.
+- **`lg` (1024px)** — the ink sidebar goes from an off-canvas drawer to fixed.
+
+**Tailwind classes for layout, always.** Reach for `hooks/useMediaQuery.ts`
+(`useMediaQuery(BREAKPOINT.md)`, etc.) only when a component must render
+**structurally different children** at a breakpoint — a different view mode, a
+different set of props to a child, a `<details open>` default — never to
+duplicate something `sm:`/`md:`/`lg:` classes can already do. A component
+picking its own breakpoint value instead of importing `BREAKPOINT` is a bug:
+see `EventCalendar`'s original `matchMedia('(max-width: 767px)')`, which
+duplicated `md` by hand, checked it once at mount, and never re-subscribed —
+so resizing or rotating the window couldn't move it out of week view.
+
+**Tall, internally-scrolling panels** (the calendar) use
+`VIEWPORT_PANEL_HEIGHT` from `pageChrome.ts` rather than a bespoke `vh`
+calculation — it's `dvh`-based so a phone's collapsing URL bar doesn't leave
+the panel overflowing, and it scrolls internally instead of growing the page.
+Never nest a horizontal scroller inside a vertical one on a touch surface —
+if content needs a full 7-column week on a narrow screen, that's a sign the
+mobile view should be structurally different (see the calendar's day-view +
+`WeekStrip` fallback below `md`), not that the scroller needs fixing.
+
+**Primary actions live in `flex-shrink-0` clusters that never wrap.**
+Variable-length content next to them (project/tag chips, metadata) gets its
+own lane and scrolls horizontally instead of wrapping — a chip lane that wraps
+will eventually push a play button or a submit action onto a second line. See
+`TrackerBar`'s chip lane above its anchored control row.
 
 ---
 

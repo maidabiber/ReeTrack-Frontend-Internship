@@ -340,6 +340,7 @@ body {
   background: var(--color-surface-muted);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
+  overflow-x: auto;
 }
 
 .prose-assistant :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
@@ -360,6 +361,8 @@ body {
 }
 
 .prose-assistant :where(table):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  display: block;
+  overflow-x: auto;
   font-size: 0.875rem;
 }
 

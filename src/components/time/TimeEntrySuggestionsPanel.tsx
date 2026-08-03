@@ -42,8 +42,12 @@ export function TimeEntrySuggestionsPanel({
     }
   }, [])
 
+  // A "no suggestions yet" placeholder card costs a full mobile screen for nothing;
+  // only render this panel on small screens once it actually has content to show.
+  const hasContent = !isLoading && !loadError && cards.length > 0
+
   return (
-    <div className="timer-panel px-4 pt-3.5 pb-3">
+    <div className={`timer-panel px-4 pt-3.5 pb-3 ${hasContent ? '' : 'hidden sm:block'}`}>
       <p className="mb-3 font-display text-body font-semibold text-navy">Suggestions</p>
 
       {isLoading ? (

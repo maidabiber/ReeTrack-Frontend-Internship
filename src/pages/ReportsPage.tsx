@@ -9,6 +9,7 @@ import { SavedFilterSets } from '../components/reports/SavedFilterSets'
 import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { Icon } from '../components/ui/Icon'
 import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
@@ -35,7 +36,7 @@ export default function ReportsPage() {
 
 function AdminsOnly() {
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center px-10 py-8">
+    <div className={`flex min-h-full flex-1 items-center justify-center ${PAGE_PAD}`}>
       <div className="max-w-sm rounded-2xl bg-white px-8 py-10 text-center shadow-card">
         <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-navy/60">
           <Icon name="shield" className="h-5 w-5" />
@@ -104,7 +105,7 @@ function ReportsWorkspace() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-page px-10 py-8">
+    <div className={`mx-auto w-full max-w-page ${PAGE_PAD}`}>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-xl font-bold text-navy">Reports</h1>
@@ -123,7 +124,7 @@ function ReportsWorkspace() {
         <SegmentedTabs options={REPORT_TABS} value={activeTab} onChange={setActiveTab} />
       </div>
 
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <ReportFilterBar
           draft={draftQuery}
           isDirty={isDirty}

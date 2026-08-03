@@ -14,6 +14,7 @@ import { formatMoney } from '../lib/projectFormat'
 import { formatPlannedVsActual } from '../lib/projectFormat'
 import type { Project } from '../types/project'
 import type { Task } from '../types/task'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 
 const STATUS_DOT: Record<'active' | 'archived', string> = {
   active: 'bg-[#1E8A57]',
@@ -139,7 +140,7 @@ export default function ProjectDetailPage() {
 
   if (loadError || !project) {
     return (
-      <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-3 px-10 text-center">
+      <div className={`flex min-h-full flex-1 flex-col items-center justify-center gap-3 ${PAGE_PAD} text-center`}>
         <span className="text-body text-red">{loadError ?? 'Project not found.'}</span>
         <Link
           to="/projects"
@@ -154,7 +155,7 @@ export default function ProjectDetailPage() {
   const isActive = project.status === 'active'
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={() => setOpenTaskMenuId(null)}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={() => setOpenTaskMenuId(null)}>
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4">
         <Link
           to="/projects"

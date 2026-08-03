@@ -88,7 +88,7 @@ export function NotificationBell() {
           id={panelId}
           role="region"
           aria-label="Unread notifications"
-          className="absolute top-full right-0 z-30 mt-2 w-[320px] overflow-hidden rounded-xl border border-navy/10 bg-white shadow-lg"
+          className="absolute top-full right-0 z-30 mt-2 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-navy/10 bg-white shadow-lg"
         >
           <div className="border-b border-navy/8 px-3 py-2 font-display text-sm font-medium text-navy">
             Unread
@@ -102,7 +102,9 @@ export function NotificationBell() {
                 <li key={notification.id} className="border-b border-navy/5 last:border-b-0">
                   <div className="flex flex-col gap-1 px-3 py-2.5">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-display text-sm font-medium text-navy">{notification.subject}</p>
+                      <p className="min-w-0 truncate font-display text-sm font-medium text-navy">
+                        {notification.subject}
+                      </p>
                     </div>
                     <NotificationBody body={notification.body} />
                     <p className="font-mono text-[10px] text-navy/35">

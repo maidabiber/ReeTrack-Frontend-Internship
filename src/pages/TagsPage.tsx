@@ -14,6 +14,7 @@ import {
   SkeletonRow,
 } from '../components/directory/DirectoryTable'
 import { riseDelay } from '../components/directory/directoryChrome'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { apiErrorMessage } from '../api/client'
 import { createTag, deleteTag, listTags, updateTag } from '../api/tags'
 import { fetchAllPages } from '../api/pagination'
@@ -89,7 +90,7 @@ export default function TagsPage() {
   }
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <DirectoryHeader
           title="Tags"
@@ -104,12 +105,13 @@ export default function TagsPage() {
         {notice && <NoticeBanner>{notice}</NoticeBanner>}
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex-1" />
-          <DirectorySearch placeholder="Search tags..." value={search} onChange={setSearch} />
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <DirectorySearch placeholder="Search tags..." value={search} onChange={setSearch} />
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-card">
-          <div className={`${GRID} border-b border-navy/[0.08]`}>
+          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="tags" label="Name" />
             <HeaderCell icon="reports" label="Usage" />
             <span />
@@ -220,32 +222,51 @@ function TagRow({
   onDelete: () => void
 }) {
   return (
-    <div
-      className={`${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
-      style={riseDelay(index)}
-    >
-      <div className="flex min-w-0 items-center gap-2.5">
+    <>
+      <div className="flex items-start gap-3 px-3.5 py-3 md:hidden motion-safe:animate-rise" style={riseDelay(index)}>
         <span
           aria-hidden="true"
-          className="h-2.5 w-2.5 flex-shrink-0 rotate-45 rounded-[2px] ring-1 ring-navy/10"
+          className="mt-1.5 h-2.5 w-2.5 flex-shrink-0 rotate-45 rounded-[2px] ring-1 ring-navy/10"
           style={{ backgroundColor: tag.color ?? '#E4E7EF' }}
         />
-        <span className="truncate font-display text-md font-semibold text-navy">{tag.name}</span>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate font-display text-md font-semibold text-navy">{tag.name}</span>
+          <span className="mt-1 block text-caption text-navy/60">
+            <span className="text-navy/40">Usage </span>
+            <span className="font-mono tabular-nums">{tag.usageCount}</span>
+          </span>
+        </div>
+        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+          <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
+        </RowMenu>
       </div>
 
-      <span
-        className={`font-mono text-caption tabular-nums ${
-          tag.usageCount > 0 ? 'font-medium' : 'font-normal opacity-40'
-        }`}
+      <div
+        className={`hidden md:grid ${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+        style={riseDelay(index)}
       >
-        {tag.usageCount}
-      </span>
-
-      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-        <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-        <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
-      </RowMenu>
-    </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="h-2.5 w-2.5 flex-shrink-0 rotate-45 rounded-[2px] ring-1 ring-navy/10"
+            style={{ backgroundColor: tag.color ?? '#E4E7EF' }}
+          />
+          <span className="truncate font-display text-md font-semibold text-navy">{tag.name}</span>
+        </div>
+        <span
+          className={`font-mono text-caption tabular-nums ${
+            tag.usageCount > 0 ? 'font-medium' : 'font-normal opacity-40'
+          }`}
+        >
+          {tag.usageCount}
+        </span>
+        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+          <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
+        </RowMenu>
+      </div>
+    </>
   )
 }
 

@@ -4,6 +4,7 @@ import { isSameDay, startOfMonth } from './dateUtils'
 import { TimeGrid } from './TimeGrid'
 import { MiniMonthCalendar } from './MiniMonthCalendar'
 import { EventDetailPanel } from './EventDetailPanel'
+import { WeekStrip } from './WeekStrip'
 
 interface DayViewProps {
   selectedDate: Date
@@ -14,6 +15,8 @@ interface DayViewProps {
   selectedEventId: string | null
   onDateChange: (date: Date) => void
   onEventSelect: (event: CalendarEvent | null) => void
+  /** Mini-month + detail panel need real width; below `md` a WeekStrip replaces them. */
+  showSidePanel?: boolean
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
   onEventCreate?: (start: Date, end: Date) => void
   pendingCreateRange?: { start: Date; end: Date } | null
@@ -33,6 +36,7 @@ export function DayView({
   selectedEventId,
   onDateChange,
   onEventSelect,
+  showSidePanel = true,
   onEventMove,
   onEventCreate,
   pendingCreateRange,
@@ -55,8 +59,16 @@ export function DayView({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <div className="flex min-h-0 min-w-0 flex-col border-r border-navy/8">
+    <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="flex min-h-0 min-w-0 flex-col border-navy/8 md:border-r">
+        {!showSidePanel ? (
+          <WeekStrip
+            selectedDate={selectedDate}
+            events={allEvents}
+            holidaysByDate={holidaysByDate}
+            onDateSelect={handleDateSelect}
+          />
+        ) : null}
         <TimeGrid
           days={[selectedDate]}
           events={events}
@@ -73,23 +85,25 @@ export function DayView({
         />
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-col bg-surface-muted/30">
-        <MiniMonthCalendar
-          displayMonth={displayMonth}
-          selectedDate={selectedDate}
-          events={allEvents}
-          holidaysByDate={holidaysByDate}
-          onMonthChange={setDisplayMonth}
-          onDateSelect={handleDateSelect}
-        />
-        <EventDetailPanel
-          event={selectedEvent}
-          selectedDate={selectedDate}
-          canEdit={canEditSelectedEvent}
-          onEdit={onEditEntry}
-          onCreateTimeEntry={onCreateTimeEntry}
-        />
-      </div>
+      {showSidePanel ? (
+        <div className="flex min-h-0 min-w-0 flex-col border-t border-navy/8 bg-surface-muted/30 md:border-t-0">
+          <MiniMonthCalendar
+            displayMonth={displayMonth}
+            selectedDate={selectedDate}
+            events={allEvents}
+            holidaysByDate={holidaysByDate}
+            onMonthChange={setDisplayMonth}
+            onDateSelect={handleDateSelect}
+          />
+          <EventDetailPanel
+            event={selectedEvent}
+            selectedDate={selectedDate}
+            canEdit={canEditSelectedEvent}
+            onEdit={onEditEntry}
+            onCreateTimeEntry={onCreateTimeEntry}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

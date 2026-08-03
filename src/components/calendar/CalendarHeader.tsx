@@ -8,6 +8,8 @@ interface CalendarHeaderProps {
   selectedDate: Date
   viewMode: CalendarViewMode
   onViewModeChange: (mode: CalendarViewMode) => void
+  /** Hides the Day/Week toggle — below `md` the view is forced to day regardless. */
+  showViewToggle?: boolean
   onToday: () => void
   onPrev: () => void
   onNext: () => void
@@ -20,6 +22,7 @@ export function CalendarHeader({
   selectedDate,
   viewMode,
   onViewModeChange,
+  showViewToggle = true,
   onToday,
   onPrev,
   onNext,
@@ -31,7 +34,7 @@ export function CalendarHeader({
   const canZoomIn = hourHeight < MAX_HOUR_HEIGHT
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-navy/8 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-navy/8 px-4 py-3">
       <button
         type="button"
         onClick={onToday}
@@ -58,14 +61,16 @@ export function CalendarHeader({
         </ZoomButton>
       </div>
 
-      <div className="flex rounded-full bg-surface-muted p-segment">
-        <ToggleButton active={viewMode === 'day'} onClick={() => onViewModeChange('day')}>
-          Day
-        </ToggleButton>
-        <ToggleButton active={viewMode === 'week'} onClick={() => onViewModeChange('week')}>
-          Week
-        </ToggleButton>
-      </div>
+      {showViewToggle ? (
+        <div className="flex rounded-full bg-surface-muted p-segment">
+          <ToggleButton active={viewMode === 'day'} onClick={() => onViewModeChange('day')}>
+            Day
+          </ToggleButton>
+          <ToggleButton active={viewMode === 'week'} onClick={() => onViewModeChange('week')}>
+            Week
+          </ToggleButton>
+        </div>
+      ) : null}
     </div>
   )
 }

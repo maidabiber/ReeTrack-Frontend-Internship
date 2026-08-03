@@ -4,6 +4,8 @@ import { TrackerBar } from '../components/time/TrackerBar'
 import { Toolbar, type TimerContentView } from '../components/time/Toolbar'
 import { EntriesCard } from '../components/time/EntriesCard'
 import { EventCalendar } from '../components/calendar/EventCalendar'
+import { PAGE_PAD } from '../components/layout/pageChrome'
+import type { DateRangeKey } from '../lib/dateRangeFilter'
 
 // Lazy so recharts (the heaviest dependency) stays out of the main bundle
 // until the timesheet view is actually opened.
@@ -24,6 +26,7 @@ export default function TimerPage() {
   const navigate = useNavigate()
   const isTimesheet = useLocation().pathname.startsWith('/timesheet')
   const [listView, setListView] = useState<Exclude<TimerContentView, 'timesheet'>>('list')
+  const [dateRange, setDateRange] = useState<DateRangeKey>('all')
   const contentView: TimerContentView = isTimesheet ? 'timesheet' : listView
 
   const handleContentViewChange = (view: TimerContentView) => {
@@ -37,16 +40,21 @@ export default function TimerPage() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-surface-muted/45">
-      <div className="mx-auto w-full max-w-page px-10 py-8">
+      <div className={`mx-auto w-full max-w-page ${PAGE_PAD}`}>
         <div className="mb-5">
           <TrackerBar />
         </div>
 
-        <Toolbar contentView={contentView} onContentViewChange={handleContentViewChange} />
+        <Toolbar
+          contentView={contentView}
+          onContentViewChange={handleContentViewChange}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
 
         <div className="mt-4">
           {contentView === 'list' ? (
-            <EntriesCard />
+            <EntriesCard dateRange={dateRange} onDateRangeChange={setDateRange} />
           ) : contentView === 'calendar' ? (
             <EventCalendar />
           ) : (

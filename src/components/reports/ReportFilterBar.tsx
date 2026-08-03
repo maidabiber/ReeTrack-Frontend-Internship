@@ -351,7 +351,7 @@ export function ReportFilterBar({
 
           <div className="space-y-3">
         <Field label="Date range">
-          <div className="flex min-h-10 min-w-0 items-center gap-2 overflow-visible">
+          <div className="flex min-h-10 min-w-0 flex-col gap-2 overflow-visible sm:flex-row sm:items-center">
             <DatePickerField
               label="From"
               hideLabel
@@ -360,7 +360,7 @@ export function ReportFilterBar({
               placeholder="No start"
               onChange={(value) => onPatch({ from: calendarDateToIso(value) })}
             />
-            <span className="shrink-0 text-caption text-navy/35">to</span>
+            <span className="hidden shrink-0 text-caption text-navy/35 sm:inline">to</span>
             <DatePickerField
               label="To"
               hideLabel
@@ -375,7 +375,7 @@ export function ReportFilterBar({
                 onClick={() => onPatch({ from: null, to: null })}
                 aria-label="Clear date range"
                 title="Clear date range"
-                className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-xs text-navy/40 transition-colors hover:bg-surface-muted hover:text-navy"
+                className="flex size-6 shrink-0 items-center justify-center rounded-xs text-navy/40 transition-colors hover:bg-surface-muted hover:text-navy sm:ml-auto"
               >
                 <Icon name="x" className="size-3" />
               </button>

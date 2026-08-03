@@ -17,6 +17,7 @@ import {
   StatusMark,
 } from '../components/directory/DirectoryTable'
 import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import {
   createClient,
   deleteClient,
@@ -126,7 +127,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <DirectoryHeader
           title="Clients"
@@ -151,13 +152,13 @@ export default function ClientsPage() {
             onChange={changeTab}
           />
 
-          <span className="flex-1" />
-
-          <DirectorySearch placeholder="Search clients..." value={search} onChange={setSearch} />
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <DirectorySearch placeholder="Search clients..." value={search} onChange={setSearch} />
+          </div>
         </div>
 
         <div className="rounded-2xl bg-white shadow-card">
-          <div className={`${GRID} border-b border-navy/[0.08]`}>
+          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="clients" label="Name" />
             <HeaderCell icon="projects" label="Projects" />
             <HeaderCell icon="check-badge" label="Status" />
@@ -281,7 +282,66 @@ function ClientRow({
           row-actions menu isn't nested inside an interactive element. */}
       <div
         onClick={onToggleExpand}
-        className={`${GRID} cursor-pointer transition-colors hover:bg-surface-muted/60`}
+        className="flex cursor-pointer items-start gap-3 px-3.5 py-3 md:hidden"
+      >
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleExpand()
+          }}
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+        >
+          <img
+            src={clientCoverUrl(client)}
+            alt=""
+            loading="lazy"
+            className={`h-[26px] w-[26px] flex-shrink-0 rounded-sm ${
+              client.isActive ? '' : 'opacity-50 grayscale'
+            }`}
+          />
+          <span className="min-w-0">
+            <span className="block truncate font-display text-md font-semibold text-navy">{client.name}</span>
+            <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-navy/60">
+              <span>
+                <span className="text-navy/40">Projects </span>
+                <span className="font-mono tabular-nums">{client.projectCount}</span>
+              </span>
+              <StatusMark
+                label={client.isActive ? 'Active' : 'Archived'}
+                colorClassName={STATUS_COLOR[client.isActive ? 'active' : 'archived']}
+              />
+            </span>
+          </span>
+          <Icon
+            name="chevron-down"
+            className={`h-3 w-3 flex-shrink-0 text-navy/35 transition-transform duration-200 ${
+              expanded ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+          <RowMenuItem
+            icon="check-badge"
+            label={client.isActive ? 'Archive' : 'Restore'}
+            onClick={onToggleArchived}
+          />
+          <RowMenuItem
+            icon="ban"
+            label="Delete"
+            danger
+            disabled={!canDelete}
+            title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
+            onClick={onDelete}
+          />
+        </RowMenu>
+      </div>
+
+      <div
+        onClick={onToggleExpand}
+        className={`hidden md:grid ${GRID} cursor-pointer transition-colors hover:bg-surface-muted/60`}
       >
         <button
           type="button"

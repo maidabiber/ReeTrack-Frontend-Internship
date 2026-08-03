@@ -10,6 +10,7 @@ import {
 } from '../api/invoices'
 import { fetchAllPages } from '../api/pagination'
 import { AccessDenied } from '../components/auth/AccessDenied'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
 import { Icon } from '../components/ui/Icon'
@@ -217,7 +218,7 @@ function InvoicesWorkspace() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-page px-10 py-8">
+    <div className={`mx-auto w-full max-w-page ${PAGE_PAD}`}>
       <div className="mb-6">
         <h1 className="font-display text-xl font-bold text-navy">Invoices</h1>
         <p className="mt-1 text-body text-navy/55">
@@ -250,7 +251,7 @@ function InvoicesWorkspace() {
           type="button"
           onClick={handleGenerate}
           disabled={generating || !hasClient}
-          className="ml-auto rounded-full bg-brand px-5 py-2 font-display text-md font-semibold text-white shadow-soft transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-full bg-brand px-5 py-2 font-display text-md font-semibold text-white shadow-soft transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:w-auto"
         >
           {generating ? 'Generating…' : 'Generate invoice'}
         </button>
@@ -270,7 +271,7 @@ function InvoicesWorkspace() {
       ) : null}
 
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[340px_1fr]">
-        <aside className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-card">
+        <aside className="flex max-h-[45vh] flex-col overflow-hidden rounded-2xl bg-white shadow-card lg:h-full lg:max-h-none">
           <header className="border-b border-navy/[0.06] bg-[linear-gradient(180deg,#f2f4f9_0%,#ffffff_72%)] px-5 py-4">
             <div className="flex items-center justify-between">
               <h2 className="font-mono text-eyebrow font-medium tracking-[0.14em] text-navy/45 uppercase">
@@ -461,8 +462,8 @@ function InvoiceDetail({
               Created: <span className="font-mono">{formatShortDateTime(invoice.createdAtUtc)}</span>
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col items-end gap-2 sm:w-auto">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {invoice.status === 'Draft' ? (
                 <>
                   <button

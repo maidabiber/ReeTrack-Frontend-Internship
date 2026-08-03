@@ -73,7 +73,8 @@ export function WorkloadReportPanel({
             How each member’s hours split across clients and projects.
           </p>
         </div>
-        <table className="w-full border-collapse text-left text-body">
+        <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse text-left text-body">
           <thead>
             <tr className="border-b border-canvas bg-surface-muted/60">
               <th className="px-4 py-2.5 text-caption font-medium uppercase tracking-wide text-navy/45">
@@ -133,6 +134,7 @@ export function WorkloadReportPanel({
             </tfoot>
           ) : null}
         </table>
+        </div>
       </div>
 
     </div>

@@ -16,6 +16,7 @@ import {
 } from '../components/directory/DirectoryControls'
 import { HeaderCell, SkeletonRow, StatusMark } from '../components/directory/DirectoryTable'
 import { riseDelay } from '../components/directory/directoryChrome'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { WeekEntriesList } from '../components/timesheet/WeekEntriesList'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
@@ -91,7 +92,7 @@ export default function TimesheetReviewPage() {
 
 function AdminsOnly() {
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center px-10 py-8">
+    <div className={`flex min-h-full flex-1 items-center justify-center ${PAGE_PAD}`}>
       <div className="max-w-sm rounded-2xl bg-white px-8 py-10 text-center shadow-card">
         <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-navy/60">
           <Icon name="shield" className="h-5 w-5" />
@@ -165,7 +166,7 @@ function ReviewQueue() {
   }
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8">
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <header className="flex items-center justify-between gap-4">
           <div className="flex items-baseline gap-2">
@@ -182,12 +183,13 @@ function ReviewQueue() {
 
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedTabs options={STATUS_TABS} value={status} onChange={changeStatus} />
-          <span className="flex-1" />
-          <DirectorySearch placeholder="Search member..." value={search} onChange={setSearch} />
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <DirectorySearch placeholder="Search member..." value={search} onChange={setSearch} />
+          </div>
         </div>
 
         <div className="rounded-2xl bg-white shadow-card">
-          <div className={`${GRID} border-b border-navy/[0.08]`}>
+          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="members" label="Member" />
             <HeaderCell icon="calendar" label="Week" />
             <HeaderCell icon="timer" label="Submitted" />
@@ -250,32 +252,63 @@ function ReviewRow({
   const name = item.userDisplayName ?? item.userEmail
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      style={riseDelay(index)}
-      className={`${GRID} w-full text-left transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
-    >
-      <span className="flex min-w-0 items-center gap-2.5">
-        <UserAvatar name={name} size={26} className="flex-shrink-0 rounded-full" />
-        <span className="min-w-0">
+    <>
+      {/* Below `md` the 6-column grid has no room to be readable, let alone tappable —
+          a stacked card carries the same fields without forcing horizontal scroll. */}
+      <button
+        type="button"
+        onClick={onOpen}
+        style={riseDelay(index)}
+        className="flex w-full items-start gap-3 px-3.5 py-3 text-left transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise md:hidden"
+      >
+        <UserAvatar name={name} size={26} className="mt-0.5 flex-shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1">
           <span className="block truncate font-display text-md font-semibold text-navy">{name}</span>
           {item.userDisplayName && (
             <span className="block truncate font-mono text-xs text-navy/45">{item.userEmail}</span>
           )}
-        </span>
-      </span>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption">
+            <span className="text-navy/70">{formatWeekRange(item.weekStartDate)}</span>
+            <StatusMark label={item.status} colorClassName={STATUS_COLOR[item.status]} />
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-navy/60">
+            <span>{formatSubmittedAt(item.submittedAtUtc)}</span>
+            <span className="font-mono tabular-nums">{formatDurationHms(item.totalSeconds)}</span>
+            <span className="font-mono tabular-nums">
+              {item.entryCount} {item.entryCount === 1 ? 'entry' : 'entries'}
+            </span>
+          </div>
+        </div>
+        <Icon name="chevron-right" className="mt-1 h-4 w-4 flex-shrink-0 text-navy/30" />
+      </button>
 
-      <span className="truncate text-caption text-navy/70">{formatWeekRange(item.weekStartDate)}</span>
-      <span className="truncate text-caption text-navy/60">{formatSubmittedAt(item.submittedAtUtc)}</span>
-      <span className="justify-self-end font-mono text-caption tabular-nums text-navy/70">
-        {formatDurationHms(item.totalSeconds)}
-      </span>
-      <span className="justify-self-end font-mono text-caption tabular-nums text-navy/60">
-        {item.entryCount}
-      </span>
-      <StatusMark label={item.status} colorClassName={STATUS_COLOR[item.status]} />
-    </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        style={riseDelay(index)}
+        className={`hidden ${GRID} w-full text-left transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise md:grid`}
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <UserAvatar name={name} size={26} className="flex-shrink-0 rounded-full" />
+          <span className="min-w-0">
+            <span className="block truncate font-display text-md font-semibold text-navy">{name}</span>
+            {item.userDisplayName && (
+              <span className="block truncate font-mono text-xs text-navy/45">{item.userEmail}</span>
+            )}
+          </span>
+        </span>
+
+        <span className="truncate text-caption text-navy/70">{formatWeekRange(item.weekStartDate)}</span>
+        <span className="truncate text-caption text-navy/60">{formatSubmittedAt(item.submittedAtUtc)}</span>
+        <span className="justify-self-end font-mono text-caption tabular-nums text-navy/70">
+          {formatDurationHms(item.totalSeconds)}
+        </span>
+        <span className="justify-self-end font-mono text-caption tabular-nums text-navy/60">
+          {item.entryCount}
+        </span>
+        <StatusMark label={item.status} colorClassName={STATUS_COLOR[item.status]} />
+      </button>
+    </>
   )
 }
 
@@ -284,7 +317,16 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 6 }, (_, index) => (
-        <SkeletonRow key={index} gridClassName={GRID} index={index}>
+        <div key={index} aria-hidden="true" className="flex items-start gap-3 px-3.5 py-3 motion-safe:animate-pulse md:hidden" style={{ animationDelay: `${index * 100}ms` }}>
+          <span className="mt-0.5 h-[26px] w-[26px] flex-shrink-0 rounded-full bg-surface-muted" />
+          <div className="flex-1">
+            <span className="block h-3 w-24 rounded-full bg-navy/10" />
+            <span className="mt-2 block h-3 w-32 rounded-full bg-navy/[0.07]" />
+          </div>
+        </div>
+      ))}
+      {Array.from({ length: 6 }, (_, index) => (
+        <SkeletonRow key={index} gridClassName={`hidden md:grid ${GRID}`} index={index}>
           <div className="flex items-center gap-2.5">
             <span className="h-[26px] w-[26px] flex-shrink-0 rounded-full bg-surface-muted" />
             <span className="h-3 w-24 rounded-full bg-navy/10" />

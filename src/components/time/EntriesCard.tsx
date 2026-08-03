@@ -7,6 +7,7 @@ import { useTimer } from '../../hooks/useTimer'
 import { useAuth } from '../../hooks/useAuth'
 import { isPendingSharedWithCurrentUser } from '../../lib/entryShare'
 import { TIME_ENTRY_LIST_CLASS } from '../../lib/pendingEntryStyles'
+import { filterEntriesByDateRange, type DateRangeKey } from '../../lib/dateRangeFilter'
 import {
   createTimeEntryTemplate,
   notifyTimeEntryTemplatesChanged,
@@ -16,7 +17,13 @@ import type { TimeEntry } from '../../types/timeEntry'
 
 const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
 
-export function EntriesCard() {
+export function EntriesCard({
+  dateRange,
+  onDateRangeChange,
+}: {
+  dateRange: DateRangeKey
+  onDateRangeChange: (key: DateRangeKey) => void
+}) {
   const { entries, isInitializing, refresh } = useTimer()
   const { user } = useAuth()
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
@@ -82,7 +89,28 @@ export function EntriesCard() {
     )
   }
 
-  const displayEntries = entries.map((entry) => ({
+  const rangedEntries = filterEntriesByDateRange(entries, dateRange)
+
+  if (rangedEntries.length === 0) {
+    return (
+      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
+        <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
+          No entries in this range.
+          <br />
+          <br />
+          <button
+            type="button"
+            onClick={() => onDateRangeChange('all')}
+            className="font-semibold text-brand hover:text-brand-deep"
+          >
+            Show all dates
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const displayEntries = rangedEntries.map((entry) => ({
     key: entry.id,
     entry,
     groupedEntries: [entry],

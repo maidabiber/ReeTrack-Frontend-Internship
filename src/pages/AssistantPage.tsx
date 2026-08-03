@@ -1,20 +1,25 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChatMessageBubble } from '../components/assistant/ChatMessageBubble'
 import { ChatInput } from '../components/assistant/ChatInput'
 import { ProjectDraftCard } from '../components/assistant/ProjectDraftCard'
+import { PAGE_PAD, VIEWPORT_PANEL_HEIGHT } from '../components/layout/pageChrome'
+import { Icon } from '../components/ui/Icon'
 import { sendAssistantMessage } from '../api/assistant'
 import type { AssistantMessage, AssistantEvent, MessageMention, ProjectDraft } from '../types/assistant'
 import type { Project } from '../types/project'
 
 /**
- * AI assistant page with split layout: chat on the left, draft panel on the right.
- * The draft panel only appears when the LLM proposes a project draft.
+ * AI assistant page: chat on the left, draft panel on the right at `md+`.
+ * Below `md` there's no room for a side-by-side split, so the draft instead
+ * opens as a bottom sheet over the chat — auto-opened when the LLM proposes
+ * one, reopenable from the header pill, closable without losing the chat.
  */
 export default function AssistantPage() {
   const [messages, setMessages] = useState<AssistantMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentDraft, setCurrentDraft] = useState<ProjectDraft | null>(null)
   const [draftKey, setDraftKey] = useState(0)
+  const [isDraftSheetOpen, setIsDraftSheetOpen] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -25,6 +30,23 @@ export default function AssistantPage() {
     currentDraftRef.current = draft
     setCurrentDraft(draft)
   }, [])
+
+  useEffect(() => {
+    if (!isDraftSheetOpen) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsDraftSheetOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isDraftSheetOpen])
 
   const scrollToBottom = useCallback(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -66,13 +88,16 @@ export default function AssistantPage() {
             case 'draft':
               setDraftKey((k) => k + 1)
               updateDraft(event.draft)
+              setIsDraftSheetOpen(true)
               break
 
             case 'done':
               setConversationId(event.conversationId)
               setIsStreaming(false)
-              if (event.draftCleared)
+              if (event.draftCleared) {
                 updateDraft(null)
+                setIsDraftSheetOpen(false)
+              }
               break
 
             case 'error':
@@ -94,6 +119,7 @@ export default function AssistantPage() {
 
   const handleCreated = useCallback((project: Project) => {
     updateDraft(null)
+    setIsDraftSheetOpen(false)
     setMessages((prev) => [
       ...prev,
       { role: 'assistant', content: `Project "${project.name}" created successfully with all tasks.` },
@@ -101,17 +127,32 @@ export default function AssistantPage() {
   }, [updateDraft])
 
   return (
-    <div className="flex h-screen min-h-0 flex-1 flex-col overflow-hidden px-10 py-8">
-      <div className="mb-4">
-        <h1 className="font-display text-xl font-bold text-navy">Assistant</h1>
-        <p className="mt-1 text-sm text-navy/60">
-          Describe projects in natural language and let AI draft them for you.
-        </p>
+    <div className={`mx-auto flex min-h-0 w-full max-w-page flex-1 flex-col ${PAGE_PAD}`}>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-xl font-bold text-navy">Assistant</h1>
+          <p className="mt-1 text-sm text-navy/60">
+            Describe projects in natural language and let AI draft them for you.
+          </p>
+        </div>
+
+        {currentDraft && (
+          <button
+            type="button"
+            onClick={() => setIsDraftSheetOpen(true)}
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand-tint px-3.5 py-1.5 font-display text-sm font-semibold text-brand transition-colors hover:bg-brand-tint/70 md:hidden"
+          >
+            <Icon name="sparkle" className="h-3.5 w-3.5" />
+            View draft
+          </button>
+        )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden rounded-2xl bg-white shadow-card">
-        <div className={`flex min-h-0 flex-col ${currentDraft ? 'w-3/5' : 'w-full'} transition-all duration-300`}>
-          <div className="flex min-h-0 flex-1 flex-col p-5">
+      <div
+        className={`flex flex-col overflow-hidden rounded-2xl bg-white shadow-card md:flex-row ${VIEWPORT_PANEL_HEIGHT}`}
+      >
+        <div className="flex min-h-0 w-full flex-col">
+          <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
             <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-1 py-4">
               {messages.length === 0 && !isStreaming && <EmptyState onSuggestion={handleSend} />}
 
@@ -139,7 +180,7 @@ export default function AssistantPage() {
         </div>
 
         {currentDraft && (
-          <div className="w-2/5 border-l border-navy/[0.08] bg-surface-muted/30 p-5">
+          <div className="hidden min-h-0 w-2/5 flex-col border-l border-navy/[0.08] bg-surface-muted/30 p-5 md:flex">
             <div className="flex h-full flex-col overflow-y-auto">
               <ProjectDraftCard
                 key={draftKey}
@@ -151,6 +192,49 @@ export default function AssistantPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile draft bottom sheet — the side-by-side split above only has
+          room at md+, so below that the draft floats over the chat instead
+          of squeezing it, and can be dismissed without losing the draft. */}
+      {currentDraft && (
+        <>
+          <button
+            type="button"
+            aria-label="Close draft"
+            tabIndex={isDraftSheetOpen ? 0 : -1}
+            onClick={() => setIsDraftSheetOpen(false)}
+            className={`fixed inset-0 z-40 bg-ink/40 transition-opacity md:hidden ${
+              isDraftSheetOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          />
+          <div
+            inert={!isDraftSheetOpen ? true : undefined}
+            className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-white shadow-float transition-transform duration-200 ease-out md:hidden ${
+              isDraftSheetOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
+          >
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-navy/[0.08] px-5 py-3.5">
+              <span className="font-display text-md font-semibold text-navy">Project draft</span>
+              <button
+                type="button"
+                onClick={() => setIsDraftSheetOpen(false)}
+                aria-label="Close draft"
+                className="flex size-8 items-center justify-center rounded-full text-navy/50 transition-colors hover:bg-surface-muted hover:text-navy"
+              >
+                <Icon name="x" className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <ProjectDraftCard
+                key={draftKey}
+                draft={currentDraft}
+                onChange={updateDraft}
+                onCreated={handleCreated}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

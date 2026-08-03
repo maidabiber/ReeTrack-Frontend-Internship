@@ -260,10 +260,14 @@ export function TimeGrid({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className={`flex min-h-0 flex-1 flex-col ${days.length > 1 ? 'overflow-x-auto' : ''}`}>
       {showDayHeader ? (
-      <div className="flex flex-shrink-0 border-b border-navy/8 bg-white">
-        <div className="w-14 flex-shrink-0" />
+      <div
+        className={`flex flex-shrink-0 border-b border-navy/8 bg-white ${
+          days.length > 1 ? 'min-w-[40rem]' : ''
+        }`}
+      >
+        <div className="w-11 flex-shrink-0 sm:w-14" />
         {days.map((day) => {
           const holidayName = holidaysByDate?.get(toDateKey(day))
           const isHoliday = !!holidayName
@@ -272,8 +276,8 @@ export function TimeGrid({
               key={day.toISOString()}
               title={holidayName}
               className={`flex min-w-0 flex-1 flex-col items-center px-1 py-2 ${
-                isHoliday ? 'bg-brand-tint/70' : ''
-              }`}
+                days.length > 1 ? 'min-w-[4.5rem]' : ''
+              } ${isHoliday ? 'bg-brand-tint/70' : ''}`}
             >
               <span
                 className={`text-xs font-medium uppercase tracking-wide ${
@@ -310,8 +314,11 @@ export function TimeGrid({
         ref={scrollRef}
         className={`min-h-0 flex-1 overflow-y-auto ${interactionActive ? 'select-none' : ''}`}
       >
-        <div className="relative flex" style={{ height: hourHeight * DAY_HOURS }}>
-          <div className="sticky left-0 z-10 w-14 flex-shrink-0 bg-white">
+        <div
+          className={`relative flex ${days.length > 1 ? 'min-w-[40rem]' : ''}`}
+          style={{ height: hourHeight * DAY_HOURS }}
+        >
+          <div className="sticky left-0 z-10 w-11 flex-shrink-0 bg-white sm:w-14">
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -319,7 +326,7 @@ export function TimeGrid({
                 style={{ height: hourHeight }}
               >
                 {hour > 0 && (
-                  <span className="absolute -top-2 right-2 text-xs text-navy/40">
+                  <span className="absolute -top-2 right-1 text-xs text-navy/40 sm:right-2">
                     {hour === 12 ? '12 PM' : hour < 12 ? `${hour} AM` : `${hour - 12} PM`}
                   </span>
                 )}
@@ -433,7 +440,9 @@ export function TimeGrid({
                   if (el) columnRefs.current.set(day.toISOString(), el)
                   else columnRefs.current.delete(day.toISOString())
                 }}
-                className="relative min-w-0 flex-1 border-r border-navy/6 last:border-r-0"
+                className={`relative min-w-0 flex-1 border-r border-navy/6 last:border-r-0 ${
+                  days.length > 1 ? 'min-w-[4.5rem]' : ''
+                }`}
                 onPointerDown={(pointerEvent) => {
                   if (isDragging || isResizing || !onEventCreate) return
                   const columnEl = columnRefs.current.get(day.toISOString())

@@ -70,21 +70,23 @@ export function SegmentedTabs<T extends string>({
   onChange: (next: T) => void
 }) {
   return (
-    <div className="flex rounded-full bg-white p-segment shadow-soft" role="tablist">
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          role="tab"
-          aria-selected={value === option.value}
-          className={`rounded-full px-3.5 py-compact font-mono text-eyebrow font-medium tracking-[0.12em] uppercase transition-colors ${
-            value === option.value ? 'bg-navy text-cream' : 'text-navy/55 hover:text-navy'
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className="-mx-1 overflow-x-auto px-1" role="presentation">
+      <div className="flex w-max min-w-full rounded-full bg-white p-segment shadow-soft" role="tablist">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            role="tab"
+            aria-selected={value === option.value}
+            className={`shrink-0 rounded-full px-3.5 py-compact font-mono text-eyebrow font-medium tracking-[0.12em] uppercase transition-colors ${
+              value === option.value ? 'bg-navy text-cream' : 'text-navy/55 hover:text-navy'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -99,7 +101,7 @@ export function DirectorySearch({
   onChange: (value: string) => void
 }) {
   return (
-    <label className="flex min-w-[180px] max-w-[280px] flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand">
+    <label className="flex min-w-0 max-w-none flex-1 items-center gap-1.5 rounded-full border-control border-navy/[0.08] bg-white px-3.5 py-compact focus-within:border-brand sm:min-w-[180px] sm:max-w-[280px]">
       <Icon name="search" className="h-3.5 w-3.5 flex-shrink-0 text-navy/50" />
       <input
         className="w-full border-none bg-transparent text-body text-navy outline-none placeholder:text-navy/45"

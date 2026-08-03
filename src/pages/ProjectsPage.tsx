@@ -17,6 +17,7 @@ import {
   StatusMark,
 } from '../components/directory/DirectoryTable'
 import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { apiErrorMessage } from '../api/client'
 import {
   deleteProject,
@@ -132,7 +133,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
         <DirectoryHeader
           title="Projects"
@@ -162,9 +163,9 @@ export default function ProjectsPage() {
             onChange={changeTab}
           />
 
-          <span className="flex-1" />
-
-          <DirectorySearch placeholder="Search projects..." value={search} onChange={setSearch} />
+          <div className="w-full sm:ml-auto sm:w-auto">
+            <DirectorySearch placeholder="Search projects..." value={search} onChange={setSearch} />
+          </div>
         </div>
 
         {!isLoading && !loadError && filtered.length === 0 && projects.length === 0 && tab === 'active' ? (
@@ -176,7 +177,7 @@ export default function ProjectsPage() {
           />
         ) : (
           <div className="rounded-2xl bg-white shadow-card">
-            <div className={`${GRID} border-b border-navy/[0.08]`}>
+            <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
               <HeaderCell icon="projects" label="Name" />
               <HeaderCell icon="clients" label="Client" />
               <HeaderCell icon="billable" label="Billing" />
@@ -366,8 +367,45 @@ function ProjectRow({
   const isActive = project.status === 'active'
 
   return (
+    <>
+    <div className="flex items-start gap-3 px-3.5 py-3 md:hidden motion-safe:animate-rise" style={riseDelay(index)}>
+      <span
+        aria-hidden="true"
+        className={`mt-0.5 h-[26px] w-[26px] flex-shrink-0 rounded-sm ${isActive ? '' : 'opacity-50 grayscale'}`}
+        style={{ backgroundColor: softAccentFill(project.color) }}
+      />
+      <div className="min-w-0 flex-1">
+        <Link
+          to={`/projects/${project.id}`}
+          onClick={(event) => event.stopPropagation()}
+          className="block truncate font-display text-md font-semibold text-navy hover:text-brand"
+        >
+          {project.name}
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-navy/60">
+          <span><span className="text-navy/40">Client </span>{project.clientName}</span>
+          <span><span className="text-navy/40">Billing </span>{formatBillingSummary(project)}</span>
+          <span><span className="text-navy/40">Estimate </span>{project.timeEstimateHours !== null ? `${project.timeEstimateHours} h` : '—'}</span>
+          <span><span className="text-navy/40">Tasks </span><span className="font-mono tabular-nums">{project.taskCount}</span></span>
+          <StatusMark
+            label={isActive ? 'Active' : 'Archived'}
+            colorClassName={STATUS_COLOR[isActive ? 'active' : 'archived']}
+          />
+        </div>
+      </div>
+      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+        <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+        <RowMenuItem
+          icon="check-badge"
+          label={isActive ? 'Archive' : 'Restore'}
+          onClick={onToggleArchived}
+        />
+        {canDelete && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
+      </RowMenu>
+    </div>
+
     <div
-      className={`${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+      className={`hidden md:grid ${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
       style={riseDelay(index)}
     >
       <div className="flex min-w-0 items-center gap-2.5">
@@ -420,5 +458,6 @@ function ProjectRow({
         {canDelete && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
       </RowMenu>
     </div>
+    </>
   )
 }

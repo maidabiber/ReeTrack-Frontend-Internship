@@ -333,6 +333,7 @@ export function TrackerBar() {
     : null
 
   const selectedTags = knownTags.filter((tag) => tagIds.includes(tag.id))
+  const hasChips = Boolean(projectTaskLabel) || selectedTags.length > 0
 
   const entryVariant =
     trackerMode === 'timer' ? null : trackerMode === 'duration' ? 'duration' : 'range'
@@ -360,7 +361,7 @@ export function TrackerBar() {
             error={smartParseError}
           />
         ) : (
-          <div className="flex items-start gap-3 px-6 pt-5 pb-4">
+          <div className="flex items-start gap-3 px-4 pt-5 pb-4 sm:px-6">
             <div className="min-w-0 flex-1">
               <MentionDescriptionField
                 className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
@@ -395,128 +396,136 @@ export function TrackerBar() {
 
         <span aria-hidden="true" className="block h-px w-full bg-brand-gradient" />
 
-        <div className="flex min-h-[5.5rem] flex-wrap items-center gap-x-2 gap-y-3 border-t border-navy/[0.06] bg-surface-muted/25 px-6 py-3.5">
-          <div ref={projectButtonRef} className="relative">
-            <IconButton
-              name="projects"
-              title="Project & task"
-              active={Boolean(projectId) || projectPickerOpen}
-              onClick={() => {
-                setTagsPickerOpen(false)
-                setProjectPickerOpen((v) => !v)
-              }}
-            />
-            <ProjectTaskPicker
-              key={projectPickerOpen ? 'open' : 'closed'}
-              open={projectPickerOpen}
-              onOpenChange={setProjectPickerOpen}
-              projectId={projectId}
-              projectTaskId={projectTaskId}
-              onChange={(next) => {
-                setProject({
-                  projectId: next.projectId,
-                  projectTaskId: next.projectTaskId,
-                  projectName: next.projectName ?? null,
-                  projectColor: next.projectColor ?? null,
-                  projectTaskName: next.taskName ?? null,
-                })
-              }}
-            />
+        {hasChips ? (
+          <div className="border-t border-navy/[0.06] bg-surface-muted/25 px-4 pt-3 sm:px-6">
+            <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-navy/15 hover:[&::-webkit-scrollbar-thumb]:bg-navy/25">
+              {projectTaskLabel ? (
+                <span className="flex-shrink-0">
+                  <MetadataBubble
+                    label={projectTaskLabel}
+                    color={projectColor}
+                    onRemove={clearProject}
+                  />
+                </span>
+              ) : null}
+              {selectedTags.map((tag) => (
+                <span key={tag.id} className="flex-shrink-0">
+                  <MetadataBubble
+                    label={tag.name}
+                    color={tag.color}
+                    onRemove={() => removeTag(tag.id)}
+                  />
+                </span>
+              ))}
+            </div>
           </div>
+        ) : null}
 
-          <div ref={tagsButtonRef} className="relative">
+        <div
+          className={`flex flex-col gap-3 bg-surface-muted/25 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-x-2 sm:px-6 ${
+            hasChips ? '' : 'border-t border-navy/[0.06]'
+          }`}
+        >
+          <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-2">
+            <div ref={projectButtonRef} className="relative">
+              <IconButton
+                name="projects"
+                title="Project & task"
+                active={Boolean(projectId) || projectPickerOpen}
+                onClick={() => {
+                  setTagsPickerOpen(false)
+                  setProjectPickerOpen((v) => !v)
+                }}
+              />
+              <ProjectTaskPicker
+                key={projectPickerOpen ? 'open' : 'closed'}
+                open={projectPickerOpen}
+                onOpenChange={setProjectPickerOpen}
+                projectId={projectId}
+                projectTaskId={projectTaskId}
+                onChange={(next) => {
+                  setProject({
+                    projectId: next.projectId,
+                    projectTaskId: next.projectTaskId,
+                    projectName: next.projectName ?? null,
+                    projectColor: next.projectColor ?? null,
+                    projectTaskName: next.taskName ?? null,
+                  })
+                }}
+              />
+            </div>
+
+            <div ref={tagsButtonRef} className="relative">
+              <IconButton
+                name="tags"
+                title="Tags"
+                active={tagIds.length > 0 || tagsPickerOpen}
+                onClick={() => {
+                  setProjectPickerOpen(false)
+                  setTagsPickerOpen((v) => !v)
+                }}
+              />
+              {tagsPickerOpen ? (
+                <div className="absolute top-[calc(100%+6px)] left-0 z-40 w-[min(100vw-2rem,18rem)]">
+                  <TagMultiSelect
+                    variant="popover"
+                    knownTags={knownTags}
+                    selectedIds={tagIds}
+                    onChange={(ids, tags) => {
+                      setTags(ids, tags)
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+
             <IconButton
-              name="tags"
-              title="Tags"
-              active={tagIds.length > 0 || tagsPickerOpen}
-              onClick={() => {
-                setProjectPickerOpen(false)
-                setTagsPickerOpen((v) => !v)
-              }}
+              name="billable"
+              title={isBillable ? 'Billable' : 'Non-billable'}
+              active={isBillable}
+              pressed={isBillable}
+              onClick={() => setBillable(!isBillable)}
             />
-            {tagsPickerOpen ? (
-              <div className="absolute top-[calc(100%+6px)] left-0 z-40 w-[min(100vw-2rem,18rem)]">
-                <TagMultiSelect
-                  variant="popover"
-                  knownTags={knownTags}
-                  selectedIds={tagIds}
-                  onChange={(ids, tags) => {
-                    setTags(ids, tags)
-                  }}
+
+            {trackerMode === 'timer' ? (
+              <>
+                <div className="mx-1 hidden h-5.5 w-px flex-shrink-0 bg-navy/10 sm:block" />
+                <PomodoroControls
+                  enabled={pomodoro.prefs.enabled}
+                  workMinutes={pomodoro.prefs.workMinutes}
+                  breakMinutes={pomodoro.prefs.breakMinutes}
+                  onEnabledChange={pomodoro.setEnabled}
+                  onWorkMinutesChange={pomodoro.setWorkMinutes}
+                  onBreakMinutesChange={pomodoro.setBreakMinutes}
+                  disabled={isInitializing}
                 />
-              </div>
+              </>
             ) : null}
           </div>
 
-          <IconButton
-            name="billable"
-            title={isBillable ? 'Billable' : 'Non-billable'}
-            active={isBillable}
-            pressed={isBillable}
-            onClick={() => setBillable(!isBillable)}
-          />
-
-          {(projectTaskLabel ||
-            selectedTags.length > 0 ||
-            showSmartParseTimeFields) && (
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              {projectTaskLabel ? (
-                <MetadataBubble
-                  label={projectTaskLabel}
-                  color={projectColor}
-                  onRemove={clearProject}
-                />
-              ) : null}
-              {selectedTags.map((tag) => (
-                <MetadataBubble
-                  key={tag.id}
-                  label={tag.name}
-                  color={tag.color}
-                  onRemove={() => removeTag(tag.id)}
-                />
-              ))}
-              {showSmartParseTimeFields ? (
-                <TimeEntryInput
-                  key={`smart-parse-${smartParseInputVariant}-${smartParseSeed?.nonce ?? 'draft'}`}
-                  ref={pendingSmartParseSave ? entryRef : undefined}
-                  variant={smartParseInputVariant}
-                  description={description}
-                  mentionedTeammates={mentionedTeammates}
-                  onShared={setShareNotice}
-                  onClearDescription={handleClearDescriptionAndAssociations}
-                  onClearMentions={() => setMentionedTeammates([])}
-                  onClearShareNotice={clearShareNotice}
-                  associations={associations}
-                  mode={trackerMode}
-                  onModeChange={switchMode}
-                  modeMenuDisabled={isRunning}
-                  smartParseSeed={smartParseSeed}
-                  hideActions
-                  fieldsDisabled={isSmartParseMode}
-                  layout="inline"
-                />
-              ) : null}
-            </div>
-          )}
-
-          {trackerMode === 'timer' ? (
-            <>
-              <div className="mx-1 h-5.5 w-px flex-shrink-0 bg-navy/10" />
-              <PomodoroControls
-                enabled={pomodoro.prefs.enabled}
-                workMinutes={pomodoro.prefs.workMinutes}
-                breakMinutes={pomodoro.prefs.breakMinutes}
-                onEnabledChange={pomodoro.setEnabled}
-                onWorkMinutesChange={pomodoro.setWorkMinutes}
-                onBreakMinutesChange={pomodoro.setBreakMinutes}
-                disabled={isInitializing}
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto">
+            {showSmartParseTimeFields ? (
+              <TimeEntryInput
+                key={`smart-parse-${smartParseInputVariant}-${smartParseSeed?.nonce ?? 'draft'}`}
+                ref={pendingSmartParseSave ? entryRef : undefined}
+                variant={smartParseInputVariant}
+                description={description}
+                mentionedTeammates={mentionedTeammates}
+                onShared={setShareNotice}
+                onClearDescription={handleClearDescriptionAndAssociations}
+                onClearMentions={() => setMentionedTeammates([])}
+                onClearShareNotice={clearShareNotice}
+                associations={associations}
+                mode={trackerMode}
+                onModeChange={switchMode}
+                modeMenuDisabled={isRunning}
+                smartParseSeed={smartParseSeed}
+                hideActions
+                fieldsDisabled={isSmartParseMode}
+                layout="inline"
               />
-            </>
-          ) : null}
+            ) : null}
 
-          <div className="flex-1" />
-
-          <div className="flex flex-wrap items-center justify-end gap-2">
             {inSmartParseFlow ? (
               <>
                 {pendingSmartParseSave ? (

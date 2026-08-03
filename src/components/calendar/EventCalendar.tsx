@@ -10,7 +10,9 @@ import { OverlapAlertModal } from '../time/overlapAlert'
 
 import { useTimer } from '../../hooks/useTimer'
 import { useWeekLock } from '../../hooks/useWeekLock'
+import { BREAKPOINT, useMediaQuery } from '../../hooks/useMediaQuery'
 import { WeekLockBanner } from '../timesheet/WeekLockBanner'
+import { VIEWPORT_PANEL_HEIGHT } from '../layout/pageChrome'
 import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent, CalendarViewMode } from './types'
 import {
@@ -48,7 +50,11 @@ interface PendingDragSave {
 export function EventCalendar() {
   const { entries, activeTimer, elapsedSeconds, updateEntry } = useTimer()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
+  const isMd = useMediaQuery(BREAKPOINT.md)
+  // A 7-column week needs real width; below `md` there is only ever room for a day, so
+  // the user's last explicit choice is remembered but overridden while the window is narrow.
+  const [preferredViewMode, setPreferredViewMode] = useState<CalendarViewMode>('week')
+  const viewMode: CalendarViewMode = isMd ? preferredViewMode : 'day'
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([])
   const [fetchedKey, setFetchedKey] = useState<string | null>(null)
@@ -252,6 +258,13 @@ export function EventCalendar() {
     setSelectedEventId(event?.id ?? null)
   }
 
+  // Below `md` there's no detail panel to reveal a selection, so tapping an event
+  // opens the same modal week view uses instead of just marking it selected.
+  function handleMobileDayEventSelect(event: CalendarEvent | null) {
+    if (!event) return
+    handleWeekEventClick(event)
+  }
+
   function handleDateChange(date: Date) {
     setSelectedDate(date)
     if (selectedEventId) {
@@ -271,11 +284,12 @@ export function EventCalendar() {
   }
 
   return (
-    <div className="timer-panel relative flex h-[calc(100vh-220px)] min-h-[520px] flex-col overflow-hidden">
+    <div className={`timer-panel relative flex flex-col overflow-hidden ${VIEWPORT_PANEL_HEIGHT}`}>
       <CalendarHeader
         selectedDate={selectedDate}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={setPreferredViewMode}
+        showViewToggle={isMd}
         onToday={handleToday}
         onPrev={handlePrev}
         onNext={handleNext}
@@ -313,7 +327,8 @@ export function EventCalendar() {
           onHourHeightChange={setHourHeight}
           selectedEventId={selectedEventId}
           onDateChange={handleDateChange}
-          onEventSelect={handleDayEventSelect}
+          onEventSelect={isMd ? handleDayEventSelect : handleMobileDayEventSelect}
+          showSidePanel={isMd}
           onEventMove={handleEventMove}
           onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}

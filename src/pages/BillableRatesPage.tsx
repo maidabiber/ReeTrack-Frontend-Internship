@@ -22,6 +22,7 @@ import {
   isToday,
   startOfMonth,
 } from '../components/calendar/dateUtils'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { Icon } from '../components/ui/Icon'
 import type { RateMultiplierSettings } from '../types/rateMultiplierSettings'
 import type { Holiday, HolidayCalendar, HolidayCalendarSettings } from '../types/holidays'
@@ -112,7 +113,7 @@ export default function BillableRatesPage() {
       settings.weeklyOvertimeThresholdHours !== draft.weeklyOvertimeThresholdHours)
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8">
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`}>
       <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
         <header>
           <h1 className="font-display text-[22px] font-bold text-navy">Billable rates</h1>

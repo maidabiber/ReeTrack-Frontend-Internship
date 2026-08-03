@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getIntegrationErrorFromUrl } from '../api/integrations'
 import { GoogleCalendarCard } from '../components/integrations/GoogleCalendarCard'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { NotificationPreferencesSection } from '../components/profile/NotificationPreferencesSection'
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
@@ -57,7 +58,7 @@ export default function ProfilePage() {
   const avatarName = user.displayName ?? user.email
 
   return (
-    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-10 py-8">
+    <div className={`mx-auto flex w-full max-w-page flex-col gap-6 ${PAGE_PAD}`}>
       <header>
         <h1 className="font-display text-xl font-bold text-navy">Profile</h1>
         <p className="mt-segment max-w-lede text-body leading-[1.5] text-navy/60">

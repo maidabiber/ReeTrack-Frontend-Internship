@@ -21,9 +21,11 @@ import { formatHoursLabel } from '../charts/chartFormat'
 import { ProjectBreakdown } from '../charts/ProjectBreakdown'
 import { RecentWeeksTrend } from '../charts/RecentWeeksTrend'
 import { WeekHoursBarChart } from '../charts/WeekHoursBarChart'
+import { BREAKPOINT, useMediaQuery } from '../../hooks/useMediaQuery'
 import { Icon } from '../ui/Icon'
 import { Modal } from '../ui/Modal'
 import { Pill } from '../ui/Pill'
+import { StatTile } from '../ui/StatTile'
 import { WeekEntriesList } from './WeekEntriesList'
 import { formatDurationHms } from '../../lib/formatDuration'
 import { formatLoggedVsTarget, resolveWeekTargetSeconds } from '../../lib/hourTargetProgress'
@@ -66,6 +68,7 @@ function currentWeekStart(): Date {
  * decision emails).
  */
 export function TimesheetView() {
+  const isMd = useMediaQuery(BREAKPOINT.md)
   const [searchParams, setSearchParams] = useSearchParams()
   const weekStart = useMemo(() => {
     const requested = parseDateInput(searchParams.get('week') ?? '')
@@ -305,7 +308,7 @@ export function TimesheetView() {
             </div>
           )}
 
-          <div className="mb-4 grid grid-cols-3 gap-4">
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatTile
               label="Total logged"
               value={formatLoggedVsTarget(split.totalSeconds, weekTargetSeconds, formatDurationHms)}
@@ -317,61 +320,73 @@ export function TimesheetView() {
             />
           </div>
 
-          {/* Hero chart first so its draw-in animation is visible without scrolling. */}
-          <div className="mb-4">
-            <ChartCard title="Recent weeks">
-              <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-                <RecentWeeksTrend data={trendData} />
-                <ul className="space-y-1 self-center">
-                  {recentWeeks.map((summary) => {
-                    const summaryStart = parseDateInput(summary.weekStartDate)
-                    return (
-                      <li key={summary.weekStartDate}>
-                        <button
-                          type="button"
-                          onClick={() => summaryStart && goToWeek(summaryStart)}
-                          className={`flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-surface-muted ${
-                            summary.weekStartDate === weekStartIso ? 'bg-surface-muted' : ''
-                          }`}
-                        >
-                          <span className="text-sm text-navy">
-                            {summaryStart ? formatHeaderLabel(summaryStart, 'week') : summary.weekStartDate}
-                          </span>
-                          <span className="flex items-center gap-3">
-                            <span className="font-mono text-sm tabular-nums text-navy/60">
-                              {formatHoursLabel(summary.totalSeconds)}
+          {/* Collapsed below `md` so the entries list — what most visits are for — isn't
+              behind four chart cards' worth of scrolling. Open by default at md+, where
+              the hero chart's draw-in animation is visible without scrolling either way. */}
+          <details className="mb-4 group" open={isMd}>
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-2xl bg-white px-5 py-4 font-display text-body font-bold text-navy shadow-card [&::-webkit-details-marker]:hidden">
+              Insights
+              <Icon
+                name="chevron-right"
+                className="h-4 w-4 text-navy/40 transition-transform group-open:rotate-90"
+              />
+            </summary>
+
+            <div className="mt-4">
+              <ChartCard title="Recent weeks">
+                <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+                  <RecentWeeksTrend data={trendData} />
+                  <ul className="space-y-1 self-center">
+                    {recentWeeks.map((summary) => {
+                      const summaryStart = parseDateInput(summary.weekStartDate)
+                      return (
+                        <li key={summary.weekStartDate}>
+                          <button
+                            type="button"
+                            onClick={() => summaryStart && goToWeek(summaryStart)}
+                            className={`flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-surface-muted ${
+                              summary.weekStartDate === weekStartIso ? 'bg-surface-muted' : ''
+                            }`}
+                          >
+                            <span className="text-sm text-navy">
+                              {summaryStart ? formatHeaderLabel(summaryStart, 'week') : summary.weekStartDate}
                             </span>
-                            <Pill label={STATUS_LABEL[summary.status]} dotClassName={STATUS_DOT[summary.status]} />
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            </ChartCard>
-          </div>
+                            <span className="flex items-center gap-3">
+                              <span className="font-mono text-sm tabular-nums text-navy/60">
+                                {formatHoursLabel(summary.totalSeconds)}
+                              </span>
+                              <Pill label={STATUS_LABEL[summary.status]} dotClassName={STATUS_DOT[summary.status]} />
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </ChartCard>
+            </div>
 
-          <div className="mb-4 grid gap-4 md:grid-cols-2">
-            <ChartCard title="Hours per day">
-              <WeekHoursBarChart data={perDay} todayIndex={todayIndex} />
-            </ChartCard>
-            <ChartCard title="Billable split">
-              <div className="flex h-44 items-center justify-center">
-                <BillableSplitCard split={split} />
-              </div>
-            </ChartCard>
-          </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <ChartCard title="Hours per day">
+                <WeekHoursBarChart data={perDay} todayIndex={todayIndex} />
+              </ChartCard>
+              <ChartCard title="Billable split">
+                <div className="flex h-44 items-center justify-center">
+                  <BillableSplitCard split={split} />
+                </div>
+              </ChartCard>
+            </div>
 
-          <div className="mb-4">
-            <ChartCard title="Projects">
-              {perProject.length === 0 ? (
-                <p className="py-6 text-center text-body text-navy/50">No time logged this week.</p>
-              ) : (
-                <ProjectBreakdown data={perProject} />
-              )}
-            </ChartCard>
-          </div>
+            <div className="mt-4">
+              <ChartCard title="Projects">
+                {perProject.length === 0 ? (
+                  <p className="py-6 text-center text-body text-navy/50">No time logged this week.</p>
+                ) : (
+                  <ProjectBreakdown data={perProject} />
+                )}
+              </ChartCard>
+            </div>
+          </details>
 
           <WeekEntriesList entries={entries} />
         </>
@@ -408,15 +423,6 @@ export function TimesheetView() {
           />
         </Modal>
       )}
-    </div>
-  )
-}
-
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-white px-5 py-4 shadow-card">
-      <p className="font-mono text-xs uppercase tracking-[0.12em] text-navy/45">{label}</p>
-      <p className="mt-1 font-mono text-xl font-medium text-navy">{value}</p>
     </div>
   )
 }

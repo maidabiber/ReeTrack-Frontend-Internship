@@ -3,16 +3,33 @@ import { useTimer } from '../../hooks/useTimer'
 import { useTimeTotals } from '../../hooks/useTimeTotals'
 import { useMyHourTarget } from '../../hooks/useMyHourTarget'
 import { formatDurationHms } from '../../lib/formatDuration'
+import type { DateRangeKey } from '../../lib/dateRangeFilter'
 import { formatLoggedVsTarget, targetSecondsForMode } from '../../lib/hourTargetProgress'
+import { DateRangeFilter } from './DateRangeFilter'
 
 export type TimerContentView = 'list' | 'calendar' | 'timesheet'
+
+const VIEW_OPTIONS: ReadonlyArray<{
+  value: TimerContentView
+  label: string
+  shortLabel: string
+  icon: 'timer' | 'calendar' | 'timesheet'
+}> = [
+  { value: 'list', label: 'List view', shortLabel: 'List', icon: 'timer' },
+  { value: 'calendar', label: 'Calendar', shortLabel: 'Cal', icon: 'calendar' },
+  { value: 'timesheet', label: 'Timesheet', shortLabel: 'Sheet', icon: 'timesheet' },
+]
 
 export function Toolbar({
   contentView,
   onContentViewChange,
+  dateRange,
+  onDateRangeChange,
 }: {
   contentView: TimerContentView
   onContentViewChange: (view: TimerContentView) => void
+  dateRange: DateRangeKey
+  onDateRangeChange: (key: DateRangeKey) => void
 }) {
   const { entries, activeTimer, elapsedSeconds } = useTimer()
   const { todayTotalSeconds, weekTotalSeconds } = useTimeTotals(
@@ -35,59 +52,47 @@ export function Toolbar({
       : null
 
   return (
-    <div className="mb-1 flex w-full flex-wrap items-center gap-4">
-      <div className="flex items-center gap-1.5 rounded-full border border-navy/[0.06] bg-white px-3.5 py-2 font-display text-sm font-bold text-navy shadow-float">
-        <Icon name="calendar" className="size-icon-sm opacity-55" />
-        All dates
-      </div>
+    <div className="mb-1 flex w-full flex-wrap items-center gap-3 sm:gap-4">
+      {contentView === 'list' ? (
+        <DateRangeFilter value={dateRange} onChange={onDateRangeChange} />
+      ) : null}
 
-      <div className="flex items-center gap-4.5 text-sm text-navy/60">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-navy/60">
         <span>
-          TODAY TOTAL
+          <span className="sm:hidden">Today</span>
+          <span className="hidden sm:inline">TODAY TOTAL</span>
           <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
             {formatLoggedVsTarget(todayTotalSeconds, todayTargetSeconds, formatDurationHms)}
           </b>
         </span>
-      </div>
-      <div className="flex items-center gap-4.5 text-sm text-navy/60">
         <span>
-          WEEK TOTAL
+          <span className="sm:hidden">Week</span>
+          <span className="hidden sm:inline">WEEK TOTAL</span>
           <b className="ml-menu font-mono text-md font-normal tabular-nums text-navy">
             {formatLoggedVsTarget(weekTotalSeconds, weekTargetSeconds, formatDurationHms)}
           </b>
         </span>
       </div>
 
-      <div className="flex-1" />
+      <div className="hidden flex-1 sm:block" />
 
-      <div className="flex rounded-full border border-navy/[0.06] bg-white p-segment shadow-float">
-        <button
-          type="button"
-          onClick={() => onContentViewChange('list')}
-          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
-            contentView === 'list' ? 'bg-navy text-cream' : 'text-navy/55'
-          }`}
-        >
-          List view
-        </button>
-        <button
-          type="button"
-          onClick={() => onContentViewChange('calendar')}
-          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
-            contentView === 'calendar' ? 'bg-navy text-cream' : 'text-navy/55'
-          }`}
-        >
-          Calendar
-        </button>
-        <button
-          type="button"
-          onClick={() => onContentViewChange('timesheet')}
-          className={`rounded-full px-3.5 py-compact font-display text-sm font-semibold ${
-            contentView === 'timesheet' ? 'bg-navy text-cream' : 'text-navy/55'
-          }`}
-        >
-          Timesheet
-        </button>
+      <div className="flex w-full rounded-full border border-navy/[0.06] bg-white p-segment shadow-float sm:w-auto">
+        {VIEW_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onContentViewChange(option.value)}
+            aria-label={option.label}
+            title={option.label}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-compact font-display text-sm font-semibold sm:flex-none sm:px-3.5 ${
+              contentView === option.value ? 'bg-navy text-cream' : 'text-navy/55'
+            }`}
+          >
+            <Icon name={option.icon} className="size-3.5 sm:hidden" />
+            <span className="sm:hidden">{option.shortLabel}</span>
+            <span className="hidden sm:inline">{option.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   )

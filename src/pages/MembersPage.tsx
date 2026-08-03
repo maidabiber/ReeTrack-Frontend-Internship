@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { EditHourlyRateModal } from '../components/members/EditHourlyRateModal'
 import { Icon } from '../components/ui/Icon'
 import { UserAvatar } from '../components/ui/UserAvatar'
@@ -18,6 +18,7 @@ import {
   StatusMark,
 } from '../components/directory/DirectoryTable'
 import { riseDelay } from '../components/directory/directoryChrome'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import {
   inviteMembers,
   listAllowedDomains,
@@ -287,7 +288,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8" onClick={closeMenus}>
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
       <DirectoryHeader
         title="Members"
@@ -345,16 +346,16 @@ export default function MembersPage() {
               }}
             />
 
-            <span className="flex-1" />
-
-            <DirectorySearch placeholder="Search members..." value={search} onChange={setSearch} />
+            <div className="w-full sm:ml-auto sm:w-auto">
+              <DirectorySearch placeholder="Search members..." value={search} onChange={setSearch} />
+            </div>
           </>
         )}
       </div>
 
       {view === 'members' ? (
         <div className="rounded-2xl bg-white shadow-card">
-          <div className={`${GRID} border-b border-navy/[0.08]`}>
+          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="members" label="Name" />
             <HeaderCell icon="mail" label="Email" />
             <HeaderCell icon="shield" label="Role" />
@@ -566,8 +567,51 @@ function MemberRow({
       : '—'
 
   return (
+    <>
+    <div className="flex items-start gap-3 px-3.5 py-3 md:hidden motion-safe:animate-rise" style={riseDelay(index)}>
+      <UserAvatar
+        name={member.displayName ?? member.email}
+        size={26}
+        aria-hidden="true"
+        className={`mt-0.5 flex-shrink-0 ${member.status === 'Disabled' ? 'opacity-50 grayscale' : ''}`}
+      />
+      <div className="min-w-0 flex-1">
+        <span className="block truncate font-display text-md font-semibold text-navy">
+          {member.displayName ?? '—'}
+        </span>
+        <span className="mt-0.5 block truncate text-caption text-navy/60">{member.email}</span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption">
+          <StatusMark label={member.role} colorClassName={ROLE_COLOR[member.role]} />
+          <StatusMark label={STATUS_DISPLAY[member.status]} colorClassName={STATUS_COLOR[member.status]} />
+          <span className="text-navy/60">
+            <span className="text-navy/40">Rate </span>
+            <span className="font-mono tabular-nums">{rateLabel}</span>
+          </span>
+        </div>
+      </div>
+      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+        {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
+        <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />
+        <RowMenuItem
+          icon="settings"
+          label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
+          onClick={onToggleRole}
+        />
+        {hasPendingInvite ? (
+          <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
+        ) : (
+          <RowMenuItem
+            icon="ban"
+            label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
+            danger
+            onClick={onToggleActive}
+          />
+        )}
+      </RowMenu>
+    </div>
+
     <div
-      className={`${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+      className={`hidden md:grid ${GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
       style={riseDelay(index)}
     >
       <div className="flex min-w-0 items-center gap-2.5">
@@ -613,6 +657,7 @@ function MemberRow({
         )}
       </RowMenu>
     </div>
+    </>
   )
 }
 
@@ -689,7 +734,7 @@ function InvitationsCard({
 
   return (
     <div className="rounded-2xl bg-white shadow-card">
-      <div className={`${INVITE_GRID} border-b border-navy/[0.08]`}>
+      <div className={`hidden md:grid ${INVITE_GRID} border-b border-navy/[0.08]`}>
         <HeaderCell icon="mail" label="Email" />
         <HeaderCell icon="shield" label="Role" />
         <HeaderCell icon="check-badge" label="Status" />
@@ -711,9 +756,48 @@ function InvitationsCard({
           invitations.map((invitation, index) => {
             const isActionable = invitation.status === 'Pending' || invitation.status === 'Expired'
             return (
+              <Fragment key={invitation.id}>
+              <div className="flex items-start gap-3 px-3.5 py-3 md:hidden motion-safe:animate-rise" style={riseDelay(index)}>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-display text-md font-semibold text-navy">{invitation.email}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption">
+                    <StatusMark label={invitation.role} colorClassName={ROLE_COLOR[invitation.role]} />
+                    <StatusMark
+                      label={invitation.status}
+                      colorClassName={INVITE_STATUS_COLOR[invitation.status]}
+                    />
+                    <span className="text-navy/60">
+                      <span className="text-navy/40">Sent </span>
+                      {formatDate(invitation.createdAtUtc)}
+                    </span>
+                    <span className="text-navy/60">
+                      <span className="text-navy/40">{invitation.status === 'Accepted' ? 'Joined ' : 'Expires '}</span>
+                      {invitation.status === 'Accepted' && invitation.acceptedAtUtc
+                        ? formatDate(invitation.acceptedAtUtc)
+                        : formatDate(invitation.expiresAtUtc)}
+                    </span>
+                  </div>
+                  <div className="mt-1 truncate text-caption text-navy/60">
+                    <span className="text-navy/40">Invited by </span>{invitation.invitedByName}
+                  </div>
+                </div>
+                {isActionable && (
+                  <RowMenu
+                    open={openRowMenuId === invitation.id}
+                    onToggle={(event) => {
+                      event.stopPropagation()
+                      onToggleRowMenu(invitation.id)
+                    }}
+                    ariaLabel="Invitation actions"
+                  >
+                    <RowMenuItem icon="resend" label="Resend invite" onClick={() => handleResend(invitation)} />
+                    <RowMenuItem icon="ban" label="Revoke invite" danger onClick={() => handleRevoke(invitation)} />
+                  </RowMenu>
+                )}
+              </div>
+
               <div
-                key={invitation.id}
-                className={`${INVITE_GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
+                className={`hidden md:grid ${INVITE_GRID} transition-colors hover:bg-surface-muted/60 motion-safe:animate-rise`}
                 style={riseDelay(index)}
               >
                 <div className="truncate text-md font-semibold">{invitation.email}</div>
@@ -746,6 +830,7 @@ function InvitationsCard({
                   <span />
                 )}
               </div>
+              </Fragment>
             )
           })}
 

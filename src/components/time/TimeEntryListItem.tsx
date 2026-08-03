@@ -66,7 +66,7 @@ export function TimeEntryListItem({
   return (
     <li className={TIME_ENTRY_ITEM_CLASS}>
       <div
-        className={`group flex w-full items-center gap-4 px-5 py-4 ${
+        className={`group flex w-full items-center gap-3 px-4 py-4 sm:gap-4 sm:px-5 ${
           isPendingCard ? PENDING_ENTRY_ROW_CLASS : TIME_ENTRY_ROW_CLASS
         }`}
       >
@@ -74,7 +74,7 @@ export function TimeEntryListItem({
           type="button"
           onClick={() => onEntryClick(entry)}
           disabled={isReadOnlyPending}
-          className="flex min-w-0 flex-1 items-center gap-4 text-left disabled:cursor-default"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4 disabled:cursor-default"
         >
           <div className="min-w-0 flex-1">
             <p className="truncate text-md font-medium text-navy">
@@ -155,12 +155,12 @@ export function TimeEntryListItem({
             {formatDurationHms(entry.durationSeconds)}
           </div>
           {!isReadOnlyPending ? (
-            <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-navy/30" />
+            <Icon name="chevron-right" className="hidden h-4 w-4 shrink-0 text-navy/30 sm:block" />
           ) : null}
         </button>
 
         {showActions ? (
-          <div className="flex max-w-0 shrink-0 items-center gap-1.5 overflow-hidden opacity-0 transition-[max-width,opacity] duration-200 ease-out group-hover:max-w-[5rem] group-hover:opacity-100 group-focus-within:max-w-[5rem] group-focus-within:opacity-100">
+          <div className="flex shrink-0 items-center gap-1.5 opacity-100 max-sm:opacity-100 sm:max-w-0 sm:overflow-hidden sm:opacity-0 sm:transition-[max-width,opacity] sm:duration-200 sm:ease-out sm:group-hover:max-w-[5rem] sm:group-hover:opacity-100 sm:group-focus-within:max-w-[5rem] sm:group-focus-within:opacity-100">
             {canFavourite ? (
               <button
                 type="button"

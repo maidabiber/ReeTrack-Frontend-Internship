@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiErrorMessage } from '../api/client'
 import { listNotifications } from '../api/notifications'
 import { useNotifications } from '../hooks/useNotifications'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { formatRelativeTime } from '../lib/formatRelativeTime'
 import type { InAppNotification } from '../types/notification'
 
@@ -79,7 +80,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-10 py-8">
+    <div className={`mx-auto flex w-full max-w-page flex-col gap-6 ${PAGE_PAD}`}>
       <header>
         <div className="flex items-baseline gap-2">
           <h1 className="font-display text-xl font-bold text-navy">Notifications</h1>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listPendingTimeEntries } from '../api/timeEntries'
 import { EntryParticipantAvatars } from '../components/time/EntryParticipantAvatars'
 import { ReviewPendingEntryModal } from '../components/time/ReviewPendingEntryModal'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 import { useAuth } from '../hooks/useAuth'
@@ -48,7 +49,7 @@ export default function ApprovalsPage() {
   }, [])
 
   return (
-    <div className="mx-auto w-full max-w-[980px] px-10 py-8">
+    <div className={`mx-auto w-full max-w-[980px] ${PAGE_PAD}`}>
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-navy">Approvals</h1>
         <p className="mt-1 text-md text-navy/55">

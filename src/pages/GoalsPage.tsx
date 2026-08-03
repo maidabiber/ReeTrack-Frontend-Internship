@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { apiErrorMessage } from '../api/client'
 import { NoticeBanner, LoadErrorState, DirectorySearch } from '../components/directory/DirectoryControls'
 import { EditHourTargetModal } from '../components/members/EditHourTargetModal'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { listMembers, type Member } from '../api/members'
 import { getHourTargetSettings, updateHourTargetSettings } from '../api/hourTargets'
 import type { HourTargetMode, HourTargetSettings } from '../types/hourTarget'
 
 const PAGE_SIZE = 20
-const MEMBER_GRID = 'grid grid-cols-[1.6fr_1.8fr_1.2fr_auto] items-center gap-3 px-4 py-2.5'
+const MEMBER_GRID = 'grid-cols-[1.6fr_1.8fr_1.2fr_auto] items-center gap-3 px-4 py-2.5'
 
 /**
  * Admin Goals screen: org-wide default hour target plus per-member overrides.
@@ -168,7 +169,7 @@ export default function GoalsPage() {
   const rangeEnd = Math.min(membersPage * PAGE_SIZE, membersTotal)
 
   return (
-    <div className="min-h-full flex-1 px-10 py-8">
+    <div className={`min-h-full flex-1 ${PAGE_PAD}`}>
       <div className="mx-auto flex w-full max-w-[840px] flex-col gap-4">
         <header>
           <h1 className="font-display text-[22px] font-bold text-navy">Goals</h1>
@@ -255,14 +256,16 @@ export default function GoalsPage() {
                 Members without an override use the app default above.
               </p>
             </div>
-            <DirectorySearch
-              placeholder="Search members..."
-              value={membersSearch}
-              onChange={setMembersSearch}
-            />
+            <div className="w-full sm:w-auto">
+              <DirectorySearch
+                placeholder="Search members..."
+                value={membersSearch}
+                onChange={setMembersSearch}
+              />
+            </div>
           </div>
 
-          <div className={`${MEMBER_GRID} border-b border-navy/[0.06] text-eyebrow font-bold tracking-[0.05em] text-navy/40 uppercase`}>
+          <div className={`hidden md:grid ${MEMBER_GRID} border-b border-navy/[0.06] text-eyebrow font-bold tracking-[0.05em] text-navy/40 uppercase`}>
             <span>Member</span>
             <span>Email</span>
             <span>Target</span>
@@ -295,32 +298,63 @@ export default function GoalsPage() {
                     : 'Default'
 
                 return (
-                  <div key={member.id} className={MEMBER_GRID}>
-                    <div className="flex min-w-0 items-center gap-2.5">
+                  <div key={member.id}>
+                    <div className="flex items-start gap-3 px-4 py-3 md:hidden">
                       <UserAvatar
                         name={member.displayName ?? member.email}
                         size={26}
                         aria-hidden="true"
-                        className={`flex-shrink-0 ${member.status === 'Disabled' ? 'opacity-50 grayscale' : ''}`}
+                        className={`mt-0.5 flex-shrink-0 ${member.status === 'Disabled' ? 'opacity-50 grayscale' : ''}`}
                       />
-                      <span className="truncate font-display text-md font-semibold text-navy">
-                        {member.displayName ?? '—'}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate font-display text-md font-semibold text-navy">
+                          {member.displayName ?? '—'}
+                        </span>
+                        <span className="mt-0.5 block truncate text-caption text-navy/60">
+                          {member.email}
+                        </span>
+                        <span
+                          className={`mt-1 block truncate text-caption ${hasOverride ? 'font-medium text-navy' : 'text-navy/45'}`}
+                        >
+                          {targetLabel}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditMember(member)}
+                        className="flex-shrink-0 rounded-full px-3 py-1.5 font-display text-sm font-semibold text-brand transition-colors hover:bg-brand-tint/40"
+                      >
+                        Edit
+                      </button>
                     </div>
-                    <div className="truncate text-caption text-navy/60">{member.email}</div>
-                    <span
-                      className={`truncate text-caption ${hasOverride ? 'font-medium text-navy' : 'text-navy/45'}`}
-                      title={targetLabel}
-                    >
-                      {targetLabel}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setEditMember(member)}
-                      className="justify-self-end rounded-full px-3 py-1.5 font-display text-sm font-semibold text-brand transition-colors hover:bg-brand-tint/40"
-                    >
-                      Edit
-                    </button>
+
+                    <div className={`hidden md:grid ${MEMBER_GRID}`}>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <UserAvatar
+                          name={member.displayName ?? member.email}
+                          size={26}
+                          aria-hidden="true"
+                          className={`flex-shrink-0 ${member.status === 'Disabled' ? 'opacity-50 grayscale' : ''}`}
+                        />
+                        <span className="truncate font-display text-md font-semibold text-navy">
+                          {member.displayName ?? '—'}
+                        </span>
+                      </div>
+                      <div className="truncate text-caption text-navy/60">{member.email}</div>
+                      <span
+                        className={`truncate text-caption ${hasOverride ? 'font-medium text-navy' : 'text-navy/45'}`}
+                        title={targetLabel}
+                      >
+                        {targetLabel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditMember(member)}
+                        className="justify-self-end rounded-full px-3 py-1.5 font-display text-sm font-semibold text-brand transition-colors hover:bg-brand-tint/40"
+                      >
+                        Edit
+                      </button>
+                    </div>
                   </div>
                 )
               })}
