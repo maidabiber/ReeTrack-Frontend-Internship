@@ -5,8 +5,7 @@ import { ReviewPendingEntryModal } from './ReviewPendingEntryModal'
 import { TimeEntryListItem } from './TimeEntryListItem'
 import { useTimer } from '../../hooks/useTimer'
 import { useAuth } from '../../hooks/useAuth'
-import { isPendingSharedWithCurrentUser, isSharedByCurrentUser } from '../../lib/entryShare'
-import { groupEntriesForDisplay } from '../../lib/displayEntries'
+import { isPendingSharedWithCurrentUser } from '../../lib/entryShare'
 import { TIME_ENTRY_LIST_CLASS } from '../../lib/pendingEntryStyles'
 import {
   createTimeEntryTemplate,
@@ -22,10 +21,7 @@ export function EntriesCard() {
   const { user } = useAuth()
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null)
-  const [shareEntry, setShareEntry] = useState<{
-    entry: TimeEntry
-    groupedEntries?: TimeEntry[]
-  } | null>(null)
+  const [shareEntry, setShareEntry] = useState<TimeEntry | null>(null)
   const [favouriteBusyId, setFavouriteBusyId] = useState<string | null>(null)
   const [favouriteNotice, setFavouriteNotice] = useState<string | null>(null)
 
@@ -36,10 +32,6 @@ export function EntriesCard() {
     }
 
     if (entry.status === 'Confirmed') {
-      if (user && isSharedByCurrentUser(entry, user.id)) {
-        return
-      }
-
       setEditingEntry(entry)
     }
   }
@@ -90,14 +82,12 @@ export function EntriesCard() {
     )
   }
 
-  const displayEntries = user
-    ? groupEntriesForDisplay(entries, user.id)
-    : entries.map((entry) => ({
-        key: entry.id,
-        entry,
-        groupedEntries: [entry],
-        isGroupedShare: false,
-      }))
+  const displayEntries = entries.map((entry) => ({
+    key: entry.id,
+    entry,
+    groupedEntries: [entry],
+    isGroupedShare: false,
+  }))
 
   return (
     <>
@@ -114,8 +104,8 @@ export function EntriesCard() {
               displayEntry={displayEntry}
               currentUserId={user?.id}
               onEntryClick={handleEntryClick}
-              onShareClick={(entry, groupedEntries) =>
-                setShareEntry({ entry, groupedEntries })
+              onShareClick={(entry) =>
+                setShareEntry(entry)
               }
               onFavouriteClick={handleFavouriteClick}
               favouriteBusyId={favouriteBusyId}
@@ -143,8 +133,7 @@ export function EntriesCard() {
 
       {shareEntry && user ? (
         <AddShareMembersModal
-          entry={shareEntry.entry}
-          groupedEntries={shareEntry.groupedEntries}
+          entry={shareEntry}
           currentUserId={user.id}
           onClose={() => setShareEntry(null)}
           onShared={() => void refresh()}

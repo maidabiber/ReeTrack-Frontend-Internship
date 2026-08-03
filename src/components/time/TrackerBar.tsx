@@ -20,6 +20,7 @@ import { ProjectTaskPicker } from '../pickers/ProjectTaskPicker'
 import { TagMultiSelect } from '../pickers/TagMultiSelect'
 import { usePomodoro } from '../../hooks/usePomodoro'
 import { useTimer } from '../../hooks/useTimer'
+import { useEntryDraft } from '../../hooks/useEntryDraft'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
@@ -65,22 +66,26 @@ function IconButton({
 
 export function TrackerBar() {
   const {
+    activeTimer,
     isRunning,
     isInitializing,
     isToggling,
     isSavingManual,
-    draft,
-    setDraftDescription,
-    setDraftMentionedTeammates,
-    setDraftProject,
-    clearDraftProject,
-    setDraftTags,
-    removeDraftTag,
-    setDraftBillable,
-    applyDraftTemplate,
-    clearDraft,
     start,
   } = useTimer()
+
+  const {
+    draft,
+    setDescription,
+    setMentionedTeammates,
+    setProject,
+    clearProject,
+    setTags,
+    removeTag,
+    setBillable,
+    applyTemplate,
+    reset: clearDraft,
+  } = useEntryDraft(activeTimer)
 
   const pomodoro = usePomodoro()
 
@@ -160,11 +165,11 @@ export function TrackerBar() {
       const parsed = await parseSmartTimeEntry(text)
       const resolved = await resolveSmartParseAssociations(parsed)
 
-      setDraftDescription(parsed.description)
-      setDraftMentionedTeammates([])
+      setDescription(parsed.description)
+      setMentionedTeammates([])
 
       if (resolved.projectId) {
-        setDraftProject({
+        setProject({
           projectId: resolved.projectId,
           projectTaskId: resolved.projectTaskId,
           projectName: resolved.projectName,
@@ -172,7 +177,7 @@ export function TrackerBar() {
           projectTaskName: resolved.projectTaskName,
         })
       } else if (!wasPendingSave) {
-        setDraftProject({
+        setProject({
           projectId: resolved.projectId,
           projectTaskId: resolved.projectTaskId,
           projectName: resolved.projectName,
@@ -189,11 +194,11 @@ export function TrackerBar() {
             mergedKnownTags.push(tag)
           }
         }
-        setDraftTags(mergedTagIds, mergedKnownTags)
-        setDraftBillable(isBillable || resolved.isBillable)
+        setTags(mergedTagIds, mergedKnownTags)
+        setBillable(isBillable || resolved.isBillable)
       } else {
-        setDraftTags(resolved.tagIds, resolved.knownTags)
-        setDraftBillable(resolved.isBillable)
+        setTags(resolved.tagIds, resolved.knownTags)
+        setBillable(resolved.isBillable)
       }
 
       const newEntryVariant = resolveSmartParseVariant(parsed)
@@ -265,7 +270,7 @@ export function TrackerBar() {
   const handlePendingSmartParseSave = async () => {
     if (!smartParseSeed && trackerMode === 'timer') {
       try {
-        await start(description.trim() || undefined, associations)
+        await start({ description: description.trim() || undefined, ...associations })
         clearPendingSmartParseSave()
       } catch {
         // TimerContext surfaces the error.
@@ -301,7 +306,7 @@ export function TrackerBar() {
       template,
       nonce: templateNonceRef.current,
     })
-    applyDraftTemplate({
+    applyTemplate({
       description: template.description ?? '',
       projectId: template.projectId,
       projectTaskId: template.projectTaskId,
@@ -362,7 +367,7 @@ export function TrackerBar() {
                   className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
                   placeholder="What did you work on?"
                   value={description}
-                  onChange={(event) => setDraftDescription(event.target.value)}
+                  onChange={(event) => setDescription(event.target.value)}
                   disabled={descriptionDisabled}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -376,9 +381,9 @@ export function TrackerBar() {
                   className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
                   placeholder="What are you working on? Type @ to share with a teammate"
                   value={description}
-                  onChange={setDraftDescription}
+                  onChange={setDescription}
                   selectedTeammates={mentionedTeammates}
-                  onMentionChange={setDraftMentionedTeammates}
+                  onMentionChange={setMentionedTeammates}
                   disabled={descriptionDisabled}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -424,7 +429,7 @@ export function TrackerBar() {
               projectId={projectId}
               projectTaskId={projectTaskId}
               onChange={(next) => {
-                setDraftProject({
+                setProject({
                   projectId: next.projectId,
                   projectTaskId: next.projectTaskId,
                   projectName: next.projectName ?? null,
@@ -452,7 +457,7 @@ export function TrackerBar() {
                   knownTags={knownTags}
                   selectedIds={tagIds}
                   onChange={(ids, tags) => {
-                    setDraftTags(ids, tags)
+                    setTags(ids, tags)
                   }}
                 />
               </div>
@@ -464,7 +469,7 @@ export function TrackerBar() {
             title={isBillable ? 'Billable' : 'Non-billable'}
             active={isBillable}
             pressed={isBillable}
-            onClick={() => setDraftBillable(!isBillable)}
+            onClick={() => setBillable(!isBillable)}
           />
 
           {(projectTaskLabel ||
@@ -475,7 +480,7 @@ export function TrackerBar() {
                 <MetadataBubble
                   label={projectTaskLabel}
                   color={projectColor}
-                  onRemove={clearDraftProject}
+                  onRemove={clearProject}
                 />
               ) : null}
               {selectedTags.map((tag) => (
@@ -483,7 +488,7 @@ export function TrackerBar() {
                   key={tag.id}
                   label={tag.name}
                   color={tag.color}
-                  onRemove={() => removeDraftTag(tag.id)}
+                  onRemove={() => removeTag(tag.id)}
                 />
               ))}
               {showSmartParseTimeFields ? (
@@ -495,7 +500,7 @@ export function TrackerBar() {
                   mentionedTeammates={mentionedTeammates}
                   onShared={setShareNotice}
                   onClearDescription={handleClearDescriptionAndAssociations}
-                  onClearMentions={() => setDraftMentionedTeammates([])}
+                  onClearMentions={() => setMentionedTeammates([])}
                   onClearShareNotice={clearShareNotice}
                   associations={associations}
                   mode={trackerMode}
@@ -554,9 +559,9 @@ export function TrackerBar() {
               <TimerModeInput
                 ref={timerRef}
                 description={description}
-                setDescription={setDraftDescription}
+                setDescription={setDescription}
                 mentionedTeammates={mentionedTeammates}
-                setMentionedTeammates={setDraftMentionedTeammates}
+                setMentionedTeammates={setMentionedTeammates}
                 onShared={setShareNotice}
                 onClearShareNotice={clearShareNotice}
                 associations={associations}
@@ -572,7 +577,7 @@ export function TrackerBar() {
                 mentionedTeammates={mentionedTeammates}
                 onShared={setShareNotice}
                 onClearDescription={handleClearDescriptionAndAssociations}
-                onClearMentions={() => setDraftMentionedTeammates([])}
+                onClearMentions={() => setMentionedTeammates([])}
                 onClearShareNotice={clearShareNotice}
                 associations={associations}
                 mode={trackerMode}

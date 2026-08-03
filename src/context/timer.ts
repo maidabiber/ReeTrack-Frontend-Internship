@@ -1,7 +1,6 @@
 import { createContext } from 'react'
-import type { ActiveTimer, TimeEntry, TimeEntryAssociations, TimeEntryTag } from '../types/timeEntry'
-import type { Teammate } from '../lib/mention'
-import type { TimeEntryDraft } from './timerDraftReducer'
+import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
+import type { TimeEntryRequest } from '../api/timeEntries'
 
 export interface TimerContextValue {
   activeTimer: ActiveTimer | null
@@ -13,75 +12,13 @@ export interface TimerContextValue {
   isSavingManual: boolean
   isSavingEdit: boolean
   error: string | null
-  draft: TimeEntryDraft
-  setDraftDescription: (description: string) => void
-  setDraftMentionedTeammates: (mentionedTeammates: Teammate[]) => void
-  setDraftProject: (project: {
-    projectId: string | null
-    projectTaskId: string | null
-    projectName: string | null
-    projectColor: string | null
-    projectTaskName: string | null
-  }) => void
-  clearDraftProject: () => void
-  setDraftTags: (tagIds: string[], knownTags: TimeEntryTag[]) => void
-  removeDraftTag: (tagId: string) => void
-  setDraftBillable: (isBillable: boolean) => void
-  applyDraftTemplate: (template: {
-    description: string
-    projectId: string | null
-    projectTaskId: string | null
-    projectName: string | null
-    projectColor: string | null
-    projectTaskName: string | null
-    tagIds: string[]
-    knownTags: TimeEntryTag[]
-    isBillable: boolean
-  }) => void
-  clearDraft: () => void
-  start: (description?: string, associations?: TimeEntryAssociations) => Promise<void>
-  stop: (options?: {
-    description?: string
-    assigneeUserIds?: string[]
-    associations?: TimeEntryAssociations
-  }) => Promise<void>
-  toggle: (
-    description?: string,
-    options?: {
-      assigneeUserIds?: string[]
-      associations?: TimeEntryAssociations
-    },
-  ) => Promise<void>
-  addManualEntry: (params: {
-    description?: string
-    startedAtUtc: string
-    endedAtUtc: string
-    isBillable?: boolean
-    assigneeUserIds?: string[]
-    projectId?: string | null
-    projectTaskId?: string | null
-    tagIds?: string[]
-  }) => Promise<void>
-  addDurationEntry: (params: {
-    description?: string
-    entryDateUtc: string
-    durationSeconds: number
-    isBillable?: boolean
-    projectId?: string | null
-    projectTaskId?: string | null
-    tagIds?: string[]
-  }) => Promise<void>
-  updateEntry: (params: {
-    id: string
-    description?: string
-    startedAtUtc?: string
-    endedAtUtc?: string
-    durationSeconds?: number
-    isBillable?: boolean
-    projectId?: string | null
-    projectTaskId?: string | null
-    tagIds?: string[]
-  }) => Promise<void>
+  start: (request?: TimeEntryRequest) => Promise<void>
+  stop: (request?: TimeEntryRequest) => Promise<TimeEntry>
+  toggle: (request?: TimeEntryRequest) => Promise<void>
+  addManualEntry: (request: TimeEntryRequest) => Promise<void>
+  addDurationEntry: (request: TimeEntryRequest) => Promise<void>
+  updateEntry: (id: string, request: TimeEntryRequest) => Promise<void>
+  shareEntry: (entryId: string, assigneeUserIds: string[]) => Promise<TimeEntry[]>
   refresh: () => Promise<void>
 }
 

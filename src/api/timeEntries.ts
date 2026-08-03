@@ -1,11 +1,31 @@
 import type {
   ActiveTimer,
   TimeEntry,
-  TimeEntryAssociations,
   TimeEntryParticipant,
   TimeEntryTag,
 } from '../types/timeEntry'
 import { apiClient } from './client'
+
+// ---------------------------------------------------------------------------
+// Single request type matching the backend TimeEntryRequest
+// ---------------------------------------------------------------------------
+
+export interface TimeEntryRequest {
+  description?: string
+  isBillable?: boolean
+  startedAtUtc?: string
+  endedAtUtc?: string
+  entryDateUtc?: string
+  durationSeconds?: number
+  projectId?: string | null
+  projectTaskId?: string | null
+  tagIds?: string[]
+  assigneeUserIds?: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Response types
+// ---------------------------------------------------------------------------
 
 interface TimeEntryParticipantResponse {
   userId: string
@@ -43,6 +63,10 @@ interface TimeEntryResponse {
   projectTaskName?: string | null
   tags?: TimeEntryTagResponse[]
 }
+
+// ---------------------------------------------------------------------------
+// Mappers
+// ---------------------------------------------------------------------------
 
 function toParticipant(response: TimeEntryParticipantResponse): TimeEntryParticipant {
   return {
@@ -87,15 +111,6 @@ function toTimeEntry(response: TimeEntryResponse): TimeEntry {
   }
 }
 
-function associationBody(params?: TimeEntryAssociations) {
-  return {
-    ...(params?.projectId !== undefined ? { projectId: params.projectId } : {}),
-    ...(params?.projectTaskId !== undefined ? { projectTaskId: params.projectTaskId } : {}),
-    ...(params?.tagIds !== undefined ? { tagIds: params.tagIds } : {}),
-    isBillable: params?.isBillable ?? true,
-  }
-}
-
 function toActiveTimer(response: TimeEntryResponse): ActiveTimer {
   const entry = toTimeEntry(response)
   if (!entry.isRunning || !entry.startedAtUtc) {
@@ -109,6 +124,16 @@ function toActiveTimer(response: TimeEntryResponse): ActiveTimer {
   }
 }
 
+function extractEntries(response: Record<string, unknown>): TimeEntry[] {
+  const entries = response.entries ?? response.Entries
+  if (Array.isArray(entries)) return (entries as TimeEntryResponse[]).map(toTimeEntry)
+  throw new Error('Shared entry response did not include an entries array.')
+}
+
+// ---------------------------------------------------------------------------
+// API functions
+// ---------------------------------------------------------------------------
+
 export function listTimeEntries(): Promise<TimeEntry[]> {
   return apiClient
     .get<TimeEntryResponse[]>('/time-entries')
@@ -121,221 +146,43 @@ export async function getActiveTimer(): Promise<ActiveTimer | null> {
   return toActiveTimer(response)
 }
 
-export function startTimer(
-  description?: string,
-  associations?: TimeEntryAssociations,
-): Promise<ActiveTimer> {
+export function startTimer(request?: TimeEntryRequest): Promise<ActiveTimer> {
   return apiClient
-    .post<TimeEntryResponse>('/time-entries/timer/start', {
-      description,
-      ...associationBody(associations),
-    })
+    .post<TimeEntryResponse>('/time-entries/timer/start', request)
     .then(toActiveTimer)
 }
 
-export interface StopTimerParams {
-  description?: string
-  assigneeUserIds?: string[]
-  associations?: TimeEntryAssociations
-}
-
-export type StopTimerResult =
-  | { kind: 'single'; entry: TimeEntry }
-  | { kind: 'shared'; entries: TimeEntry[] }
-
-export function stopTimer(params?: StopTimerParams): Promise<StopTimerResult> {
-  const hasAssignees = Boolean(params?.assigneeUserIds?.length)
-
+export function stopTimer(request?: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
-    .post<TimeEntryResponse | Record<string, unknown>>('/time-entries/timer/stop', {
-      description: params?.description,
-      ...associationBody(params?.associations),
-      ...(hasAssignees
-        ? {
-            assigneeUserIds: params!.assigneeUserIds,
-          }
-        : {}),
-    })
-    .then((response) => {
-      if (hasAssignees) {
-        const sharedResponse = response as Record<string, unknown>
-        return {
-          kind: 'shared' as const,
-          entries: sharedManualEntryResponses(sharedResponse).map(toTimeEntry),
-        }
-      }
-
-      return {
-        kind: 'single' as const,
-        entry: toTimeEntry(response as TimeEntryResponse),
-      }
-    })
+    .post<TimeEntryResponse>('/time-entries/timer/stop', request ?? {})
+    .then(toTimeEntry)
 }
 
-export interface CreateManualEntryParams extends TimeEntryAssociations {
-  description?: string
-  startedAtUtc: string
-  endedAtUtc: string
-}
-
-export interface CreateManualEntryResult {
-  entry: TimeEntry
-}
-
-export function createManualEntry(params: CreateManualEntryParams): Promise<CreateManualEntryResult> {
+export function createTimeEntry(request: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
-    .post<{ entry: TimeEntryResponse }>('/time-entries/manual', {
-      description: params.description,
-      startedAtUtc: params.startedAtUtc,
-      endedAtUtc: params.endedAtUtc,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entry: toTimeEntry(response.entry),
-    }))
+    .post<TimeEntryResponse>('/time-entries', request)
+    .then(toTimeEntry)
 }
 
-export interface CreateDurationOnlyEntryParams extends TimeEntryAssociations {
-  description?: string
-  entryDateUtc: string
-  durationSeconds: number
-}
-
-export function createDurationOnlyEntry(
-  params: CreateDurationOnlyEntryParams,
-): Promise<CreateManualEntryResult> {
+export function updateTimeEntry(id: string, request: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
-    .post<{ entry: TimeEntryResponse }>('/time-entries/duration', {
-      description: params.description,
-      entryDateUtc: params.entryDateUtc,
-      durationSeconds: params.durationSeconds,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entry: toTimeEntry(response.entry),
-    }))
+    .put<TimeEntryResponse>(`/time-entries/${id}`, request)
+    .then(toTimeEntry)
 }
 
-export interface UpdateTimeEntryParams extends TimeEntryAssociations {
-  description?: string
-  startedAtUtc: string
-  endedAtUtc: string
-}
-
-export interface UpdateTimeEntryResult {
-  entry: TimeEntry
-}
-
-export function updateTimeEntry(id: string, params: UpdateTimeEntryParams): Promise<UpdateTimeEntryResult> {
+export function createSharedTimeEntry(request: TimeEntryRequest): Promise<TimeEntry[]> {
   return apiClient
-    .put<{ entry: TimeEntryResponse }>(`/time-entries/${id}`, {
-      description: params.description,
-      startedAtUtc: params.startedAtUtc,
-      endedAtUtc: params.endedAtUtc,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entry: toTimeEntry(response.entry),
-    }))
-}
-
-export interface UpdateDurationOnlyEntryParams extends TimeEntryAssociations {
-  description?: string
-  entryDateUtc: string
-  durationSeconds: number
-}
-
-export function updateDurationOnlyEntry(
-  id: string,
-  params: UpdateDurationOnlyEntryParams,
-): Promise<UpdateTimeEntryResult> {
-  return apiClient
-    .put<{ entry: TimeEntryResponse }>(`/time-entries/${id}/duration`, {
-      description: params.description,
-      entryDateUtc: params.entryDateUtc,
-      durationSeconds: params.durationSeconds,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entry: toTimeEntry(response.entry),
-    }))
-}
-
-export interface CreateSharedManualEntryParams extends CreateManualEntryParams {
-  assigneeUserIds: string[]
-}
-
-export interface CreateSharedManualEntryResult {
-  entries: TimeEntry[]
-}
-
-function sharedManualEntryResponses(
-  response: Record<string, unknown>,
-): TimeEntryResponse[] {
-  const entries = response.entries ?? response.Entries
-  if (Array.isArray(entries)) return entries as TimeEntryResponse[]
-
-  const single = response.entry ?? response.Entry
-  if (single && typeof single === 'object') return [single as TimeEntryResponse]
-
-  throw new Error('Shared manual entry response did not include any entries.')
-}
-
-export function createSharedManualEntry(
-  params: CreateSharedManualEntryParams,
-): Promise<CreateSharedManualEntryResult> {
-  return apiClient
-    .post<Record<string, unknown>>('/time-entries/shared/manual', {
-      assigneeUserIds: params.assigneeUserIds,
-      description: params.description,
-      startedAtUtc: params.startedAtUtc,
-      endedAtUtc: params.endedAtUtc,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entries: sharedManualEntryResponses(response).map(toTimeEntry),
-      overlapWarning:
-        (response.overlapWarning as string | null | undefined) ??
-        (response.OverlapWarning as string | null | undefined) ??
-        null,
-    }))
-}
-
-export interface CreateSharedDurationOnlyEntryParams extends CreateDurationOnlyEntryParams {
-  assigneeUserIds: string[]
-}
-
-export function createSharedDurationOnlyEntry(
-  params: CreateSharedDurationOnlyEntryParams,
-): Promise<CreateSharedManualEntryResult> {
-  return apiClient
-    .post<Record<string, unknown>>('/time-entries/shared/duration', {
-      assigneeUserIds: params.assigneeUserIds,
-      description: params.description,
-      entryDateUtc: params.entryDateUtc,
-      durationSeconds: params.durationSeconds,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entries: sharedManualEntryResponses(response).map(toTimeEntry),
-    }))
-}
-
-export interface ShareExistingEntryParams {
-  assigneeUserIds: string[]
+    .post<Record<string, unknown>>('/time-entries/shared', request)
+    .then(extractEntries)
 }
 
 export function shareExistingTimeEntry(
   entryId: string,
-  params: ShareExistingEntryParams,
-): Promise<CreateSharedManualEntryResult> {
+  request: TimeEntryRequest,
+): Promise<TimeEntry[]> {
   return apiClient
-    .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, {
-      assigneeUserIds: params.assigneeUserIds,
-    })
-    .then((response) => ({
-      entries: sharedManualEntryResponses(response).map(toTimeEntry),
-    }))
+    .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, request)
+    .then(extractEntries)
 }
 
 export function listPendingTimeEntries(): Promise<TimeEntry[]> {
@@ -346,18 +193,11 @@ export function listPendingTimeEntries(): Promise<TimeEntry[]> {
 
 export function updatePendingTimeEntry(
   id: string,
-  params: UpdateTimeEntryParams,
-): Promise<UpdateTimeEntryResult> {
+  request: TimeEntryRequest,
+): Promise<TimeEntry> {
   return apiClient
-    .put<{ entry: TimeEntryResponse }>(`/time-entries/pending/${id}`, {
-      description: params.description,
-      startedAtUtc: params.startedAtUtc,
-      endedAtUtc: params.endedAtUtc,
-      ...associationBody(params),
-    })
-    .then((response) => ({
-      entry: toTimeEntry(response.entry),
-    }))
+    .put<TimeEntryResponse>(`/time-entries/pending/${id}`, request)
+    .then(toTimeEntry)
 }
 
 export function approvePendingTimeEntry(id: string): Promise<TimeEntry> {

@@ -11,7 +11,6 @@ import { OverlapAlertModal } from './overlapAlert'
 
 interface AddShareMembersModalProps {
   entry: TimeEntry
-  groupedEntries?: TimeEntry[]
   currentUserId: string
   onClose: () => void
   onShared: () => void
@@ -19,17 +18,13 @@ interface AddShareMembersModalProps {
 
 function collectExcludedUserIds(
   entry: TimeEntry,
-  groupedEntries: TimeEntry[] | undefined,
   currentUserId: string,
 ): Set<string> {
   const excluded = new Set<string>([currentUserId])
-  const sources = groupedEntries ?? [entry]
 
-  for (const source of sources) {
-    if (source.assigneeUserId) excluded.add(source.assigneeUserId)
-
-    for (const participant of source.participants) {
-      if (participant.role === 'Assignee') excluded.add(participant.userId)
+  for (const participant of entry.participants) {
+    if (participant.role === 'Assignee') {
+      excluded.add(participant.userId)
     }
   }
 
@@ -38,7 +33,6 @@ function collectExcludedUserIds(
 
 export function AddShareMembersModal({
   entry,
-  groupedEntries,
   currentUserId,
   onClose,
   onShared,
@@ -51,8 +45,8 @@ export function AddShareMembersModal({
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
 
   const excludedIds = useMemo(
-    () => collectExcludedUserIds(entry, groupedEntries, currentUserId),
-    [entry, groupedEntries, currentUserId],
+    () => collectExcludedUserIds(entry, currentUserId),
+    [entry, currentUserId],
   )
 
   useEffect(() => {

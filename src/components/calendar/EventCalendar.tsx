@@ -110,6 +110,7 @@ export function EventCalendar() {
       .then((view) => {
         if (cancelled) return
         setSyncedEvents(view.calendarEvents.map(mapSyncedEventToCalendarEvent))
+        console.log(view)
         setLoadError(null)
         setFetchedKey(requestKey)
       })
@@ -195,8 +196,7 @@ export function EventCalendar() {
         validationError: null,
         onValidationError: () => undefined,
         save: async () => {
-          await updateEntry({
-            id: save.entryId,
+          await updateEntry(save.entryId, {
             description: save.description,
             startedAtUtc: save.startedAtUtc,
             endedAtUtc: save.endedAtUtc,

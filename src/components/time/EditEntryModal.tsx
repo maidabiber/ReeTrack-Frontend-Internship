@@ -94,8 +94,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
     setError(null)
 
     try {
-      await updateEntry({
-        id: entry.id,
+      await updateEntry(entry.id, {
         description: description.trim() || undefined,
         startedAtUtc: entryDateUtc,
         durationSeconds: durationOnlySeconds,
@@ -130,8 +129,7 @@ export function EditEntryModal({ entry, onClose }: { entry: TimeEntry; onClose: 
       validationError: validation.error,
       onValidationError: setError,
       save: async () => {
-        await updateEntry({
-          id: entry.id,
+        await updateEntry(entry.id, {
           description: description.trim() || undefined,
           startedAtUtc: manualEntry.start.toISOString(),
           endedAtUtc: manualEntry.end.toISOString(),

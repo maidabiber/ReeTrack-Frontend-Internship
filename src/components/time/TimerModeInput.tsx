@@ -48,6 +48,8 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       isToggling,
       error,
       toggle,
+      stop,
+      shareEntry,
     } = useTimer()
     const {
       overlapWarning,
@@ -61,16 +63,17 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       const trimmedDescription = description.trim() || undefined
 
       if (!isRunning) {
-        void toggle(trimmedDescription, { associations })
+        void toggle({ description: trimmedDescription, ...associations })
         return
       }
 
       const assigneeIds = mentionedTeammates.map((teammate) => teammate.id)
       if (assigneeIds.length === 0) {
-        void toggle(trimmedDescription, { associations })
+        void toggle({ description: trimmedDescription, ...associations })
         return
       }
 
+      // Mentions present: stop timer first, then share the stopped entry.
       await saveOrShowOverlapAlert({
         onClearError: onClearShareNotice,
         validationError: null,
@@ -80,10 +83,8 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
             (teammate) => teammate.displayName ?? teammate.email,
           )
 
-          await toggle(trimmedDescription, {
-            assigneeUserIds: assigneeIds,
-              associations,
-          })
+          const stoppedEntry = await stop({ description: trimmedDescription, ...associations })
+          await shareEntry(stoppedEntry.id, assigneeIds)
 
           setMentionedTeammates([])
           setDescription('')
@@ -107,6 +108,8 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
       saveOrShowOverlapAlert,
       setDescription,
       setMentionedTeammates,
+      shareEntry,
+      stop,
       toggle,
     ])
 

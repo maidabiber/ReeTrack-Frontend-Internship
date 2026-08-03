@@ -64,13 +64,13 @@ export function ReviewPendingEntryModal({
 
     setIsSaving(true)
     try {
-      const result = await updatePendingTimeEntry(entry.id, {
+      const updated = await updatePendingTimeEntry(entry.id, {
         description: description.trim() || undefined,
         startedAtUtc: manualEntry.start.toISOString(),
         endedAtUtc: manualEntry.end.toISOString(),
         isBillable,
       })
-      onUpdated(result.entry)
+      onUpdated(updated)
       setOverlapWarning(null)
     } catch (err) {
       if (isOverlapConflictError(err)) {

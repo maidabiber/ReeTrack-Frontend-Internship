@@ -6,7 +6,6 @@ import { formatDurationHms } from '../../lib/formatDuration'
 import { formatEntryDate } from '../../lib/manualEntry'
 import {
   isPendingSharedWithCurrentUser,
-  isSharedByCurrentUser,
   isShareableByCurrentUser,
 } from '../../lib/entryShare'
 import {
@@ -29,7 +28,7 @@ type TimeEntryListItemProps = {
   displayEntry: DisplayTimeEntry
   currentUserId?: string
   onEntryClick: (entry: TimeEntry) => void
-  onShareClick: (entry: TimeEntry, groupedEntries?: TimeEntry[]) => void
+  onShareClick: (entry: TimeEntry) => void
   onFavouriteClick?: (entry: TimeEntry) => void
   favouriteBusyId?: string | null
 }
@@ -42,7 +41,7 @@ export function TimeEntryListItem({
   onFavouriteClick,
   favouriteBusyId = null,
 }: TimeEntryListItemProps) {
-  const { entry, groupedEntries } = displayEntry
+  const { entry } = displayEntry
   const isReviewable = currentUserId
     ? isPendingSharedWithCurrentUser(entry, currentUserId)
     : false
@@ -52,19 +51,14 @@ export function TimeEntryListItem({
     : false
   const isReadOnlyPending = entry.status === 'Pending' && !isReviewable
   const members = getEntryMembers(entry, {
-    groupedEntries: displayEntry.isGroupedShare ? groupedEntries : undefined,
     excludeUserId: currentUserId,
   })
 
-  const isSubmitterConfirmedShare = currentUserId
-    ? isSharedByCurrentUser(entry, currentUserId) && entry.status === 'Confirmed'
-    : false
   const isPendingCard = isInvitation || isAwaitingApproval || isReadOnlyPending
   const canAddMembers = currentUserId ? isShareableByCurrentUser(entry, currentUserId) : false
   const canFavourite =
     !entry.isRunning &&
     entry.status === 'Confirmed' &&
-    !isSubmitterConfirmedShare &&
     !isPendingCard
   const showActions = canFavourite || canAddMembers
   const isFavouriteBusy = favouriteBusyId === entry.id
@@ -79,7 +73,7 @@ export function TimeEntryListItem({
         <button
           type="button"
           onClick={() => onEntryClick(entry)}
-          disabled={isReadOnlyPending || isSubmitterConfirmedShare}
+          disabled={isReadOnlyPending}
           className="flex min-w-0 flex-1 items-center gap-4 text-left disabled:cursor-default"
         >
           <div className="min-w-0 flex-1">
@@ -160,7 +154,7 @@ export function TimeEntryListItem({
           <div className="shrink-0 font-mono text-md tabular-nums text-navy">
             {formatDurationHms(entry.durationSeconds)}
           </div>
-          {!isReadOnlyPending && !isSubmitterConfirmedShare ? (
+          {!isReadOnlyPending ? (
             <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-navy/30" />
           ) : null}
         </button>
@@ -186,10 +180,7 @@ export function TimeEntryListItem({
                 title="Share with a teammate"
                 aria-label="Share with a teammate"
                 onClick={() =>
-                  onShareClick(
-                    entry,
-                    displayEntry.isGroupedShare ? groupedEntries : undefined,
-                  )
+                  onShareClick(entry)
                 }
                 className={ACTION_BUTTON_CLASS}
               >
