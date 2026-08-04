@@ -47,6 +47,7 @@ export const NAV_SECTIONS: NavSection[] = [
     adminOnly: true,
     items: [
       { label: 'Reports', path: '/reports', icon: 'reports' },
+      { label: 'Custom reports', path: '/reports/custom', icon: 'reports' },
     ],
   },
   {

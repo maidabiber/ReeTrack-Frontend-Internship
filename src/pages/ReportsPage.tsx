@@ -10,7 +10,7 @@ import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
 import { PAGE_PAD } from '../components/layout/pageChrome'
-import { Icon } from '../components/ui/Icon'
+import { AdminsOnly } from '../components/reports/AdminsOnly'
 import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
 import { toggleGroupBy } from '../lib/reportQuery'
@@ -30,24 +30,10 @@ const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
  */
 export default function ReportsPage() {
   const { role } = useAuth()
-  if (role !== 'Admin') return <AdminsOnly />
+  if (role !== 'Admin') {
+    return <AdminsOnly message="Portfolio reports are available to workspace admins." />
+  }
   return <ReportsWorkspace />
-}
-
-function AdminsOnly() {
-  return (
-    <div className={`flex min-h-full flex-1 items-center justify-center ${PAGE_PAD}`}>
-      <div className="max-w-sm rounded-2xl bg-white px-8 py-10 text-center shadow-card">
-        <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-navy/60">
-          <Icon name="shield" className="h-5 w-5" />
-        </span>
-        <h1 className="mt-4 font-display text-lg font-bold text-navy">Admins only</h1>
-        <p className="mt-1.5 text-body leading-[1.5] text-navy/60">
-          Portfolio reports are available to workspace admins.
-        </p>
-      </div>
-    </div>
-  )
 }
 
 function ReportsWorkspace() {

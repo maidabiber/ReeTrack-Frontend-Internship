@@ -19,6 +19,7 @@ import {
   ProjectDetailPage,
   ProjectsPage,
   ReportsPage,
+  CustomReportViewerPage,
   SignInPage,
   TagsPage,
   TimesheetReviewPage,
@@ -36,6 +37,7 @@ const PAGES: Record<string, React.ReactElement> = {
   '/approvals': <ApprovalsPage />,
   '/reports': <ReportsPage />,
   '/invoices': <InvoicesPage />,
+  '/reports/custom': <CustomReportViewerPage />,
   '/timesheet-review': <TimesheetReviewPage />,
   '/assistant': <AssistantPage />,
 }
@@ -76,6 +78,7 @@ export const router = createBrowserRouter([
       ...navRoutes,
       // Project detail isn't a nav item, so it's registered manually.
       { path: 'projects/:id', element: <ProjectDetailPage /> },
+      { path: 'reports/custom/:id', element: <CustomReportViewerPage /> },
       // Timesheet deep link (decision emails): Timer page with the timesheet view open.
       { path: 'timesheet', element: <TimerPage /> },
       { path: 'profile', element: <ProfilePage /> },
