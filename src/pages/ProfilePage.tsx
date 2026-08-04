@@ -8,9 +8,11 @@ import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
 import type { Role, UserStatus } from '../types/user'
+import { ROLE_LABEL } from '../types/user'
 
 const ROLE_DOT: Record<Role, string> = {
   Admin: 'bg-brand',
+  ProjectManager: 'bg-brand/70',
   Member: 'bg-navy/45',
 }
 
@@ -78,7 +80,7 @@ export default function ProfilePage() {
               <span className="font-mono tabular-nums">{user.email}</span>
             </ProfileField>
             <ProfileField label="Role">
-              <Pill label={user.role} dotClassName={ROLE_DOT[user.role]} />
+              <Pill label={ROLE_LABEL[user.role]} dotClassName={ROLE_DOT[user.role]} />
             </ProfileField>
             <ProfileField label="Status">
               <Pill label={STATUS_DISPLAY[user.status]} dotClassName={STATUS_DOT[user.status]} />

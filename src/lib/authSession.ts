@@ -45,7 +45,9 @@ export function clearSession(): void {
 }
 
 export function primaryRole(roles: string[]): Role {
-  return roles.some((role) => role === 'Admin') ? 'Admin' : 'Member'
+  if (roles.includes('Admin')) return 'Admin'
+  if (roles.includes('ProjectManager')) return 'ProjectManager'
+  return 'Member'
 }
 
 export function toSessionUser(apiUser: {
@@ -54,6 +56,7 @@ export function toSessionUser(apiUser: {
   displayName: string | null
   avatarUrl: string | null
   roles: string[]
+  permissions: string[]
 }): User {
   return {
     id: apiUser.id,
@@ -61,6 +64,7 @@ export function toSessionUser(apiUser: {
     displayName: apiUser.displayName,
     avatarUrl: apiUser.avatarUrl,
     role: primaryRole(apiUser.roles),
+    permissions: apiUser.permissions,
     status: 'Active',
     rate: null,
     rateCurrencyCode: null,

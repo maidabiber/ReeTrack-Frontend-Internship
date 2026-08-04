@@ -18,11 +18,13 @@ import { HeaderCell, SkeletonRow, StatusMark } from '../components/directory/Dir
 import { riseDelay } from '../components/directory/directoryChrome'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { WeekEntriesList } from '../components/timesheet/WeekEntriesList'
+import { AccessDenied } from '../components/auth/AccessDenied'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
+import { Permissions } from '../lib/permissions'
 import { invalidateWeekLock } from '../hooks/useWeekLock'
 import { formatDurationHms } from '../lib/formatDuration'
 import { parseDateInput } from '../lib/manualEntry'
@@ -78,33 +80,16 @@ function formatSubmittedAt(iso: string): string {
   })
 }
 
-/**
- * RT-72 — admin review of submitted weekly timesheets. The nav item lives in the
- * Admin (adminOnly) section so it's hidden from members, but routes aren't
- * role-guarded, so the page gates itself; the backend endpoints are
- * [Authorize(Roles="Admin")] as the real enforcement.
- */
 export default function TimesheetReviewPage() {
-  const { role } = useAuth()
-  if (role !== 'Admin') return <AdminsOnly />
+  const { hasPermission } = useAuth()
+  if (!hasPermission(Permissions.TimesheetReview)) {
+    return (
+      <AccessDenied description="Timesheet review is available to project managers and workspace admins." />
+    )
+  }
   return <ReviewQueue />
 }
 
-function AdminsOnly() {
-  return (
-    <div className={`flex min-h-full flex-1 items-center justify-center ${PAGE_PAD}`}>
-      <div className="max-w-sm rounded-2xl bg-white px-8 py-10 text-center shadow-card">
-        <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-navy/60">
-          <Icon name="shield" className="h-5 w-5" />
-        </span>
-        <h1 className="mt-4 font-display text-lg font-bold text-navy">Admins only</h1>
-        <p className="mt-1.5 text-body leading-[1.5] text-navy/60">
-          Timesheet review is available to workspace admins.
-        </p>
-      </div>
-    </div>
-  )
-}
 
 function ReviewQueue() {
   const [status, setStatus] = useState<StatusFilter>('Submitted')

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { AuthSession } from '../types/auth'
+import type { Permission } from '../lib/permissions'
+import { hasAnyPermission, hasPermission } from '../lib/permissions'
 import { clearSession, saveSession } from '../lib/authSession'
 import { getCurrentUser, signOut as apiSignOut } from '../api/auth'
 import { AuthContext } from './auth'
@@ -46,17 +48,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const permissions = user?.permissions ?? []
+
+    return {
       user,
       role: user?.role ?? null,
+      permissions,
       isAuthenticated: user !== null,
       isInitializing,
+      hasPermission: (permission: Permission) => hasPermission(permissions, permission),
+      hasAnyPermission: (required: readonly Permission[]) =>
+        hasAnyPermission(permissions, required),
       signIn,
       signOut,
-    }),
-    [user, isInitializing, signIn, signOut],
-  )
+    }
+  }, [user, isInitializing, signIn, signOut])
 
   return <AuthContext value={value}>{children}</AuthContext>
 }

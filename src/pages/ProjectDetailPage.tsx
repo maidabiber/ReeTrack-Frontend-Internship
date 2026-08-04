@@ -10,6 +10,8 @@ import { getProject, updateProject } from '../api/projects'
 import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
 import { listMembers, type Member } from '../api/members'
 import { fetchAllPages } from '../api/pagination'
+import { useAuth } from '../hooks/useAuth'
+import { Permissions } from '../lib/permissions'
 import { formatMoney } from '../lib/projectFormat'
 import { formatPlannedVsActual } from '../lib/projectFormat'
 import type { Project } from '../types/project'
@@ -37,6 +39,9 @@ function formatDate(iso: string): string {
  */
 export default function ProjectDetailPage() {
   const { id = '' } = useParams()
+  const { user, hasPermission } = useAuth()
+  const canManageProjects = hasPermission(Permissions.ProjectsManage)
+  const isAdmin = user?.role === 'Admin'
 
   const [project, setProject] = useState<Project | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
@@ -153,6 +158,7 @@ export default function ProjectDetailPage() {
   }
 
   const isActive = project.status === 'active'
+  const canManageProject = canManageProjects && (isAdmin || project.createdByUserId === user?.id)
 
   return (
     <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={() => setOpenTaskMenuId(null)}>
@@ -182,20 +188,24 @@ export default function ProjectDetailPage() {
             />
           </div>
           <div className="flex flex-shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={handleToggleArchived}
-              className="rounded-full border-control border-navy/15 px-4 py-2 font-display text-sm font-semibold text-navy hover:border-navy"
-            >
-              {isActive ? 'Archive' : 'Restore'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditingProject(true)}
-              className="rounded-full bg-brand px-4 py-2 font-display text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
-            >
-              Edit
-            </button>
+            {canManageProject && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleToggleArchived}
+                  className="rounded-full border-control border-navy/15 px-4 py-2 font-display text-sm font-semibold text-navy hover:border-navy"
+                >
+                  {isActive ? 'Archive' : 'Restore'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingProject(true)}
+                  className="rounded-full bg-brand px-4 py-2 font-display text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
+                >
+                  Edit
+                </button>
+              </>
+            )}
           </div>
         </header>
 
@@ -249,7 +259,7 @@ export default function ProjectDetailPage() {
         />
       </div>
 
-      {editingProject && (
+      {canManageProject && editingProject && (
         <ProjectModal
           project={project}
           onClose={() => setEditingProject(false)}

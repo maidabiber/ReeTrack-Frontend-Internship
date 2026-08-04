@@ -19,7 +19,7 @@ import { Pill } from '../components/ui/Pill'
 
 import { useAuth } from '../hooks/useAuth'
 import { useReportFilterDraft } from '../hooks/useReportFilterDraft'
-
+import { Permissions } from '../lib/permissions'
 import { cloneReportQuery } from '../lib/reportQuery'
 import { formatFullDate, formatReportMoney } from '../lib/reportView'
 import type { Invoice } from '../types/invoice'
@@ -37,16 +37,15 @@ function formatShortDateTime(isoDate: string): string {
 }
 
 /**
- * RT-66 / RT-209 — admin client invoices generated from report filters.
- * Client is chosen up front; other filters reuse ReportFilterBar + ReportQuery.
+ * RT-66 / RT-209 — client invoices from report filters.
+ * Admin sees all; Project Managers are scoped to projects they created (backend).
  */
 export default function InvoicesPage() {
-  const { role } = useAuth()
-  if (role !== 'Admin') {
+  const { hasPermission } = useAuth()
+  if (!hasPermission(Permissions.InvoicesManage)) {
     return (
       <AccessDenied
-        title="Admins only"
-        description="Invoices are available to workspace admins."
+        description="Invoices are available to project managers and workspace admins."
       />
     )
   }

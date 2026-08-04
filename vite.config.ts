@@ -49,6 +49,9 @@ export default defineConfig({
     },
   },
   server: {
+    watch: {
+      ignored: ['**/.vs/**'],
+    },
     proxy: {
       '/api': {
         target: `https://localhost:${BACKEND_HTTP_PORT}`,

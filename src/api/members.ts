@@ -1,5 +1,5 @@
 import type { InvitationStatus, Role, User, UserStatus } from '../types/user'
-import { ROLE_IDS } from '../types/user'
+import { parseRole, ROLE_IDS } from '../types/user'
 import type { PagedResult } from '../types/paged'
 import { apiClient } from './client'
 import {
@@ -54,7 +54,8 @@ function toMember(response: MemberResponse): Member {
     email: response.email,
     displayName: response.displayName,
     avatarUrl: response.avatarUrl,
-    role: response.role === 'Admin' ? 'Admin' : 'Member',
+    role: parseRole(response.role),
+    permissions: [],
     status: (response.status as UserStatus) ?? 'Active',
     rate: null,
     rateCurrencyCode: null,
@@ -118,7 +119,7 @@ export function listInvitations(): Promise<InvitationListItem[]> {
   return apiClient.get<InvitationListItemResponse[]>('/invitations').then((invitations) =>
     invitations.map((invitation) => ({
       ...invitation,
-      role: invitation.role === 'Admin' ? 'Admin' : 'Member',
+      role: parseRole(invitation.role),
       status: (invitation.status as InvitationStatus) ?? 'Pending',
     })),
   )

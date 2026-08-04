@@ -41,7 +41,10 @@ import {
   parseInviteCsv,
 } from '../lib/parseInviteCsv'
 import { formatMoney } from '../lib/projectFormat'
-import { ROLE_IDS, type InvitationStatus, type Role, type UserStatus } from '../types/user'
+import { Permissions } from '../lib/permissions'
+import { AccessDenied } from '../components/auth/AccessDenied'
+import { useAuth } from '../hooks/useAuth'
+import { ROLE_IDS, ROLE_LABEL, WORKSPACE_ROLES, type InvitationStatus, type Role, type UserStatus } from '../types/user'
 
 type RoleFilter = 'all' | Role
 type StatusFilter = 'all' | UserStatus
@@ -58,6 +61,7 @@ const STATUS_DISPLAY: Record<UserStatus, string> = {
  * badge chrome. Admin carries weight; statuses carry a quiet semantic hue. */
 const ROLE_COLOR: Record<Role, string> = {
   Admin: 'font-semibold text-brand-hi',
+  ProjectManager: 'font-medium text-brand',
   Member: 'text-navy/60',
 }
 
@@ -104,6 +108,10 @@ async function enrichMembersWithRates(members: Member[]): Promise<Member[]> {
  * (RT-275 / CSV batch invite).
  */
 export default function MembersPage() {
+  const { hasPermission, hasAnyPermission } = useAuth()
+  const canManageMembers = hasPermission(Permissions.MembersManage)
+  const canEditRates = hasPermission(Permissions.BillableRatesManage)
+
   const [view, setView] = useState<View>('members')
   const [members, setMembers] = useState<Member[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -234,15 +242,15 @@ export default function MembersPage() {
       )
   }
 
-  const handleToggleRole = (member: Member) => {
+  const handleSetRole = (member: Member, nextRole: Role) => {
     setOpenRowMenuId(null)
-    const nextRole: Role = member.role === 'Admin' ? 'Member' : 'Admin'
+    if (member.role === nextRole) return
 
     updateMember(member.id, { roleId: ROLE_IDS[nextRole] })
       .then((updated) => {
         upsertMember(updated)
         setInvitationsReloadKey((key) => key + 1)
-        showNotice(`${updated.displayName ?? updated.email} is now ${nextRole === 'Admin' ? 'an admin' : 'a member'}.`)
+        showNotice(`${updated.displayName ?? updated.email} is now ${ROLE_LABEL[nextRole].toLowerCase()}.`)
       })
       .catch((error) =>
         showNotice(apiErrorMessage(error, `Could not change the role of ${member.email}.`)),
@@ -287,41 +295,53 @@ export default function MembersPage() {
     showNotice(`Hourly rate updated for ${member.displayName ?? member.email}.`)
   }
 
+  if (!hasAnyPermission([Permissions.MembersManage, Permissions.BillableRatesManage])) {
+    return <AccessDenied description="Member management is available to workspace admins." />
+  }
+
   return (
     <div className={`min-h-full flex-1 ${PAGE_PAD}`} onClick={closeMenus}>
       <div className="mx-auto flex w-full max-w-page flex-col gap-4">
       <DirectoryHeader
         title="Members"
         count={view === 'members' && !isLoading && !loadError ? filtered.length : null}
-        actionLabel="Invite members"
-        onAction={(event) => {
-          event.stopPropagation()
-          setInviteOpen(true)
-        }}
+        actionLabel={canManageMembers ? 'Invite members' : undefined}
+        onAction={
+          canManageMembers
+            ? (event) => {
+                event.stopPropagation()
+                setInviteOpen(true)
+              }
+            : undefined
+        }
       />
 
       {notice && <NoticeBanner>{notice}</NoticeBanner>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <SegmentedTabs
-          options={[
-            { value: 'members', label: 'Members' },
-            { value: 'invitations', label: 'Invitations' },
-          ]}
-          value={view}
-          onChange={setView}
-        />
+        {canManageMembers && (
+          <SegmentedTabs
+            options={[
+              { value: 'members', label: 'Members' },
+              { value: 'invitations', label: 'Invitations' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        )}
 
         {view === 'members' && (
           <>
             <FilterDropdown
-              label={roleFilter === 'all' ? 'Role' : roleFilter}
+              label={roleFilter === 'all' ? 'Role' : ROLE_LABEL[roleFilter]}
               isOpen={openFilter === 'role'}
               onToggle={() => setOpenFilter(openFilter === 'role' ? null : 'role')}
               options={[
                 { value: 'all', label: 'All roles' },
-                { value: 'Admin', label: 'Admin' },
-                { value: 'Member', label: 'Member' },
+                ...WORKSPACE_ROLES.map((role) => ({
+                  value: role,
+                  label: ROLE_LABEL[role],
+                })),
               ]}
               value={roleFilter}
               onSelect={(value) => {
@@ -393,9 +413,11 @@ export default function MembersPage() {
                   }}
                   onResend={() => handleResend(member)}
                   onRevoke={() => handleRevoke(member)}
-                  onToggleRole={() => handleToggleRole(member)}
+                  onSetRole={(nextRole) => handleSetRole(member, nextRole)}
                   onToggleActive={() => handleToggleActive(member)}
                   onEditRate={() => handleEditRate(member)}
+                  canManageMembers={canManageMembers}
+                  canEditRates={canEditRates}
                 />
               ))}
 
@@ -546,9 +568,11 @@ function MemberRow({
   onToggleMenu,
   onResend,
   onRevoke,
-  onToggleRole,
+  onSetRole,
   onToggleActive,
   onEditRate,
+  canManageMembers,
+  canEditRates,
 }: {
   member: Member
   index: number
@@ -556,9 +580,11 @@ function MemberRow({
   onToggleMenu: (event: React.MouseEvent) => void
   onResend: () => void
   onRevoke: () => void
-  onToggleRole: () => void
+  onSetRole: (role: Role) => void
   onToggleActive: () => void
   onEditRate: () => void
+  canManageMembers: boolean
+  canEditRates: boolean
 }) {
   const hasPendingInvite = member.status === 'Invited' && member.pendingInvitationId !== null
   const rateLabel =
@@ -595,7 +621,11 @@ function MemberRow({
         <RowMenuItem
           icon="settings"
           label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
-          onClick={onToggleRole}
+          onClick={() =>
+            onSetRole(
+              WORKSPACE_ROLES.filter((targetRole) => targetRole !== member.role)[0] ?? 'Member',
+            )
+          }
         />
         {hasPendingInvite ? (
           <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
@@ -628,7 +658,7 @@ function MemberRow({
 
       <div className="truncate text-caption text-navy/60">{member.email}</div>
 
-      <StatusMark label={member.role} colorClassName={ROLE_COLOR[member.role]} />
+      <StatusMark label={ROLE_LABEL[member.role]} colorClassName={ROLE_COLOR[member.role]} />
       <StatusMark label={STATUS_DISPLAY[member.status]} colorClassName={STATUS_COLOR[member.status]} />
 
       <span
@@ -638,23 +668,30 @@ function MemberRow({
       </span>
 
       <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-        {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
-            <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />
-        <RowMenuItem
-          icon="settings"
-          label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
-          onClick={onToggleRole}
-        />
-        {hasPendingInvite ? (
-          <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
-        ) : (
-          <RowMenuItem
-            icon="ban"
-            label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
-            danger
-            onClick={onToggleActive}
-          />
+        {canManageMembers && hasPendingInvite && (
+          <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />
         )}
+        {canEditRates && <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />}
+        {canManageMembers &&
+          WORKSPACE_ROLES.filter((targetRole) => targetRole !== member.role).map((targetRole) => (
+            <RowMenuItem
+              key={targetRole}
+              icon="settings"
+              label={`Set as ${ROLE_LABEL[targetRole]}`}
+              onClick={() => onSetRole(targetRole)}
+            />
+          ))}
+        {canManageMembers &&
+          (hasPendingInvite ? (
+            <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
+          ) : (
+            <RowMenuItem
+              icon="ban"
+              label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
+              danger
+              onClick={onToggleActive}
+            />
+          ))}
       </RowMenu>
     </div>
     </>
@@ -801,7 +838,7 @@ function InvitationsCard({
                 style={riseDelay(index)}
               >
                 <div className="truncate text-md font-semibold">{invitation.email}</div>
-                <StatusMark label={invitation.role} colorClassName={ROLE_COLOR[invitation.role]} />
+                <StatusMark label={ROLE_LABEL[invitation.role]} colorClassName={ROLE_COLOR[invitation.role]} />
                 <StatusMark
                   label={invitation.status}
                   colorClassName={INVITE_STATUS_COLOR[invitation.status]}
@@ -1121,8 +1158,11 @@ function InviteModal({
           value={role}
           onChange={(event) => setRole(event.target.value as Role)}
         >
-          <option value="Member">Member</option>
-          <option value="Admin">Admin</option>
+          {WORKSPACE_ROLES.map((workspaceRole) => (
+            <option key={workspaceRole} value={workspaceRole}>
+              {ROLE_LABEL[workspaceRole]}
+            </option>
+          ))}
         </select>
       </div>
 

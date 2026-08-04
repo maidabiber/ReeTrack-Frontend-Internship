@@ -5,13 +5,27 @@
  * string-literal unions plus `as const` value maps rather than TS `enum`s.
  */
 
-/** Roles seeded by the backend (RoleConfiguration.cs): Admin (id 1), Member (id 2). */
-export type Role = 'Admin' | 'Member'
+export type Role = 'Admin' | 'Member' | 'ProjectManager'
 
 export const ROLE_IDS = {
   Admin: 1,
   Member: 2,
+  ProjectManager: 3,
 } as const satisfies Record<Role, number>
+
+
+export const ROLE_LABEL: Record<Role, string> = {
+  Admin: 'Admin',
+  Member: 'Member',
+  ProjectManager: 'Project Manager',
+}
+
+export const WORKSPACE_ROLES: Role[] = ['Admin', 'ProjectManager', 'Member']
+
+export function parseRole(role: string): Role {
+  if (role === 'Admin' || role === 'ProjectManager' || role === 'Member') return role
+  return 'Member'
+}
 
 /** User account status (Domain/Enums/UserStatus.cs). */
 export type UserStatus = 'Active' | 'Invited' | 'Disabled'
@@ -25,6 +39,7 @@ export interface User {
   displayName: string | null
   avatarUrl: string | null
   role: Role
+  permissions: string[]
   status: UserStatus
   /** Current hourly rate amount; null when not loaded or missing. */
   rate: number | null

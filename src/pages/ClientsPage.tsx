@@ -28,8 +28,10 @@ import {
 import { apiErrorMessage } from '../api/client'
 import { fetchAllPages } from '../api/pagination'
 import { listProjects } from '../api/projects'
+import { useAuth } from '../hooks/useAuth'
 import { clientCoverUrl, projectCoverUrl } from '../lib/projectCover'
 import { formatBillingSummary } from '../lib/projectFormat'
+import { Permissions } from '../lib/permissions'
 import type { Client } from '../types/client'
 import type { Project } from '../types/project'
 
@@ -44,6 +46,8 @@ const GRID = 'grid grid-cols-[2.4fr_0.9fr_0.9fr_32px] items-center gap-2.5 px-3.
  * archiving is the Toggl-style way to retire a client without losing history.
  */
 export default function ClientsPage() {
+  const { hasPermission } = useAuth()
+  const canManage = hasPermission(Permissions.ProjectsManage)
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -132,11 +136,15 @@ export default function ClientsPage() {
         <DirectoryHeader
           title="Clients"
           count={!isLoading && !loadError ? filtered.length : null}
-          actionLabel="New client"
-          onAction={(event) => {
-            event.stopPropagation()
-            setModal({ mode: 'create' })
-          }}
+          actionLabel={canManage ? 'New client' : undefined}
+          onAction={
+            canManage
+              ? (event) => {
+                  event.stopPropagation()
+                  setModal({ mode: 'create' })
+                }
+              : undefined
+          }
         />
 
         {notice && <NoticeBanner>{notice}</NoticeBanner>}
@@ -201,6 +209,7 @@ export default function ClientsPage() {
                   }}
                   onToggleArchived={() => handleToggleArchived(client)}
                   onDelete={() => handleDelete(client)}
+                  canManage={canManage}
                 />
               ))}
 
@@ -208,7 +217,9 @@ export default function ClientsPage() {
               <div className="px-5 py-10 text-center text-body text-navy/50">
                 {clients.length === 0
                   ? tab === 'active'
-                    ? 'No clients yet. Add your first client to group projects under it.'
+                    ? canManage
+                      ? 'No clients yet. Add your first client to group projects under it.'
+                      : 'No clients yet.'
                     : 'Nothing here.'
                   : 'No clients match your search.'}
               </div>
@@ -261,6 +272,7 @@ function ClientRow({
   onEdit,
   onToggleArchived,
   onDelete,
+  canManage,
 }: {
   client: Client
   index: number
@@ -271,6 +283,7 @@ function ClientRow({
   onEdit: () => void
   onToggleArchived: () => void
   onDelete: () => void
+  canManage: boolean
 }) {
   const canDelete = client.projectCount === 0
 
@@ -385,20 +398,24 @@ function ClientRow({
         />
 
         <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-          <RowMenuItem
-            icon="check-badge"
-            label={client.isActive ? 'Archive' : 'Restore'}
-            onClick={onToggleArchived}
-          />
-          <RowMenuItem
-            icon="ban"
-            label="Delete"
-            danger
-            disabled={!canDelete}
-            title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
-            onClick={onDelete}
-          />
+          {canManage && <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />}
+          {canManage && (
+            <RowMenuItem
+              icon="check-badge"
+              label={client.isActive ? 'Archive' : 'Restore'}
+              onClick={onToggleArchived}
+            />
+          )}
+          {canManage && (
+            <RowMenuItem
+              icon="ban"
+              label="Delete"
+              danger
+              disabled={!canDelete}
+              title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
+              onClick={onDelete}
+            />
+          )}
         </RowMenu>
       </div>
 

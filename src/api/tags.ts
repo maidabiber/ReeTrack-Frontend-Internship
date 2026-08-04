@@ -8,9 +8,8 @@ import {
 } from './pagination'
 
 /**
- * Tags API (TagsController, RT-44). Reads are member-accessible; mutations are
- * trust-based (any authenticated user). Deletes are soft-deletes allowed even
- * while a tag is in use, so the name can be reused immediately.
+ * Tags API (TagsController, RT-44). Reads are member-accessible; mutations
+ * require manage.projects.manage (ProjectManager+).
  */
 
 export type ListTagsOptions = ListQueryOptions

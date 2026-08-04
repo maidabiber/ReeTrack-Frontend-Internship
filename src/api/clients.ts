@@ -9,7 +9,7 @@ import {
 
 /**
  * Clients API (ClientsController, RT-45/RT-153). Reads are member-accessible;
- * mutations are admin-only.
+ * mutations require manage.projects.manage (ProjectManager+).
  */
 
 export type ClientStatusFilter = 'active' | 'archived' | 'all'

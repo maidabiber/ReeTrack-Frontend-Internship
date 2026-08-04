@@ -24,6 +24,9 @@ import {
 } from '../components/calendar/dateUtils'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { Icon } from '../components/ui/Icon'
+import { AccessDenied } from '../components/auth/AccessDenied'
+import { useAuth } from '../hooks/useAuth'
+import { Permissions } from '../lib/permissions'
 import type { RateMultiplierSettings } from '../types/rateMultiplierSettings'
 import type { Holiday, HolidayCalendar, HolidayCalendarSettings } from '../types/holidays'
 
@@ -43,6 +46,7 @@ function toDateKey(date: Date): string {
  * plus holiday calendar selection and custom holiday management.
  */
 export default function BillableRatesPage() {
+  const { hasAnyPermission } = useAuth()
   const [settings, setSettings] = useState<RateMultiplierSettings | null>(null)
   const [draft, setDraft] = useState<RateMultiplierSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -111,6 +115,12 @@ export default function BillableRatesPage() {
       settings.holidayPremium !== draft.holidayPremium ||
       settings.overtimePremium !== draft.overtimePremium ||
       settings.weeklyOvertimeThresholdHours !== draft.weeklyOvertimeThresholdHours)
+
+  if (!hasAnyPermission([Permissions.RateMultipliersManage, Permissions.HolidaysManage])) {
+    return (
+      <AccessDenied description="Org-wide billing settings are available to workspace admins." />
+    )
+  }
 
   return (
     <div className={`min-h-full flex-1 ${PAGE_PAD}`}>

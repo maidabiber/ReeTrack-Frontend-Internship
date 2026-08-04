@@ -5,6 +5,7 @@ import { listMembers } from '../../api/members'
 import { listProjects } from '../../api/projects'
 import { listTags } from '../../api/tags'
 import { listTasksAcrossProjects } from '../../api/tasks'
+import { useAuth } from '../../hooks/useAuth'
 import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 import {
   cascadeAfterClientsChange,
@@ -66,17 +67,20 @@ export function ReportFilterBar({
   isDirty: boolean
   onPatch: (patch: Partial<ReportQuery>) => void
   onReset: () => void
-  /** When set, Apply sits next to Reset inside the panel (Invoices). */
-  onApply?: () => void
-  /** When true, omit the Clients multi-select (e.g. Invoices picks client outside). */
-  hideClients?: boolean
-  hideTasks?: boolean
-  hideMembers?: boolean
-  hideTags?: boolean
-  hideBillable?: boolean
-  /** Restrict client picker to a single selection (used on Invoices page). */
-  singleClient?: boolean
-}) {
+    /** When set, Apply sits next to Reset inside the panel (Invoices). */
+    onApply?: () => void
+    /** When true, omit the Clients multi-select (e.g. Invoices picks client outside). */
+    hideClients?: boolean
+    hideTasks?: boolean
+    hideMembers?: boolean
+    hideTags?: boolean
+    hideBillable?: boolean
+    /** Restrict client picker to a single selection (used on Invoices page). */
+    singleClient?: boolean
+  }) {
+  const { user } = useAuth()
+  // Admins see every project; PMs only projects they created (matches BE report scope).
+  const mineProjectsOnly = user?.role !== 'Admin'
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const [projectClientById, setProjectClientById] = useState(() => new Map<string, string>())
@@ -199,6 +203,7 @@ export function ReportFilterBar({
         pageSize,
         q: q || undefined,
         clientIds: draft.clientIds.length > 0 ? draft.clientIds : undefined,
+        mine: mineProjectsOnly || undefined,
       }).then((result) => {
         const items = result.items.map(
           (project): ReportEntityOption => ({
@@ -212,7 +217,7 @@ export function ReportFilterBar({
         rememberProjects(items)
         return { ...result, items }
       }),
-    [draft.clientIds, rememberProjects],
+    [draft.clientIds, mineProjectsOnly, rememberProjects],
   )
 
   const fetchTasks = useCallback(
@@ -412,21 +417,21 @@ export function ReportFilterBar({
           </Field>
         )}
 
-        <Field label="Projects">
-          <ReportEntityMultiSelect
-            selectedIds={draft.projectIds}
-            onChange={(projectIds, selected) => {
-              rememberProjects(selected)
-              onPatch(cascadeAfterProjectsChange(draft, projectIds, taskProjectById))
-            }}
-            fetchPage={fetchProjects}
-            knownOptions={knownProjects}
-            placeholder={
-              draft.clientIds.length > 0 ? 'Projects for selected clients' : 'All projects'
-            }
-            searchPlaceholder="Search projects…"
-          />
-        </Field>
+            <Field label="Projects">
+              <ReportEntityMultiSelect
+                selectedIds={draft.projectIds}
+                onChange={(projectIds, selected) => {
+                  rememberProjects(selected)
+                  onPatch(cascadeAfterProjectsChange(draft, projectIds, taskProjectById))
+                }}
+                fetchPage={fetchProjects}
+                knownOptions={knownProjects}
+                placeholder={
+                  draft.clientIds.length > 0 ? 'Projects for selected clients' : 'All projects'
+                }
+                searchPlaceholder="Search projects…"
+              />
+            </Field>
 
         {hideTasks ? null : (
           <Field label="Tasks">

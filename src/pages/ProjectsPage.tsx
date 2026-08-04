@@ -17,6 +17,7 @@ import {
   StatusMark,
 } from '../components/directory/DirectoryTable'
 import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
+import { Icon } from '../components/ui/Icon'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { apiErrorMessage } from '../api/client'
 import {
@@ -28,6 +29,7 @@ import {
 import { fetchAllPages } from '../api/pagination'
 import { formatBillingSummary } from '../lib/projectFormat'
 import { useAuth } from '../hooks/useAuth'
+import { Permissions } from '../lib/permissions'
 import { softAccentFill } from '../lib/color'
 import type { Project } from '../types/project'
 
@@ -48,12 +50,15 @@ const GRID =
  * archiving retires it without losing history.
  */
 export default function ProjectsPage() {
-  const { user, role } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const canManageProjects = hasPermission(Permissions.ProjectsManage)
+  const isAdmin = user?.role === 'Admin'
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<ProjectStatusFilter>('active')
+  const [mineOnly, setMineOnly] = useState(false)
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>(null)
   const [jiraImportOpen, setJiraImportOpen] = useState(false)
@@ -65,7 +70,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     let cancelled = false
 
-    fetchAllPages((page, pageSize) => listProjects(tab, { page, pageSize }))
+    fetchAllPages((page, pageSize) => listProjects(tab, { page, pageSize, mine: mineOnly || undefined }))
       .then((loaded) => {
         if (cancelled) return
         setProjects(loaded)
@@ -82,7 +87,7 @@ export default function ProjectsPage() {
     return () => {
       cancelled = true
     }
-  }, [tab, reloadKey])
+  }, [tab, mineOnly, reloadKey])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -138,16 +143,24 @@ export default function ProjectsPage() {
         <DirectoryHeader
           title="Projects"
           count={!isLoading && !loadError ? filtered.length : null}
-          actionLabel="New project"
-          onAction={(event) => {
-            event.stopPropagation()
-            setModal({ mode: 'create' })
-          }}
-          secondaryActionLabel="Import from Jira"
-          onSecondaryAction={(event) => {
-            event.stopPropagation()
-            setJiraImportOpen(true)
-          }}
+          actionLabel={canManageProjects ? 'New project' : undefined}
+          onAction={
+            canManageProjects
+              ? (event) => {
+                  event.stopPropagation()
+                  setModal({ mode: 'create' })
+                }
+              : undefined
+          }
+          secondaryActionLabel={canManageProjects ? 'Import from Jira' : undefined}
+          onSecondaryAction={
+            canManageProjects
+              ? (event) => {
+                  event.stopPropagation()
+                  setJiraImportOpen(true)
+                }
+              : undefined
+          }
         />
 
         {notice && <NoticeBanner>{notice}</NoticeBanner>}
@@ -163,18 +176,39 @@ export default function ProjectsPage() {
             onChange={changeTab}
           />
 
-          <div className="w-full sm:ml-auto sm:w-auto">
-            <DirectorySearch placeholder="Search projects..." value={search} onChange={setSearch} />
-          </div>
+          {canManageProjects && (
+            <button
+              type="button"
+              onClick={() => setMineOnly((prev) => !prev)}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-caption font-medium transition-colors ${
+                mineOnly
+                  ? 'bg-navy text-cream'
+                  : 'border-control border-navy/15 text-navy/70 hover:border-navy/40'
+              }`}
+            >
+              <Icon name="members" className="h-3.5 w-3.5" />
+              My projects
+            </button>
+          )}
+
+          <span className="flex-1" />
+
+          <DirectorySearch placeholder="Search projects..." value={search} onChange={setSearch} />
         </div>
 
         {!isLoading && !loadError && filtered.length === 0 && projects.length === 0 && tab === 'active' ? (
-          <EmptyDirectory
-            onCreate={(event) => {
-              event.stopPropagation()
-              setModal({ mode: 'create' })
-            }}
-          />
+          canManageProjects ? (
+            <EmptyDirectory
+              onCreate={(event) => {
+                event.stopPropagation()
+                setModal({ mode: 'create' })
+              }}
+            />
+          ) : (
+            <div className="rounded-2xl bg-white px-5 py-14 text-center text-body text-navy/50 shadow-card">
+              No projects yet.
+            </div>
+          )
         ) : (
           <div className="rounded-2xl bg-white shadow-card">
             <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
@@ -219,7 +253,7 @@ export default function ProjectsPage() {
                     }}
                     onToggleArchived={() => handleToggleArchived(project)}
                     onDelete={() => handleDelete(project)}
-                    canDelete={role === 'Admin' || user?.id === project.createdByUserId}
+                    canManage={canManageProjects && (isAdmin || project.createdByUserId === user?.id)}
                   />
                 ))}
 
@@ -353,7 +387,7 @@ function ProjectRow({
   onEdit,
   onToggleArchived,
   onDelete,
-  canDelete,
+  canManage,
 }: {
   project: Project
   index: number
@@ -362,7 +396,7 @@ function ProjectRow({
   onEdit: () => void
   onToggleArchived: () => void
   onDelete: () => void
-  canDelete: boolean
+  canManage: boolean
 }) {
   const isActive = project.status === 'active'
 
@@ -400,7 +434,7 @@ function ProjectRow({
           label={isActive ? 'Archive' : 'Restore'}
           onClick={onToggleArchived}
         />
-        {canDelete && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
+        {canManage && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
       </RowMenu>
     </div>
 
@@ -448,15 +482,17 @@ function ProjectRow({
         colorClassName={STATUS_COLOR[isActive ? 'active' : 'archived']}
       />
 
-      <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-        <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-        <RowMenuItem
-          icon="check-badge"
-          label={isActive ? 'Archive' : 'Restore'}
-          onClick={onToggleArchived}
-        />
-        {canDelete && <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />}
-      </RowMenu>
+      {canManage && (
+        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+          <RowMenuItem
+            icon="check-badge"
+            label={isActive ? 'Archive' : 'Restore'}
+            onClick={onToggleArchived}
+          />
+          <RowMenuItem icon="ban" label="Delete" danger onClick={onDelete} />
+        </RowMenu>
+      )}
     </div>
     </>
   )

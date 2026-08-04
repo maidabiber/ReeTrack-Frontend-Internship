@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { BREAKPOINT, useMediaQuery } from '../../hooks/useMediaQuery'
-import { NAV_SECTIONS } from '../../config/navigation'
+import { isNavItemVisible, NAV_SECTIONS } from '../../config/navigation'
 import { cn } from '../../lib/utils'
 import { Icon } from '../ui/Icon'
 import { LogoMark } from '../ui/LogoMark'
@@ -17,13 +17,15 @@ export function Sidebar({
   open?: boolean
   onClose?: () => void
 }) {
-  const { user, role, signOut } = useAuth()
+  const { user, hasAnyPermission, signOut } = useAuth()
   const navigate = useNavigate()
   const isLg = useMediaQuery(BREAKPOINT.lg)
-  const isAdmin = role === 'Admin'
   const drawerActive = !isLg && open
 
-  const sections = NAV_SECTIONS.filter((section) => !section.adminOnly || isAdmin)
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => isNavItemVisible(item, hasAnyPermission)),
+  })).filter((section) => section.items.length > 0)
 
   const handleSignOut = () => {
     onClose?.()

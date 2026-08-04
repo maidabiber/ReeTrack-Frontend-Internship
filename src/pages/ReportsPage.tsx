@@ -10,9 +10,10 @@ import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
 import { PAGE_PAD } from '../components/layout/pageChrome'
-import { AdminsOnly } from '../components/reports/AdminsOnly'
+import { AccessDenied } from '../components/auth/AccessDenied'
 import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
+import { Permissions } from '../lib/permissions'
 import { toggleGroupBy } from '../lib/reportQuery'
 import { formatPeriodLabel } from '../lib/reportView'
 import type { ReportType } from '../types/reportQuery'
@@ -25,13 +26,15 @@ const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
 ]
 
 /**
- * RT-50 / RT-51 / RT-52 / RT-53 / RT-54 — admin portfolio reports. Nav is adminOnly; the page also
- * gates itself because routes aren't role-guarded. Backend is [Authorize(Roles="Admin")].
+ * RT-50 / RT-51 / RT-52 / RT-53 / RT-54 — portfolio reports for Admin + ProjectManager.
+ * Page-gated via ReportsView; backend scopes non-Admin users to projects they created.
  */
 export default function ReportsPage() {
-  const { role } = useAuth()
-  if (role !== 'Admin') {
-    return <AdminsOnly message="Portfolio reports are available to workspace admins." />
+  const { hasPermission } = useAuth()
+  if (!hasPermission(Permissions.ReportsView)) {
+    return (
+      <AccessDenied description="Portfolio reports are available to project managers and workspace admins." />
+    )
   }
   return <ReportsWorkspace />
 }
@@ -107,7 +110,11 @@ function ReportsWorkspace() {
       </div>
 
       <div className="mb-4">
-        <SegmentedTabs options={REPORT_TABS} value={activeTab} onChange={setActiveTab} />
+      <SegmentedTabs<ReportType>
+  options={REPORT_TABS}
+  value={activeTab}
+  onChange={(tab) => setActiveTab(tab)}
+/>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

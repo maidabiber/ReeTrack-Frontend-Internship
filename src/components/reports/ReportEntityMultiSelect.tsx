@@ -320,6 +320,8 @@ export function ReportEntityMultiSelect({
                     onClick={(event) => {
                       event.stopPropagation()
                       toggle(option.id)
+                      // Close immediately after picking in single-select mode
+                      if (singleMode) setOpen(false)
                     }}
                     role="option"
                     aria-selected={checked}
