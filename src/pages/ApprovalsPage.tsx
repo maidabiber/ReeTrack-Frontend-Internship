@@ -129,6 +129,10 @@ export default function ApprovalsPage() {
             setEntries((current) => current.filter((item) => item.id !== reviewEntry.id))
             setReviewEntry(null)
           }}
+          onRejected={() => {
+            setEntries((current) => current.filter((item) => item.id !== reviewEntry.id))
+            setReviewEntry(null)
+          }}
         />
       ) : null}
     </div>

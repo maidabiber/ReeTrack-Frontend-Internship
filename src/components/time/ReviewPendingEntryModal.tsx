@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   approvePendingTimeEntry,
-  updatePendingTimeEntry,
+  rejectPendingTimeEntry,
+  type TimeEntryRequest,
 } from '../../api/timeEntries'
 import { apiErrorMessage } from '../../api/client'
 import { Modal } from '../ui/Modal'
@@ -37,14 +38,15 @@ interface ReviewPendingEntryModalProps {
   onClose: () => void
   onUpdated: (entry: TimeEntry) => void
   onApproved: () => void
+  onRejected: () => void
 }
 
 export function ReviewPendingEntryModal({
   entry,
   allPending,
   onClose,
-  onUpdated,
   onApproved,
+  onRejected,
 }: ReviewPendingEntryModalProps) {
   const isDurationOnly = entry.mode === 'DurationOnly'
   const [description, setDescription] = useState(entry.description ?? '')
@@ -61,8 +63,8 @@ export function ReviewPendingEntryModal({
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
   const [isApproving, setIsApproving] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
 
   const durationOnlyCalendarDate = useMemo(() => {
     const parsed = parseDateInput(durationOnlyDate)
@@ -83,95 +85,80 @@ export function ReviewPendingEntryModal({
     ? durationOnlyValidationError ?? durationParseError ?? error
     : validation.error ?? error
 
-  const busy = isSaving || isApproving
+  const busy = isApproving || isRejecting
 
-  const handleSaveDurationOnly = async () => {
-    setError(null)
+  const buildApproveRequest = (): TimeEntryRequest | null => {
+    if (isDurationOnly) {
+      const entryDateUtc = dateInputToUtcIso(durationOnlyDate)
+      if (!entryDateUtc) {
+        setError('Enter a valid date.')
+        return null
+      }
+
+      return {
+        description: description.trim() || undefined,
+        isBillable,
+        entryDateUtc,
+        durationSeconds: durationOnlySeconds,
+      }
+    }
+
+    return {
+      description: description.trim() || undefined,
+      isBillable,
+      startedAtUtc: manualEntry.start.toISOString(),
+      endedAtUtc: manualEntry.end.toISOString(),
+    }
+  }
+
+  const handleApprove = async () => {
     setDurationLimitMessage(null)
 
-    if (durationOnlySeconds > MAX_MANUAL_DURATION_SECONDS) {
+    if (isDurationOnly) {
+      if (durationOnlySeconds > MAX_MANUAL_DURATION_SECONDS) {
+        setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+        return
+      }
+    } else if (manualEntry.durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
       setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
       return
     }
 
-    const validationError = durationOnlyValidationError ?? durationParseError
-    if (validationError) {
-      setError(validationError)
-      return
-    }
+    const request = buildApproveRequest()
+    if (!request) return
 
-    const entryDateUtc = dateInputToUtcIso(durationOnlyDate)
-    if (!entryDateUtc) {
-      setError('Enter a valid date.')
-      return
-    }
-
-    setIsSaving(true)
+    setError(null)
+    setIsApproving(true)
     try {
-      const updated = await updatePendingTimeEntry(entry.id, {
-        description: description.trim() || undefined,
-        entryDateUtc,
-        durationSeconds: durationOnlySeconds,
-        isBillable,
-      })
-      onUpdated(updated)
+      await approvePendingTimeEntry(entry.id, request)
+      onApproved()
     } catch (err) {
       if (isDurationLimitError(err)) {
         setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
         return
       }
-      setError(apiErrorMessage(err, 'Could not save changes.'))
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleSaveRange = async () => {
-    setError(null)
-
-    if (validation.error) {
-      setError(validation.error)
-      return
-    }
-
-    if (validation.overlapWarning) {
-      setOverlapWarning(validation.overlapWarning)
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      const updated = await updatePendingTimeEntry(entry.id, {
-        description: description.trim() || undefined,
-        startedAtUtc: manualEntry.start.toISOString(),
-        endedAtUtc: manualEntry.end.toISOString(),
-        isBillable,
-      })
-      onUpdated(updated)
-      setOverlapWarning(null)
-    } catch (err) {
       if (isOverlapConflictError(err)) {
         setOverlapWarning(
           apiErrorMessage(err, 'This entry overlaps with an existing entry.'),
         )
         return
       }
-      setError(apiErrorMessage(err, 'Could not save changes.'))
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleApprove = async () => {
-    setError(null)
-    setIsApproving(true)
-    try {
-      await approvePendingTimeEntry(entry.id)
-      onApproved()
-    } catch (err) {
       setError(apiErrorMessage(err, 'Could not approve the entry.'))
     } finally {
       setIsApproving(false)
+    }
+  }
+
+  const handleReject = async () => {
+    setError(null)
+    setIsRejecting(true)
+    try {
+      await rejectPendingTimeEntry(entry.id)
+      onRejected()
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not reject the entry.'))
+    } finally {
+      setIsRejecting(false)
     }
   }
 
@@ -291,21 +278,21 @@ export function ReviewPendingEntryModal({
           <div className="mb-3 rounded-md bg-red-tint px-3 py-2.5 text-sm text-red">{blockingError}</div>
         ) : null}
 
-        <div className="mt-4.5 flex gap-2">
+        <div className="mt-4.5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
+            className="min-w-[5.5rem] flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={busy || Boolean(blockingError)}
-            onClick={() => void (isDurationOnly ? handleSaveDurationOnly() : handleSaveRange())}
-            className="flex-1 rounded-full border-control border-navy/15 bg-surface-muted py-2.5 font-display text-body font-semibold text-navy disabled:opacity-60"
+            disabled={busy}
+            onClick={() => void handleReject()}
+            className="min-w-[5.5rem] flex-1 rounded-full border-control border-red/30 bg-red-tint py-2.5 font-display text-body font-semibold text-red disabled:opacity-60"
           >
-            {isSaving ? 'Saving…' : 'Save edits'}
+            {isRejecting ? 'Rejecting…' : 'Reject'}
           </button>
           <button
             type="button"
@@ -315,7 +302,7 @@ export function ReviewPendingEntryModal({
               (!isDurationOnly && Boolean(endOrderError))
             }
             onClick={() => void handleApprove()}
-            className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white disabled:opacity-60"
+            className="min-w-[5.5rem] flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white disabled:opacity-60"
           >
             {isApproving ? 'Approving…' : 'Approve'}
           </button>

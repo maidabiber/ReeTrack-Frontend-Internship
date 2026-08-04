@@ -48,6 +48,11 @@ export function EntriesCard({
     void refresh()
   }
 
+  const handleRejected = () => {
+    setReviewEntry(null)
+    void refresh()
+  }
+
   const handleFavouriteClick = async (entry: TimeEntry) => {
     if (favouriteBusyId) return
 
@@ -156,6 +161,7 @@ export function EntriesCard({
             setReviewEntry(updated)
           }}
           onApproved={handleApproved}
+          onRejected={handleRejected}
         />
       ) : null}
 

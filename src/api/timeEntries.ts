@@ -249,8 +249,15 @@ export function updatePendingTimeEntry(
     .then(toTimeEntry)
 }
 
-export function approvePendingTimeEntry(id: string): Promise<TimeEntry> {
+export function approvePendingTimeEntry(
+  id: string,
+  request?: TimeEntryRequest,
+): Promise<TimeEntry> {
   return apiClient
-    .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`)
+    .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`, request)
     .then(toTimeEntry)
+}
+
+export function rejectPendingTimeEntry(id: string): Promise<void> {
+  return apiClient.post(`/time-entries/pending/${id}/reject`).then(() => undefined)
 }
