@@ -20,7 +20,11 @@ export function WeekHoursBarChart({
   todayIndex?: number
 }) {
   return (
-    <ChartContainer config={loggedSeriesConfig} className="h-44 w-full">
+    <ChartContainer
+      config={loggedSeriesConfig}
+      initialDimension={{ width: 280, height: 176 }}
+      className="h-44 min-w-0 w-full max-w-full overflow-hidden"
+    >
       <BarChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--color-gray-tint)" />
         <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={6} />

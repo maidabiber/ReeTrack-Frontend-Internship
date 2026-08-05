@@ -24,7 +24,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Time',
     items: [
-      { label: 'Overview', path: '/overview', icon: 'overview' },
+      {
+        label: 'Overview',
+        path: '/overview',
+        icon: 'overview',
+        anyPermission: [Permissions.ReportsView],
+      },
       { label: 'Timer', path: '/', icon: 'timer' },
       { label: 'Approvals', path: '/approvals', icon: 'approvals' },
     ],

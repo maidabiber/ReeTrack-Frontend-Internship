@@ -1,5 +1,6 @@
 import { Bar, BarChart, LabelList, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { BREAKPOINT, useMediaQuery } from '../../hooks/useMediaQuery'
 import { formatHoursLabel, loggedSeriesConfig } from './chartFormat'
 
 export interface ProjectHours {
@@ -14,20 +15,27 @@ function formatSecondsLabel(value: unknown): string {
 
 /** Horizontal per-project totals with direct value labels. */
 export function ProjectBreakdown({ data }: { data: ProjectHours[] }) {
+  const isSm = useMediaQuery(BREAKPOINT.sm)
+
   return (
     <ChartContainer
       config={loggedSeriesConfig}
+      initialDimension={{ width: 280, height: Math.max(56, data.length * 40) }}
       style={{ height: Math.max(56, data.length * 40) }}
-      className="w-full"
+      className="min-w-0 w-full max-w-full overflow-hidden"
     >
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ top: 0, right: isSm ? 48 : 36, left: 0, bottom: 0 }}
+      >
         <XAxis type="number" hide />
         <YAxis
           type="category"
           dataKey="name"
           tickLine={false}
           axisLine={false}
-          width={120}
+          width={isSm ? 120 : 84}
           tick={{ fill: 'var(--color-navy)' }}
         />
         <ChartTooltip

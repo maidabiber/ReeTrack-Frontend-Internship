@@ -12,7 +12,7 @@ export function ChartCard({
   children: ReactNode
 }) {
   return (
-    <div className="rounded-2xl bg-white px-5 py-4 shadow-card">
+    <div className="min-w-0 max-w-full rounded-2xl bg-white px-4 py-4 shadow-card sm:px-5">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-display text-body font-bold text-navy">{title}</h3>
         {action}

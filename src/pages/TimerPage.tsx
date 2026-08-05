@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { TrackerBar } from '../components/time/TrackerBar'
 import { Toolbar, type TimerContentView } from '../components/time/Toolbar'
@@ -6,6 +6,8 @@ import { EntriesCard } from '../components/time/EntriesCard'
 import { EventCalendar } from '../components/calendar/EventCalendar'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import type { DateRangeKey } from '../lib/dateRangeFilter'
+import { useAuth } from '../hooks/useAuth'
+import { Permissions } from '../lib/permissions'
 
 // Lazy so recharts (the heaviest dependency) stays out of the main bundle
 // until the timesheet view is actually opened.
@@ -24,10 +26,22 @@ const TimesheetView = lazy(() =>
  */
 export default function TimerPage() {
   const navigate = useNavigate()
+  const { isAuthenticated, isInitializing, hasPermission } = useAuth()
   const isTimesheet = useLocation().pathname.startsWith('/timesheet')
   const [listView, setListView] = useState<Exclude<TimerContentView, 'timesheet'>>('list')
   const [dateRange, setDateRange] = useState<DateRangeKey>('all')
   const contentView: TimerContentView = isTimesheet ? 'timesheet' : listView
+
+  // Redirect admins/PMs to /overview on the initial app load only.
+  // Uses a module-level flag so navigating back to / doesn't re-redirect.
+  useEffect(() => {
+    if (!isInitializing && isAuthenticated && hasPermission(Permissions.ReportsView)) {
+      if (!sessionStorage.getItem('overviewRedirected')) {
+        sessionStorage.setItem('overviewRedirected', '1')
+        navigate('/overview', { replace: true })
+      }
+    }
+  }, [isInitializing, isAuthenticated, hasPermission, navigate])
 
   const handleContentViewChange = (view: TimerContentView) => {
     if (view === 'timesheet') {

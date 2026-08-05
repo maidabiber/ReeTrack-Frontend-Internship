@@ -16,9 +16,9 @@ export function StatTile({
   delta?: StatDelta
 }) {
   return (
-    <div className="rounded-2xl bg-white px-5 py-4 shadow-card">
-      <p className="font-mono text-xs uppercase tracking-[0.12em] text-navy/45">{label}</p>
-      <p className="mt-1 font-mono text-xl font-medium text-navy">{value}</p>
+    <div className="min-w-0 rounded-2xl bg-white px-5 py-4 shadow-card">
+      <p className="break-words font-mono text-xs uppercase tracking-[0.12em] text-navy/45">{label}</p>
+      <p className="mt-1 break-words font-mono text-xl font-medium text-navy">{value}</p>
       {delta ? <DeltaChip {...delta} /> : null}
     </div>
   )
