@@ -3,8 +3,11 @@ import { Link, useParams } from 'react-router-dom'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 import { Modal } from '../components/ui/Modal'
+import { SegmentedTabs } from '../components/directory/DirectoryControls'
+import { PAGE_PAD } from '../components/layout/pageChrome'
 import { ProjectModal } from '../components/projects/ProjectModal'
 import { ProjectCostCard } from '../components/projects/ProjectCostCard'
+import { ProjectThresholdsCard } from '../components/projects/ProjectThresholdsCard'
 import { apiErrorMessage } from '../api/client'
 import { getProject, updateProject } from '../api/projects'
 import { createTask, deleteTask, listTasks, updateTask } from '../api/tasks'
@@ -12,11 +15,13 @@ import { listMembers, type Member } from '../api/members'
 import { fetchAllPages } from '../api/pagination'
 import { useAuth } from '../hooks/useAuth'
 import { Permissions } from '../lib/permissions'
+import { canManageProjectThresholds } from '../lib/projectThresholds'
 import { formatMoney } from '../lib/projectFormat'
 import { formatPlannedVsActual } from '../lib/projectFormat'
 import type { Project } from '../types/project'
 import type { Task } from '../types/task'
-import { PAGE_PAD } from '../components/layout/pageChrome'
+
+type ProjectDetailTab = 'tasks' | 'cost' | 'alerts'
 
 const STATUS_DOT: Record<'active' | 'archived', string> = {
   active: 'bg-[#1E8A57]',
@@ -32,16 +37,18 @@ function formatDate(iso: string): string {
 }
 
 /**
- * RT-37/RT-42 — a single project with its billing details and task list. Tasks
- * can be added inline, toggled done, reassigned, renamed (modal) and deleted;
- * deleting a task with tracked time is blocked server-side (409) and surfaced as
- * a notice.
+ * RT-37/RT-42 — a single project with billing details and tabbed Tasks / Cost /
+ * Alerts content. Alerts (cost and time-estimate thresholds) are Admin-only.
+ * Tasks can be added inline, toggled done, reassigned, renamed (modal) and
+ * deleted; deleting a task with tracked time is blocked server-side (409) and
+ * surfaced as a notice.
  */
 export default function ProjectDetailPage() {
   const { id = '' } = useParams()
-  const { user, hasPermission } = useAuth()
+  const { user, role, hasPermission } = useAuth()
   const canManageProjects = hasPermission(Permissions.ProjectsManage)
   const isAdmin = user?.role === 'Admin'
+  const canManageAlerts = canManageProjectThresholds(role)
 
   const [project, setProject] = useState<Project | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
@@ -53,6 +60,19 @@ export default function ProjectDetailPage() {
   const [editingProject, setEditingProject] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null)
+  const [tab, setTab] = useState<ProjectDetailTab>('tasks')
+
+  const tabOptions = useMemo(() => {
+    const options: Array<{ value: ProjectDetailTab; label: string }> = [
+      { value: 'tasks', label: 'Tasks' },
+      { value: 'cost', label: 'Cost' },
+    ]
+    if (canManageAlerts) options.push({ value: 'alerts', label: 'Alerts' })
+    return options
+  }, [canManageAlerts])
+
+  const activeTab: ProjectDetailTab =
+    tab === 'alerts' && !canManageAlerts ? 'tasks' : tab
 
   const refresh = () => setReloadKey((key) => key + 1)
 
@@ -231,32 +251,54 @@ export default function ProjectDetailPage() {
           <InfoRow label="Created" value={formatDate(project.createdAtUtc)} />
         </div>
 
-        <ProjectCostCard
-          projectId={project.id}
-          currencyCode={project.currencyCode}
-          tasks={tasks}
-          onError={showNotice}
-        />
+        <SegmentedTabs options={tabOptions} value={activeTab} onChange={setTab} />
 
-        {/* Tasks card */}
-        <TasksCard
-          projectId={project.id}
-          tasks={tasks}
-          members={members}
-          openTaskMenuId={openTaskMenuId}
-          onToggleTaskMenu={setOpenTaskMenuId}
-          onCreated={() => {
-            refresh()
-          }}
-          onToggleDone={handleToggleTaskDone}
-          onReassign={handleReassign}
-          onRename={(task) => {
-            setOpenTaskMenuId(null)
-            setEditingTask(task)
-          }}
-          onDelete={handleDeleteTask}
-          onError={showNotice}
-        />
+        {activeTab === 'tasks' && (
+          <TasksCard
+            projectId={project.id}
+            tasks={tasks}
+            members={members}
+            openTaskMenuId={openTaskMenuId}
+            onToggleTaskMenu={setOpenTaskMenuId}
+            onCreated={() => {
+              refresh()
+            }}
+            onToggleDone={handleToggleTaskDone}
+            onReassign={handleReassign}
+            onRename={(task) => {
+              setOpenTaskMenuId(null)
+              setEditingTask(task)
+            }}
+            onDelete={handleDeleteTask}
+            onError={showNotice}
+          />
+        )}
+
+        {activeTab === 'cost' && (
+          <ProjectCostCard
+            projectId={project.id}
+            currencyCode={project.currencyCode}
+            tasks={tasks}
+            onError={showNotice}
+          />
+        )}
+
+        {activeTab === 'alerts' && canManageAlerts && (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <ProjectThresholdsCard
+              projectId={project.id}
+              metricType="TimeEstimate"
+              hasBaseline={project.timeEstimateHours !== null && project.timeEstimateHours > 0}
+              onError={showNotice}
+            />
+            <ProjectThresholdsCard
+              projectId={project.id}
+              metricType="Cost"
+              hasBaseline={project.fixedFeeAmount !== null && project.fixedFeeAmount > 0}
+              onError={showNotice}
+            />
+          </div>
+        )}
       </div>
 
       {canManageProject && editingProject && (

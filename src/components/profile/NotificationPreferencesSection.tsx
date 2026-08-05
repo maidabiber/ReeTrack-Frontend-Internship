@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   listNotificationPreferences,
   notificationPreferencesErrorMessage,
   updateNotificationPreferences,
 } from '../../api/notificationPreferences'
 import { getSlackStatus, slackStatusErrorMessage, type SlackStatus } from '../../api/slack'
+import { useAuth } from '../../hooks/useAuth'
+import { canManageProjectThresholds } from '../../lib/projectThresholds'
 import {
   PROFILE_NOTIFICATION_TYPES,
   PROFILE_TOGGLE_CHANNELS,
@@ -13,8 +15,13 @@ import {
   type NotificationPreference,
   type NotificationType,
   type PrefsMatrix,
+  type ProfileNotificationTypeRow,
   type ToggleableDeliveryChannel,
 } from '../../types/notificationPreferences'
+
+function visibleNotificationTypes(canManageAlerts: boolean): ProfileNotificationTypeRow[] {
+  return PROFILE_NOTIFICATION_TYPES.filter((row) => !row.adminOnly || canManageAlerts)
+}
 
 function applyPreferencesToMatrix(
   items: NotificationPreference[],
@@ -38,6 +45,7 @@ function syncChannelSlice(
   saved: NotificationPreference[],
   fallback: PrefsMatrix[ToggleableDeliveryChannel],
   defaults: PrefsMatrix[ToggleableDeliveryChannel],
+  typesToSync: readonly ProfileNotificationTypeRow[],
 ): PrefsMatrix[ToggleableDeliveryChannel] {
   const synced = { ...defaults }
   for (const item of saved) {
@@ -45,7 +53,7 @@ function syncChannelSlice(
       synced[item.notificationType] = item.isEnabled
     }
   }
-  for (const row of PROFILE_NOTIFICATION_TYPES) {
+  for (const row of typesToSync) {
     if (!saved.some((item) => item.notificationType === row.type && item.deliveryChannel === channel)) {
       synced[row.type] = fallback[row.type]
     }
@@ -58,6 +66,13 @@ interface NotificationPreferencesSectionProps {
 }
 
 export function NotificationPreferencesSection({ userId }: NotificationPreferencesSectionProps) {
+  const { role } = useAuth()
+  const canManageAlerts = canManageProjectThresholds(role)
+  const visiblePrefs = useMemo(
+    () => visibleNotificationTypes(canManageAlerts),
+    [canManageAlerts],
+  )
+
   const [prefs, setPrefs] = useState<PrefsMatrix>(() => createDefaultPrefsMatrix())
   const [loadedPrefsUserId, setLoadedPrefsUserId] = useState<string | null>(null)
   const [prefsSaving, setPrefsSaving] = useState(false)
@@ -118,10 +133,12 @@ export function NotificationPreferencesSection({ userId }: NotificationPreferenc
       setPrefsSaving(true)
       setPrefsError(null)
 
+      const typesToSave = visibleNotificationTypes(canManageAlerts)
+
       try {
         const saved = await updateNotificationPreferences(
           userId,
-          PROFILE_NOTIFICATION_TYPES.map((row) => ({
+          typesToSave.map((row) => ({
             notificationType: row.type,
             deliveryChannel: channel,
             isEnabled: nextSlice[row.type],
@@ -134,6 +151,7 @@ export function NotificationPreferencesSection({ userId }: NotificationPreferenc
             saved,
             nextSlice,
             createDefaultPrefsMatrix()[channel],
+            typesToSave,
           ),
         }))
       } catch (error: unknown) {
@@ -143,7 +161,7 @@ export function NotificationPreferencesSection({ userId }: NotificationPreferenc
         setPrefsSaving(false)
       }
     },
-    [prefs, userId],
+    [canManageAlerts, prefs, userId],
   )
 
   const showSlackColumn = slackStatus?.isMember === true
@@ -213,7 +231,7 @@ export function NotificationPreferencesSection({ userId }: NotificationPreferenc
             </tr>
           </thead>
           <tbody>
-            {PROFILE_NOTIFICATION_TYPES.map((row) => (
+            {visiblePrefs.map((row) => (
               <tr key={row.type} className="border-b border-navy/[0.06] last:border-b-0">
                 <td className="px-6 py-4">
                   <p className="font-display text-md font-semibold text-navy">{row.label}</p>

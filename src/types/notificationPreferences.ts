@@ -2,7 +2,11 @@
  * Notification preference types (mirrors backend NotificationType / DeliveryChannel).
  */
 
-export type NotificationType = 'TimeEntryShared' | 'TimesheetDecision' | 'WeeklyTargetCheckIn'
+export type NotificationType =
+  | 'TimeEntryShared'
+  | 'TimesheetDecision'
+  | 'ProjectThresholdAlert'
+  | 'WeeklyTargetCheckIn'
 
 export type DeliveryChannel = 'Email' | 'InApp' | 'Slack'
 
@@ -20,24 +24,39 @@ export interface UpsertNotificationPreference {
   isEnabled: boolean
 }
 
+export interface ProfileNotificationTypeRow {
+  type: NotificationType
+  label: string
+  description: string
+  /** When true, only Admins (and later Project Managers) see this row. */
+  adminOnly?: boolean
+}
+
 /** Workflow notification types shown on Profile (InApp mandatory; Email/Slack optional). */
-export const PROFILE_NOTIFICATION_TYPES = [
+export const PROFILE_NOTIFICATION_TYPES: readonly ProfileNotificationTypeRow[] = [
   {
-    type: 'TimeEntryShared' as const,
+    type: 'TimeEntryShared',
     label: 'Shared time entries',
     description: 'When someone logs time on your behalf and needs your approval.',
   },
   {
-    type: 'TimesheetDecision' as const,
+    type: 'TimesheetDecision',
     label: 'Timesheet reviews',
     description: 'When your timesheet is approved or sent back for changes.',
   },
   {
-    type: 'WeeklyTargetCheckIn' as const,
+    type: 'WeeklyTargetCheckIn',
     label: 'Weekly target check-in',
     description: 'Friday progress toward your hour target, with remaining hours and tips.',
   },
-] as const
+  {
+    type: 'ProjectThresholdAlert',
+    label: 'Project threshold alerts',
+    description:
+      'When a project reaches a configured percentage of its fixed fee or time estimate.',
+    adminOnly: true,
+  },
+]
 
 /** Toggleable Profile columns (InApp is mandatory and not listed here). */
 export const PROFILE_TOGGLE_CHANNELS = [
