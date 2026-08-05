@@ -67,6 +67,7 @@ export function mapTimeEntryToCalendarEvent(entry: TimeEntry): CalendarEvent | n
     start,
     end,
     color: timeEntryColor(entry),
+    status: entry.status,
   }
 }
 

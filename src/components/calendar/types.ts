@@ -1,3 +1,5 @@
+import type { TimeEntryStatus } from '../../types/timeEntry'
+
 export type EventColor = `#${string}`
 
 export type CalendarEventKind = 'timeEntry' | 'calendarEvent'
@@ -12,6 +14,7 @@ export interface CalendarEvent {
   location?: string
   htmlLink?: string
   color?: EventColor
+  status?: TimeEntryStatus
 }
 
 export interface EventLayout {

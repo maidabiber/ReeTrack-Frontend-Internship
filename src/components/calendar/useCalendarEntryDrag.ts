@@ -18,6 +18,7 @@ export interface DragPreview {
   start: Date
   end: Date
   day: Date
+  ctrlKey: boolean
 }
 
 export interface ColumnRect {
@@ -33,6 +34,7 @@ interface UseCalendarEntryDragOptions {
   getColumnRects: () => ColumnRect[]
   onEventClick?: (event: CalendarEvent) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventDuplicate?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
   isEventEditable?: (event: CalendarEvent) => boolean
 }
 
@@ -48,6 +50,7 @@ interface PointerSession {
   longPressTimer: ReturnType<typeof setTimeout> | null
   isDragging: boolean
   moved: boolean
+  ctrlKey: boolean
 }
 
 export function useCalendarEntryDrag({
@@ -56,6 +59,7 @@ export function useCalendarEntryDrag({
   getColumnRects,
   onEventClick,
   onEventMove,
+  onEventDuplicate,
   isEventEditable,
 }: UseCalendarEntryDragOptions) {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
@@ -140,7 +144,7 @@ export function useCalendarEntryDrag({
   )
 
   const computePreview = useCallback(
-    (session: PointerSession, clientX: number, clientY: number, altKey: boolean): DragPreview | null => {
+    (session: PointerSession, clientX: number, clientY: number, altKey: boolean, ctrlKey: boolean): DragPreview | null => {
       const targetDay = resolveTargetDay(session, clientX)
 
       const deltaY = clientY - session.originY
@@ -163,6 +167,7 @@ export function useCalendarEntryDrag({
         start: clamped.start,
         end: clamped.end,
         day: targetDay,
+        ctrlKey,
       }
     },
     [allowHorizontal, hourHeight, resolveTargetDay],
@@ -183,7 +188,11 @@ export function useCalendarEntryDrag({
             preview.end.getTime() !== session.originEnd.getTime()
 
           if (timesChanged) {
-            onEventMove?.(session.event, preview.start, preview.end)
+            if (session.ctrlKey) {
+              onEventDuplicate?.(session.event, preview.start, preview.end)
+            } else {
+              onEventMove?.(session.event, preview.start, preview.end)
+            }
           }
         }
       } else if (!session.isDragging && !session.moved) {
@@ -192,7 +201,7 @@ export function useCalendarEntryDrag({
 
       clearSession()
     },
-    [clearSession, onEventClick, onEventMove],
+    [clearSession, onEventClick, onEventDuplicate, onEventMove],
   )
 
   const attachWindowListeners = useCallback(
@@ -217,8 +226,9 @@ export function useCalendarEntryDrag({
 
         event.preventDefault()
         active.moved = true
+        active.ctrlKey = event.ctrlKey
 
-        const preview = computePreview(active, event.clientX, event.clientY, event.altKey)
+        const preview = computePreview(active, event.clientX, event.clientY, event.altKey, active.ctrlKey)
         if (preview) {
           scheduleDragPreview(preview)
         }
@@ -262,6 +272,7 @@ export function useCalendarEntryDrag({
         longPressTimer: null,
         isDragging: false,
         moved: false,
+        ctrlKey: false,
       }
 
       session.longPressTimer = setTimeout(() => {
@@ -273,6 +284,7 @@ export function useCalendarEntryDrag({
           start: event.start,
           end: event.end,
           day: session.originDay,
+          ctrlKey: false,
         })
       }, LONG_PRESS_MS)
 
@@ -286,22 +298,42 @@ export function useCalendarEntryDrag({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && sessionRef.current?.isDragging) {
         clearSession()
+        return
+      }
+
+      if ((event.key === 'Control' || event.key === 'Meta') && sessionRef.current?.isDragging) {
+        const preview = dragPreviewRef.current
+        if (preview && !preview.ctrlKey) {
+          scheduleDragPreview({ ...preview, ctrlKey: true })
+        }
+      }
+    }
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if ((event.key === 'Control' || event.key === 'Meta') && sessionRef.current?.isDragging) {
+        const preview = dragPreviewRef.current
+        if (preview && preview.ctrlKey) {
+          scheduleDragPreview({ ...preview, ctrlKey: false })
+        }
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
       removeWindowListeners()
       cancelPreviewRaf()
     }
-  }, [cancelPreviewRaf, clearSession, removeWindowListeners])
+  }, [cancelPreviewRaf, clearSession, removeWindowListeners, scheduleDragPreview])
 
   const isDragging = dragPreview !== null
 
   return {
     dragPreview,
     isDragging,
+    isDuplicateDrag: isDragging && dragPreview.ctrlKey,
     handlePointerDown,
     refreshColumnRects,
   }

@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../../api/client'
 import { listHolidays } from '../../api/holidays'
 import { CreateEntryModal } from '../time/CreateEntryModal'
 import { EditEntryModal } from '../time/EditEntryModal'
+import { ReviewPendingEntryModal } from '../time/ReviewPendingEntryModal'
 
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { OverlapAlertModal } from '../time/overlapAlert'
@@ -48,7 +49,7 @@ interface PendingDragSave {
 }
 
 export function EventCalendar() {
-  const { entries, activeTimer, elapsedSeconds, updateEntry } = useTimer()
+  const { entries, activeTimer, elapsedSeconds, updateEntry, refresh, addManualEntry } = useTimer()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const isMd = useMediaQuery(BREAKPOINT.md)
   // A 7-column week needs real width; below `md` there is only ever room for a day, so
@@ -62,6 +63,7 @@ export function EventCalendar() {
   const [reloadKey, setReloadKey] = useState(0)
   const [hourHeight, setHourHeight] = useState(DEFAULT_HOUR_HEIGHT)
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const [reviewingEntry, setReviewingEntry] = useState<TimeEntry | null>(null)
   const [readonlyCalendarEvent, setReadonlyCalendarEvent] = useState<CalendarEvent | null>(null)
   const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
   const [creatingRange, setCreatingRange] = useState<{ start: Date; end: Date } | null>(null)
@@ -218,6 +220,33 @@ export function EventCalendar() {
     [isEventEditable, overlapAlert, resolveEntry, updateEntry],
   )
 
+  const handleEventDuplicate = useCallback(
+    async (event: CalendarEvent, newStart: Date, newEnd: Date) => {
+      if (!isEventEditable(event)) return
+
+      const entry = resolveEntry(event)
+      if (!entry) return
+
+      await overlapAlert.saveOrShowOverlapAlert({
+        validationError: null,
+        onValidationError: () => undefined,
+        save: async () => {
+          await addManualEntry({
+            description: entry.description ?? undefined,
+            isBillable: entry.isBillable,
+            startedAtUtc: newStart.toISOString(),
+            endedAtUtc: newEnd.toISOString(),
+            projectId: entry.projectId,
+            projectTaskId: entry.projectTaskId,
+            tagIds: entry.tags.map((tag) => tag.id),
+          })
+          overlapAlert.clearOverlapAlert()
+        },
+      })
+    },
+    [isEventEditable, resolveEntry, addManualEntry, overlapAlert],
+  )
+
   function handleCreateFromCalendarEvent(event: CalendarEvent) {
     if (weekLock.locked) return
     setReadonlyCalendarEvent(null)
@@ -247,7 +276,13 @@ export function EventCalendar() {
   function handleWeekEventClick(event: CalendarEvent) {
     if (event.kind === 'timeEntry') {
       const entry = resolveEntry(event)
-      if (entry) setEditingEntry(entry)
+      if (entry) {
+        if (entry.status === 'Pending') {
+          setReviewingEntry(entry)
+        } else {
+          setEditingEntry(entry)
+        }
+      }
       return
     }
 
@@ -330,13 +365,22 @@ export function EventCalendar() {
           onEventSelect={isMd ? handleDayEventSelect : handleMobileDayEventSelect}
           showSidePanel={isMd}
           onEventMove={handleEventMove}
+          onEventDuplicate={handleEventDuplicate}
           onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
           canEditSelectedEvent={canEditSelectedEvent}
           holidaysByDate={holidaysByDate}
           onEditEntry={
-            selectedTimeEntry ? () => setEditingEntry(selectedTimeEntry) : undefined
+            selectedTimeEntry
+              ? () => {
+                if (selectedTimeEntry.status === 'Pending') {
+                  setReviewingEntry(selectedTimeEntry)
+                } else {
+                  setEditingEntry(selectedTimeEntry)
+                }
+              }
+              : undefined
           }
           onCreateTimeEntry={
             selectedEvent?.kind === 'calendarEvent'
@@ -353,6 +397,7 @@ export function EventCalendar() {
           selectedEventId={selectedEventId}
           onEventClick={handleWeekEventClick}
           onEventMove={handleEventMove}
+          onEventDuplicate={handleEventDuplicate}
           onEventCreate={weekLock.locked ? undefined : handleEventCreate}
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
@@ -368,6 +413,23 @@ export function EventCalendar() {
 
       {editingEntry ? (
         <EditEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)} />
+      ) : null}
+
+      {reviewingEntry ? (
+        <ReviewPendingEntryModal
+          entry={reviewingEntry}
+          allPending={entries.filter((e) => e.status === 'Confirmed' && e.id !== reviewingEntry.id)}
+          onClose={() => setReviewingEntry(null)}
+          onUpdated={() => {}}
+          onApproved={() => {
+            void refresh()
+            setReviewingEntry(null)
+          }}
+          onRejected={() => {
+            void refresh()
+            setReviewingEntry(null)
+          }}
+        />
       ) : null}
 
       {creatingFromEvent ? (

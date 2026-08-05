@@ -19,6 +19,7 @@ interface EventBlockProps {
   isDragSource?: boolean
   isDragPreview?: boolean
   isResizePreview?: boolean
+  isDuplicateDrag?: boolean
   onPointerDown?: (event: React.PointerEvent) => void
   onResizeStartPointerDown?: (event: React.PointerEvent) => void
   onResizeEndPointerDown?: (event: React.PointerEvent) => void
@@ -40,6 +41,7 @@ export function EventBlock({
   isDragSource = false,
   isDragPreview = false,
   isResizePreview = false,
+  isDuplicateDrag = false,
   onPointerDown,
   onResizeStartPointerDown,
   onResizeEndPointerDown,
@@ -47,7 +49,8 @@ export function EventBlock({
 }: EventBlockProps) {
   const [isHovered, setIsHovered] = useState(false)
   const accentColor = event.color ?? NO_ACCENT_COLOR
-  const fillColor = softAccentFill(accentColor)
+  const isPending = event.status === 'Pending'
+  const fillColor = isPending ? '#d4def8' : softAccentFill(accentColor)
 
   const dayHeightPx = hourHeight * 24
   const minHeightPx = compact ? 18 : 22
@@ -97,7 +100,7 @@ export function EventBlock({
           isElevated ? 'overflow-visible shadow-lg' : 'overflow-hidden'
         } ${isDragSource ? 'opacity-30' : ''} ${
           isDragPreview || isResizePreview
-            ? 'scale-[1.02] cursor-grabbing'
+            ? `scale-[1.02] ${isDuplicateDrag ? 'cursor-copy' : 'cursor-grabbing'}`
             : editable
               ? 'cursor-grab'
               : 'cursor-pointer'
@@ -106,6 +109,11 @@ export function EventBlock({
         <div className="truncate font-display text-xs font-semibold leading-tight text-navy">
           {event.title}
         </div>
+        {isPending && (
+          <div className="truncate text-[10px] font-medium uppercase tracking-wide text-brand/70">
+            Pending
+          </div>
+        )}
         {(isHovered || isDragPreview || isResizePreview) && (
           <div className="truncate text-xs text-navy/55">
             {formatTimeRange(event.start, event.end)}

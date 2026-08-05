@@ -39,6 +39,7 @@ interface TimeGridProps {
   selectedEventId?: string | null
   onEventClick?: (event: CalendarEvent) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventDuplicate?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
   onEventCreate?: (start: Date, end: Date) => void
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
@@ -58,6 +59,7 @@ export function TimeGrid({
   selectedEventId,
   onEventClick,
   onEventMove,
+  onEventDuplicate,
   onEventCreate,
   pendingCreateRange,
   isEventEditable,
@@ -93,6 +95,7 @@ export function TimeGrid({
   const {
     dragPreview,
     isDragging,
+    isDuplicateDrag,
     handlePointerDown,
     refreshColumnRects,
   } = useCalendarEntryDrag({
@@ -101,6 +104,7 @@ export function TimeGrid({
     getColumnRects,
     onEventClick,
     onEventMove,
+    onEventDuplicate,
     isEventEditable,
   })
 
@@ -210,6 +214,7 @@ export function TimeGrid({
       isDragSource?: boolean
       isDragPreview?: boolean
       isResizePreview?: boolean
+      isDuplicateDrag?: boolean
       enablePointer?: boolean
       enableResize?: boolean
     },
@@ -237,6 +242,7 @@ export function TimeGrid({
         isDragSource={options.isDragSource}
         isDragPreview={options.isDragPreview}
         isResizePreview={options.isResizePreview}
+        isDuplicateDrag={options.isDuplicateDrag}
         onPointerDown={
           useDragInteraction && canInteract && !isResizing
             ? (pointerEvent) => handlePointerDown(event, pointerEvent)
@@ -345,7 +351,7 @@ export function TimeGrid({
               const isBeingResized = resizePreview?.event.id === event.id && isResizing
               const previewOnThisDay = isBeingDragged && isSameDay(dragPreview.day, day)
               const resizeOnThisDay = isBeingResized && isSameDay(resizePreview.day, day)
-              const sourceOnThisDay = isBeingDragged && isSameDay(event.start, day) && !previewOnThisDay
+              const sourceOnThisDay = isBeingDragged && isSameDay(event.start, day)
 
               if (resizeOnThisDay) {
                 blocks.push(
@@ -355,24 +361,42 @@ export function TimeGrid({
                     isResizePreview: true,
                   }),
                 )
-              } else if (previewOnThisDay) {
+              }
+
+              if (previewOnThisDay && !resizeOnThisDay) {
                 blocks.push(
                   renderEventBlock(event, day, column, totalColumns, {
                     start: dragPreview.start,
                     end: dragPreview.end,
                     isDragPreview: true,
+                    isDuplicateDrag: isDuplicateDrag,
                     enablePointer: true,
                   }),
                 )
-              } else if (sourceOnThisDay) {
-                blocks.push(
-                  renderEventBlock(event, day, column, totalColumns, {
-                    start: event.start,
-                    end: event.end,
-                    isDragSource: true,
-                  }),
-                )
-              } else if (!isBeingDragged && !isBeingResized) {
+              }
+
+              if (sourceOnThisDay && !resizeOnThisDay) {
+                if (isDuplicateDrag) {
+                  blocks.push(
+                    renderEventBlock(event, day, column, totalColumns, {
+                      start: event.start,
+                      end: event.end,
+                      enablePointer: true,
+                      enableResize: true,
+                    }),
+                  )
+                } else {
+                  blocks.push(
+                    renderEventBlock(event, day, column, totalColumns, {
+                      start: event.start,
+                      end: event.end,
+                      isDragSource: true,
+                    }),
+                  )
+                }
+              }
+
+              if (!isBeingDragged && !isBeingResized) {
                 blocks.push(
                   renderEventBlock(event, day, column, totalColumns, {
                     start: event.start,
@@ -395,6 +419,7 @@ export function TimeGrid({
                   start: dragPreview.start,
                   end: dragPreview.end,
                   isDragPreview: true,
+                  isDuplicateDrag: isDuplicateDrag,
                   enablePointer: true,
                 }),
               )

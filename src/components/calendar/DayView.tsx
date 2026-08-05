@@ -18,6 +18,7 @@ interface DayViewProps {
   /** Mini-month + detail panel need real width; below `md` a WeekStrip replaces them. */
   showSidePanel?: boolean
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventDuplicate?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
   onEventCreate?: (start: Date, end: Date) => void
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
@@ -38,6 +39,7 @@ export function DayView({
   onEventSelect,
   showSidePanel = true,
   onEventMove,
+  onEventDuplicate,
   onEventCreate,
   pendingCreateRange,
   isEventEditable,
@@ -77,6 +79,7 @@ export function DayView({
           selectedEventId={selectedEventId}
           onEventClick={(event) => onEventSelect(event)}
           onEventMove={onEventMove}
+          onEventDuplicate={onEventDuplicate}
           onEventCreate={onEventCreate}
           pendingCreateRange={pendingCreateRange}
           isEventEditable={isEventEditable}

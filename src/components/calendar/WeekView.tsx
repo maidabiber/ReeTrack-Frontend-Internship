@@ -10,6 +10,7 @@ interface WeekViewProps {
   selectedEventId: string | null
   onEventClick: (event: CalendarEvent) => void
   onEventMove?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
+  onEventDuplicate?: (event: CalendarEvent, newStart: Date, newEnd: Date) => void
   onEventCreate?: (start: Date, end: Date) => void
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
@@ -24,6 +25,7 @@ export function WeekView({
   selectedEventId,
   onEventClick,
   onEventMove,
+  onEventDuplicate,
   onEventCreate,
   pendingCreateRange,
   isEventEditable,
@@ -41,6 +43,7 @@ export function WeekView({
         selectedEventId={selectedEventId}
         onEventClick={onEventClick}
         onEventMove={onEventMove}
+        onEventDuplicate={onEventDuplicate}
         onEventCreate={onEventCreate}
         pendingCreateRange={pendingCreateRange}
         isEventEditable={isEventEditable}
