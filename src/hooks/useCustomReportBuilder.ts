@@ -15,6 +15,7 @@ import {
 } from '../lib/customReportSpec'
 import { cloneReportQuery } from '../lib/reportQuery'
 import type {
+  ComparisonMode,
   CustomReportResult,
   CustomReportSpec,
   ReportBlockSpec,
@@ -124,6 +125,12 @@ export function useCustomReportBuilder(resetKey?: string | null, initialSpec?: C
     })
   }, [])
 
+  const setComparison = useCallback((comparison: ComparisonMode) => {
+    setDraftSpec((previous) =>
+      previous.comparison === comparison ? previous : { ...cloneSpec(previous), comparison },
+    )
+  }, [])
+
   const setBlocks = useCallback((blocks: ReportBlockSpec[]) => {
     setDraftSpec((previous) => {
       const next = cloneSpec(previous)
@@ -195,6 +202,7 @@ export function useCustomReportBuilder(resetKey?: string | null, initialSpec?: C
     isDirty,
     hasApplied,
     patchQuery,
+    setComparison,
     setBlocks,
     addBlockType,
     removeBlockById,

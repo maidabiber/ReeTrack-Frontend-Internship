@@ -27,10 +27,11 @@ import { useTransientNotice } from '../hooks/useTransientNotice'
 import { useCustomReportBuilder } from '../hooks/useCustomReportBuilder'
 import { BREAKPOINT, useMediaQuery } from '../hooks/useMediaQuery'
 import { useReportCatalogue } from '../hooks/useReportCatalogue'
-import { cloneSpec, specsEqual } from '../lib/customReportSpec'
+import { COMPARISON_OPTIONS, cloneSpec, specsEqual } from '../lib/customReportSpec'
 import { Permissions } from '../lib/permissions'
 import { formatPeriodLabel } from '../lib/reportView'
 import type {
+  ComparisonMode,
   CustomReportDefinition,
   CustomReportSpec,
   CustomReportVisibility,
@@ -94,6 +95,7 @@ function ReportBuilder({
     isDirty,
     hasApplied,
     patchQuery,
+    setComparison,
     setBlocks,
     addBlockType,
     removeBlockById,
@@ -345,7 +347,7 @@ function ReportBuilder({
               </div>
             ) : null}
             {report.blocks.map((block) => (
-              <BlockRenderer key={block.id} block={block} />
+              <BlockRenderer key={block.id} block={block} comparisonMode={report.comparison?.mode} />
             ))}
           </div>
         ) : null}
@@ -424,6 +426,21 @@ function ReportBuilder({
           onPatch={patchQuery}
           onReset={resetQuery}
         />
+        <label className="flex items-center gap-1.5">
+          <span className="sr-only">Comparison period</span>
+          <select
+            value={draftSpec.comparison ?? 'None'}
+            onChange={(event) => setComparison(event.target.value as ComparisonMode)}
+            className="rounded-full border border-navy/10 bg-white px-3 py-2 text-body text-navy outline-none focus:border-brand"
+          >
+            {COMPARISON_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button
           type="button"
           onClick={isDirty || !hasApplied ? applySpec : refresh}
@@ -469,6 +486,7 @@ function ReportBuilder({
             <div>
               <BlockCanvasList
                 blocks={draftSpec.blocks}
+                spec={draftSpec}
                 catalogue={catalogue}
                 previews={previews}
                 compactEditors={!isLg}

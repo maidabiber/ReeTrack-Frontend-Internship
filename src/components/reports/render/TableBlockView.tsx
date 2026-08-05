@@ -1,8 +1,24 @@
-import type { TableColumn, TableResult } from '../../../types/customReport'
+import type { TableCell, TableColumn, TableResult } from '../../../types/customReport'
+import { formatReportMoney } from '../../../lib/reportView'
 import { ChartCard, EmptyNote } from '../ChartCard'
 
 function isNumericColumn(columnType: TableColumn['columnType']): boolean {
   return columnType !== 'Text' && columnType !== 'Date'
+}
+
+/** "(was 12.50 USD)" for a comparison baseline, formatted like the column formats its own value. */
+function previousSuffix(cell: TableCell | undefined, column: TableColumn): string {
+  const previous = cell?.previousNumber
+  if (previous == null) return ''
+
+  const formatted =
+    column.columnType === 'Money'
+      ? formatReportMoney(previous, column.currencyCode ?? '')
+      : column.columnType === 'Percent'
+        ? `${previous.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`
+        : previous.toLocaleString('en-US', { maximumFractionDigits: 2 })
+
+  return ` (was ${formatted})`
 }
 
 export function TableBlockView({ block }: { block: TableResult }) {
@@ -84,6 +100,7 @@ export function TableBlockView({ block }: { block: TableResult }) {
                             }`}
                           >
                             {cell?.display ?? (isGroupHeader && !isFirst ? '' : '—')}
+                            {numeric ? <span className="text-navy/40">{previousSuffix(cell, column)}</span> : null}
                           </td>
                         )
                       })}
@@ -111,6 +128,9 @@ export function TableBlockView({ block }: { block: TableResult }) {
                         }`}
                       >
                         {cell?.display ?? (isFirst ? 'Total' : '—')}
+                        {numeric ? (
+                          <span className="text-navy/40">{previousSuffix(cell, column)}</span>
+                        ) : null}
                       </td>
                     )
                   })}

@@ -68,9 +68,12 @@ export interface NoteBlockSpec extends ReportBlockSpecBase {
 
 export interface NarrativeBlockSpec extends ReportBlockSpecBase {
   type: 'narrative'
+  /** What the reader cares about; steers which findings the model surfaces. */
   focus?: string | null
   cachedText?: string | null
   generatedAtUtc?: string | null
+  /** Report fingerprint the cached text was written against, for staleness. */
+  generatedForFingerprint?: string | null
 }
 
 export type ReportBlockSpec =
@@ -81,10 +84,14 @@ export type ReportBlockSpec =
   | NoteBlockSpec
   | NarrativeBlockSpec
 
+export type ComparisonMode = 'None' | 'PreviousPeriod' | 'SamePeriodLastYear'
+
 export interface CustomReportSpec {
   version: number
   query: ReportQuery
   blocks: ReportBlockSpec[]
+  /** Baseline every Previous* figure is measured against. Doubles the query cost. */
+  comparison?: ComparisonMode
 }
 
 /** IR block results — mirrors backend ReportBlockResult (`type` discriminators). */
@@ -102,6 +109,9 @@ export interface KpiCell {
   unit: MetricUnit
   currencyCode?: string | null
   display: string
+  /** Same metric over the comparison window; null when no comparison ran. */
+  previousValue?: number | null
+  previousDisplay?: string | null
 }
 
 export interface KpiGroupResult extends ReportBlockResultBase {
@@ -119,6 +129,8 @@ export interface TableColumn {
 export interface TableCell {
   number: number | null
   display: string
+  /** Same cell over the comparison window, matched by row key. */
+  previousNumber?: number | null
 }
 
 export type TableRowKind = 'Detail' | 'GroupHeader' | 'GroupSubtotal'
@@ -159,6 +171,13 @@ export interface ProseResult extends ReportBlockResultBase {
 
 export type ReportBlockResult = KpiGroupResult | TableResult | SeriesResult | ProseResult
 
+export interface ComparisonPeriod {
+  mode: ComparisonMode
+  from: string
+  to: string
+  kpis: ReportKpis
+}
+
 export interface CustomReportResult {
   kpis: ReportKpis
   basis: ReportBasis
@@ -169,6 +188,16 @@ export interface CustomReportResult {
   filterToDate: string | null
   blocks: ReportBlockResult[]
   warnings: string[]
+  /** The window Previous* figures were measured over; null when none ran. */
+  comparison: ComparisonPeriod | null
+}
+
+/** Generated commentary for one narrative block. */
+export interface CustomReportInsights {
+  blockId: string
+  paragraphs: string[]
+  generatedAtUtc: string
+  fingerprint: string
 }
 
 /** Catalogue — mirrors backend CustomReportCatalogueDto. */

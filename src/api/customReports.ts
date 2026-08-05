@@ -2,8 +2,10 @@ import { downloadBlob } from '../lib/download'
 import { cloneSpec } from '../lib/customReportSpec'
 import type {
   BlockTypeCatalogueItem,
+  ComparisonPeriod,
   CustomReportCatalogue,
   CustomReportDefinition,
+  CustomReportInsights,
   CustomReportOwnerFilter,
   CustomReportResult,
   CustomReportSpec,
@@ -73,6 +75,14 @@ interface CustomReportRunResponse {
   filterToDate: string | null
   blocks: ReportBlockResultResponse[]
   warnings: string[]
+  comparison?: ComparisonPeriodResponse | null
+}
+
+interface ComparisonPeriodResponse {
+  mode: ComparisonPeriod['mode']
+  from: string
+  to: string
+  kpis: ReportKpisResponse
 }
 
 interface ReportKpisResponse {
@@ -120,6 +130,8 @@ interface KpiCellResponse {
   unit: KpiCell['unit']
   currencyCode?: string | null
   display: string
+  previousValue?: number | null
+  previousDisplay?: string | null
 }
 
 interface TableResultResponse extends ReportBlockResultBaseResponse {
@@ -146,6 +158,7 @@ interface TableRowResponse {
 interface TableCellResponse {
   number: number | null
   display: string
+  previousNumber?: number | null
 }
 
 interface SeriesResultResponse extends ReportBlockResultBaseResponse {
@@ -199,6 +212,8 @@ function toKpiCell(response: KpiCellResponse): KpiCell {
     unit: response.unit,
     currencyCode: response.currencyCode ?? null,
     display: response.display,
+    previousValue: response.previousValue ?? null,
+    previousDisplay: response.previousDisplay ?? null,
   }
 }
 
@@ -206,6 +221,7 @@ function toTableCell(response: TableCellResponse): TableCell {
   return {
     number: response.number,
     display: response.display,
+    previousNumber: response.previousNumber ?? null,
   }
 }
 
@@ -286,6 +302,14 @@ function toCustomReportResult(response: CustomReportRunResponse): CustomReportRe
     filterToDate: response.filterToDate ?? null,
     blocks: (response.blocks ?? []).map(toBlockResult),
     warnings: response.warnings ?? [],
+    comparison: response.comparison
+      ? {
+          mode: response.comparison.mode,
+          from: response.comparison.from,
+          to: response.comparison.to,
+          kpis: toKpis(response.comparison.kpis),
+        }
+      : null,
   }
 }
 
@@ -386,6 +410,23 @@ export async function downloadCustomReport(
     body: { spec },
   })
   downloadBlob(filename ?? EXPORT_FALLBACK[format], blob)
+}
+
+/**
+ * Generates commentary for one narrative block — POST /reports/custom/insights.
+ * Separate from `runCustomReport` on purpose: this one is slow and costs money, so it only
+ * ever runs when the user asks for it.
+ */
+export function generateCustomReportInsights(
+  spec: CustomReportSpec,
+  blockId: string,
+  options: RequestOptions = {},
+): Promise<CustomReportInsights> {
+  return apiClient.post<CustomReportInsights>(
+    '/reports/custom/insights',
+    { spec, blockId },
+    options,
+  )
 }
 
 export interface ListCustomReportDefinitionsOptions extends ListQueryOptions {

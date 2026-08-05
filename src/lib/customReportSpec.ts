@@ -1,6 +1,7 @@
 import { cloneReportQuery, defaultReportQuery } from './reportQuery'
 import type {
   ChartKind,
+  ComparisonMode,
   ComputedColumnSpec,
   CustomReportSpec,
   ReportBlockSpec,
@@ -29,14 +30,22 @@ export function emptyCustomReportSpec(): CustomReportSpec {
     version: 1,
     query: defaultReportQuery(),
     blocks: [],
+    comparison: 'None',
   }
 }
+
+export const COMPARISON_OPTIONS: ReadonlyArray<{ value: ComparisonMode; label: string }> = [
+  { value: 'None', label: 'No comparison' },
+  { value: 'PreviousPeriod', label: 'vs previous period' },
+  { value: 'SamePeriodLastYear', label: 'vs same period last year' },
+]
 
 export function cloneSpec(spec: CustomReportSpec): CustomReportSpec {
   return {
     version: spec.version,
     query: cloneReportQuery(spec.query),
     blocks: spec.blocks.map(cloneBlock),
+    comparison: spec.comparison ?? 'None',
   }
 }
 

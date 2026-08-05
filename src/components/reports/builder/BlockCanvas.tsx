@@ -20,6 +20,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import type {
   BlockTypeCatalogueItem,
   CustomReportCatalogue,
+  CustomReportSpec,
   ReportBlockResult,
   ReportBlockSpec,
 } from '../../../types/customReport'
@@ -154,6 +155,7 @@ export function BuilderDndShell({
 
 export function BlockCanvasList({
   blocks,
+  spec,
   catalogue,
   previews,
   compactEditors,
@@ -166,6 +168,7 @@ export function BlockCanvasList({
   onMove,
 }: {
   blocks: ReportBlockSpec[]
+  spec: CustomReportSpec
   catalogue: CustomReportCatalogue
   previews: Map<string, ReportBlockResult>
   compactEditors?: boolean
@@ -208,6 +211,7 @@ export function BlockCanvasList({
             {dropIndex === index ? <DropBand /> : null}
             <SortableBlockCard
               block={block}
+              spec={spec}
               catalogue={catalogue}
               preview={previews.get(block.id) ?? null}
               collapsedDefault={compactEditors}

@@ -6,6 +6,7 @@ import { BREAKPOINT, useMediaQuery } from '../../../hooks/useMediaQuery'
 import { BlockRenderer } from '../render/BlockRenderer'
 import type {
   CustomReportCatalogue,
+  CustomReportSpec,
   ReportBlockResult,
   ReportBlockSpec,
 } from '../../../types/customReport'
@@ -27,6 +28,7 @@ const BLOCK_LABELS: Record<ReportBlockSpec['type'], string> = {
 
 export function SortableBlockCard({
   block,
+  spec,
   catalogue,
   preview,
   collapsedDefault,
@@ -41,6 +43,8 @@ export function SortableBlockCard({
   onMoveDown,
 }: {
   block: ReportBlockSpec
+  /** Draft spec — the narrative editor sends it as the data to comment on. */
+  spec: CustomReportSpec
   catalogue: CustomReportCatalogue
   preview?: ReportBlockResult | null
   collapsedDefault?: boolean
@@ -137,14 +141,14 @@ export function SortableBlockCard({
 
       {editorVisible ? (
         <div className="px-3 py-3 sm:px-4">
-          <BlockEditor block={block} catalogue={catalogue} onChange={onChange} />
+          <BlockEditor block={block} spec={spec} catalogue={catalogue} onChange={onChange} />
         </div>
       ) : null}
 
       {previewVisible ? (
         <div className="border-t border-navy/5 px-3 py-3 sm:px-4">
           {preview ? (
-            <BlockRenderer block={preview} />
+            <BlockRenderer block={preview} comparisonMode={spec.comparison} />
           ) : (
             <p className="text-body text-navy/45">Run the report to preview this block.</p>
           )}
@@ -156,10 +160,12 @@ export function SortableBlockCard({
 
 function BlockEditor({
   block,
+  spec,
   catalogue,
   onChange,
 }: {
   block: ReportBlockSpec
+  spec: CustomReportSpec
   catalogue: CustomReportCatalogue
   onChange: (next: ReportBlockSpec) => void
 }) {
@@ -175,6 +181,6 @@ function BlockEditor({
     case 'note':
       return <NoteBlockEditor block={block} onChange={onChange} />
     case 'narrative':
-      return <NarrativeBlockEditor block={block} onChange={onChange} />
+      return <NarrativeBlockEditor block={block} spec={spec} onChange={onChange} />
   }
 }
