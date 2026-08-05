@@ -118,7 +118,7 @@ export default function TagsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+        <div className="rounded-2xl bg-white shadow-card">
           <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
             <HeaderCell icon="tags" label="Name" />
             <HeaderCell icon="reports" label="Usage" />
