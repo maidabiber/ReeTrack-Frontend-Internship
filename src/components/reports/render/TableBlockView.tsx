@@ -51,29 +51,45 @@ export function TableBlockView({ block }: { block: TableResult }) {
                   </td>
                 </tr>
               ) : (
-                block.rows.map((row) => (
-                  <tr key={row.key} className="border-b border-canvas/80 last:border-0">
-                    {block.columns.map((column, index) => {
-                      const cell = row.cells[column.key]
-                      const numeric = isNumericColumn(column.columnType)
-                      const isFirst = column.key === firstColumnKey || index === 0
-                      return (
-                        <td
-                          key={column.key}
-                          className={`px-3 py-2.5 ${
-                            isFirst
-                              ? 'sticky left-0 z-[1] bg-white font-medium text-navy'
-                              : numeric
-                                ? 'text-right font-mono tabular-nums text-navy/70'
-                                : 'text-navy'
-                          }`}
-                        >
-                          {cell?.display ?? '—'}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))
+                block.rows.map((row) => {
+                  const kind = row.kind ?? 'Detail'
+                  const depth = row.depth ?? 0
+                  const isGroupHeader = kind === 'GroupHeader'
+                  const isSubtotal = kind === 'GroupSubtotal'
+                  return (
+                    <tr
+                      key={row.key}
+                      className={`border-b border-canvas/80 last:border-0 ${
+                        isSubtotal ? 'bg-surface-muted/50 font-medium' : ''
+                      }`}
+                    >
+                      {block.columns.map((column, index) => {
+                        const cell = row.cells[column.key]
+                        const numeric = isNumericColumn(column.columnType)
+                        const isFirst = column.key === firstColumnKey || index === 0
+                        return (
+                          <td
+                            key={column.key}
+                            style={isFirst && depth > 0 ? { paddingLeft: `${0.75 + depth * 1.25}rem` } : undefined}
+                            className={`px-3 py-2.5 ${
+                              isFirst
+                                ? `sticky left-0 z-[1] font-medium text-navy ${
+                                    isSubtotal ? 'bg-surface-muted/50' : 'bg-white'
+                                  } ${isGroupHeader ? 'font-semibold' : ''}`
+                                : numeric
+                                  ? `text-right font-mono tabular-nums ${
+                                      isSubtotal ? 'text-navy' : 'text-navy/70'
+                                    }`
+                                  : 'text-navy'
+                            }`}
+                          >
+                            {cell?.display ?? (isGroupHeader && !isFirst ? '' : '—')}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })
               )}
             </tbody>
             {block.totals ? (

@@ -3,7 +3,7 @@ import type { ReportGroupBy, ReportQuery } from './reportQuery'
 
 /** Spec types — mirrors backend CustomReportSpec (camelCase JSON, `type` discriminators). */
 
-export type ComputedOperator = 'Add' | 'Subtract' | 'Multiply' | 'Divide' | 'PctOfTotal' | 'PctOfRow'
+export type ComputedOperator = 'Add' | 'Subtract' | 'Multiply' | 'Divide' | 'PctOfTotal'
 
 export type ChartKind = 'Bar' | 'Line' | 'Area' | 'Donut'
 
@@ -18,7 +18,10 @@ export interface ComputedColumnSpec {
   label: string
   left: string
   operator: ComputedOperator
+  /** Another metric on the same block. Mutually exclusive with `rightValue`. */
   right?: string | null
+  /** Literal number, for cases two metrics cannot express (hours × a rate). */
+  rightValue?: number | null
 }
 
 interface ReportBlockSpecBase {
@@ -118,9 +121,15 @@ export interface TableCell {
   display: string
 }
 
+export type TableRowKind = 'Detail' | 'GroupHeader' | 'GroupSubtotal'
+
 export interface TableRow {
   key: string
   cells: Record<string, TableCell>
+  /** Detail unless the row is a grouping header/subtotal produced by an entries block's groupBy. */
+  kind?: TableRowKind
+  /** Nesting depth for multi-level grouping; 0 on an ungrouped table or a top-level group. */
+  depth?: number
 }
 
 export interface TableResult extends ReportBlockResultBase {
@@ -195,3 +204,30 @@ export interface CustomReportCatalogue {
   entryColumns: EntryColumnCatalogueItem[]
   operators: string[]
 }
+
+/** Shared is visible to every admin; Private is visible only to its creator. */
+export type CustomReportVisibility = 'Private' | 'Shared'
+
+/** Saved definition — mirrors backend CustomReportDefinitionResponse. */
+export interface CustomReportDefinition {
+  id: string
+  name: string
+  description: string | null
+  spec: CustomReportSpec
+  schemaVersion: number
+  createdByUserId: string
+  visibility: CustomReportVisibility
+  createdAtUtc: string
+  updatedAtUtc: string
+  canEdit: boolean
+}
+
+export interface SaveCustomReportDefinitionInput {
+  name: string
+  description?: string | null
+  spec: CustomReportSpec
+  visibility: CustomReportVisibility
+}
+
+/** Narrows the library list to the caller's own reports or every Shared one; omit for both. */
+export type CustomReportOwnerFilter = 'mine' | 'shared'

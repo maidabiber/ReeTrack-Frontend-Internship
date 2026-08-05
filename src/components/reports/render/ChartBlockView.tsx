@@ -74,7 +74,7 @@ export function ChartBlockView({ block }: { block: SeriesResult }) {
   return (
     <ChartCard title={title}>
       {block.kind === 'Area' ? (
-        <ChartContainer config={chartConfig} className="h-48 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-48 w-full min-h-[12rem]">
           <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
             <defs>
               <linearGradient id={strokeId} x1="0" y1="0" x2="1" y2="1">
@@ -113,7 +113,7 @@ export function ChartBlockView({ block }: { block: SeriesResult }) {
           </AreaChart>
         </ChartContainer>
       ) : block.kind === 'Line' ? (
-        <ChartContainer config={chartConfig} className="h-48 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-48 w-full min-h-[12rem]">
           <LineChart data={chartData} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--color-gray-tint)" />
             {showAxes ? (
@@ -140,7 +140,7 @@ export function ChartBlockView({ block }: { block: SeriesResult }) {
           </LineChart>
         </ChartContainer>
       ) : block.kind === 'Donut' ? (
-        <ChartContainer config={chartConfig} className="mx-auto h-52 w-full max-w-sm">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-auto h-52 w-full max-w-sm min-h-[13rem]">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie
@@ -161,7 +161,7 @@ export function ChartBlockView({ block }: { block: SeriesResult }) {
           </PieChart>
         </ChartContainer>
       ) : (
-        <ChartContainer config={chartConfig} className="h-48 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-48 w-full min-h-[12rem]">
           <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--color-gray-tint)" />
             {showAxes ? (

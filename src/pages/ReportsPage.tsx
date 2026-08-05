@@ -110,11 +110,7 @@ function ReportsWorkspace() {
       </div>
 
       <div className="mb-4">
-      <SegmentedTabs<ReportType>
-  options={REPORT_TABS}
-  value={activeTab}
-  onChange={(tab) => setActiveTab(tab)}
-/>
+        <SegmentedTabs options={REPORT_TABS} value={activeTab} onChange={setActiveTab} />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Icon } from '../ui/Icon'
 import type { NavItem as NavItemModel } from '../../config/navigation'
+import { EXACT_MATCH_PATHS } from '../../config/navigation'
 
 import {
   SIDEBAR_ROW_ACTIVE,
@@ -12,8 +13,8 @@ export function NavItem({ item }: { item: NavItemModel }) {
   return (
     <NavLink
       to={item.path}
-      // `end` keeps the index route ("/") from matching every path.
-      end={item.path === '/'}
+      // `end` prevents parent paths from matching when nested routes are active.
+      end={item.path === '/' || EXACT_MATCH_PATHS.has(item.path)}
       className={({ isActive }) =>
         `${SIDEBAR_ROW_BASE} ${isActive ? SIDEBAR_ROW_ACTIVE : SIDEBAR_ROW_INACTIVE}`
       }

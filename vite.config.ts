@@ -42,6 +42,11 @@ export default defineConfig({
               test: /node_modules[\\/]@dicebear(?:[\\/]|$)/,
               priority: 20,
             },
+            {
+              name: 'dnd-kit',
+              test: /node_modules[\\/]@dnd-kit(?:[\\/]|$)/,
+              priority: 20,
+            },
           ],
         },
         strictExecutionOrder: true,

@@ -1,8 +1,13 @@
+import { downloadBlob } from '../lib/download'
+import { cloneSpec } from '../lib/customReportSpec'
 import type {
   BlockTypeCatalogueItem,
   CustomReportCatalogue,
+  CustomReportDefinition,
+  CustomReportOwnerFilter,
   CustomReportResult,
   CustomReportSpec,
+  CustomReportVisibility,
   DimensionCatalogueItem,
   EntryColumnCatalogueItem,
   KpiCell,
@@ -11,6 +16,7 @@ import type {
   NamedSeries,
   ProseResult,
   ReportBlockResult,
+  SaveCustomReportDefinitionInput,
   SeriesResult,
   TableCell,
   TableColumn,
@@ -18,7 +24,10 @@ import type {
   TableRow,
 } from '../types/customReport'
 import type { ReportBasis, ReportKpis } from '../types/report'
-import { apiClient } from './client'
+import type { PagedResult } from '../types/paged'
+import type { ReportExportFormat } from './reports'
+import { apiClient, requestBlob, type RequestOptions } from './client'
+import { appendListQueryParams, toPagedResult, type ListQueryOptions } from './pagination'
 
 /** Mirrors backend CustomReportCatalogueResponse (camelCase JSON). */
 interface CustomReportCatalogueResponse {
@@ -130,6 +139,8 @@ interface TableColumnResponse {
 interface TableRowResponse {
   key: string
   cells: Record<string, TableCellResponse>
+  kind?: TableRow['kind']
+  depth?: number
 }
 
 interface TableCellResponse {
@@ -203,7 +214,7 @@ function toTableRow(response: TableRowResponse): TableRow {
   for (const [key, cell] of Object.entries(response.cells ?? {})) {
     cells[key] = toTableCell(cell)
   }
-  return { key: response.key, cells }
+  return { key: response.key, cells, kind: response.kind ?? 'Detail', depth: response.depth ?? 0 }
 }
 
 function toTableColumn(response: TableColumnResponse): TableColumn {
@@ -314,6 +325,34 @@ function toCatalogue(response: CustomReportCatalogueResponse): CustomReportCatal
   }
 }
 
+interface CustomReportDefinitionResponse {
+  id: string
+  name: string
+  description: string | null
+  spec: CustomReportSpec
+  schemaVersion: number
+  createdByUserId: string
+  visibility: CustomReportVisibility
+  createdAtUtc: string
+  updatedAtUtc: string
+  canEdit: boolean
+}
+
+function toDefinition(response: CustomReportDefinitionResponse): CustomReportDefinition {
+  return {
+    id: response.id,
+    name: response.name,
+    description: response.description ?? null,
+    spec: cloneSpec(response.spec),
+    schemaVersion: response.schemaVersion,
+    createdByUserId: response.createdByUserId,
+    visibility: response.visibility,
+    createdAtUtc: response.createdAtUtc,
+    updatedAtUtc: response.updatedAtUtc,
+    canEdit: response.canEdit,
+  }
+}
+
 /** Admin custom report catalogue — GET /api/reports/custom/catalogue. */
 export function getCustomReportCatalogue(): Promise<CustomReportCatalogue> {
   return apiClient
@@ -322,8 +361,91 @@ export function getCustomReportCatalogue(): Promise<CustomReportCatalogue> {
 }
 
 /** Run a custom report spec — POST /api/reports/custom/run. */
-export function runCustomReport(spec: CustomReportSpec): Promise<CustomReportResult> {
+export function runCustomReport(
+  spec: CustomReportSpec,
+  options: RequestOptions = {},
+): Promise<CustomReportResult> {
   return apiClient
-    .post<CustomReportRunResponse>('/reports/custom/run', { spec })
+    .post<CustomReportRunResponse>('/reports/custom/run', { spec }, options)
     .then(toCustomReportResult)
+}
+
+const EXPORT_FALLBACK: Record<ReportExportFormat, string> = {
+  csv: 'reetrack-custom.csv',
+  xlsx: 'reetrack-custom.xlsx',
+  pdf: 'reetrack-custom.pdf',
+}
+
+/** Downloads a custom report export — POST /api/reports/custom/export?format=… */
+export async function downloadCustomReport(
+  format: ReportExportFormat,
+  spec: CustomReportSpec,
+): Promise<void> {
+  const { blob, filename } = await requestBlob(`/reports/custom/export?format=${format}`, {
+    method: 'POST',
+    body: { spec },
+  })
+  downloadBlob(filename ?? EXPORT_FALLBACK[format], blob)
+}
+
+export interface ListCustomReportDefinitionsOptions extends ListQueryOptions {
+  /** Narrows to the caller's own reports or every Shared one; omit to see everything visible. */
+  owner?: CustomReportOwnerFilter
+}
+
+export function listCustomReportDefinitions(
+  options: ListCustomReportDefinitionsOptions = {},
+): Promise<PagedResult<CustomReportDefinition>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, options)
+  if (options.owner) params.set('owner', options.owner)
+  const qs = params.toString()
+  return apiClient
+    .get<PagedResult<CustomReportDefinitionResponse>>(
+      `/reports/custom/definitions${qs ? `?${qs}` : ''}`,
+    )
+    .then((result) => toPagedResult(result, toDefinition))
+}
+
+export function getCustomReportDefinition(id: string): Promise<CustomReportDefinition> {
+  return apiClient
+    .get<CustomReportDefinitionResponse>(`/reports/custom/definitions/${id}`)
+    .then(toDefinition)
+}
+
+export function createCustomReportDefinition(
+  input: SaveCustomReportDefinitionInput,
+): Promise<CustomReportDefinition> {
+  return apiClient
+    .post<CustomReportDefinitionResponse>('/reports/custom/definitions', {
+      name: input.name,
+      description: input.description ?? null,
+      spec: input.spec,
+      visibility: input.visibility,
+    })
+    .then(toDefinition)
+}
+
+export function updateCustomReportDefinition(
+  id: string,
+  input: SaveCustomReportDefinitionInput,
+): Promise<CustomReportDefinition> {
+  return apiClient
+    .put<CustomReportDefinitionResponse>(`/reports/custom/definitions/${id}`, {
+      name: input.name,
+      description: input.description ?? null,
+      spec: input.spec,
+      visibility: input.visibility,
+    })
+    .then(toDefinition)
+}
+
+export function duplicateCustomReportDefinition(id: string): Promise<CustomReportDefinition> {
+  return apiClient
+    .post<CustomReportDefinitionResponse>(`/reports/custom/definitions/${id}/duplicate`)
+    .then(toDefinition)
+}
+
+export function deleteCustomReportDefinition(id: string): Promise<void> {
+  return apiClient.delete(`/reports/custom/definitions/${id}`)
 }

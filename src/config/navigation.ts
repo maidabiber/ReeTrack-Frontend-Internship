@@ -47,7 +47,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: 'reports',
         anyPermission: [Permissions.ReportsView],
       },
-      { label: 'Custom reports', path: '/reports/custom', icon: 'reports' },
+      {
+        label: 'Custom reports',
+        path: '/reports/custom',
+        icon: 'reports',
+        anyPermission: [Permissions.ReportsView],
+      },
     ],
   },
   {
@@ -91,3 +96,13 @@ export function isNavItemVisible(
   if (!item.anyPermission?.length) return true
   return hasAnyPermission(item.anyPermission)
 }
+
+/**
+ * Set of nav item paths that have nested items beneath them.
+ * Used by NavItem to apply `end` prop so parent and child paths don't both highlight.
+ */
+export const EXACT_MATCH_PATHS = new Set(
+  ALL_NAV_ITEMS
+    .filter((item) => ALL_NAV_ITEMS.some((other) => other.path.startsWith(`${item.path}/`)))
+    .map((item) => item.path),
+)
