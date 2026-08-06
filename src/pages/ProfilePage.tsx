@@ -7,25 +7,13 @@ import { NotificationPreferencesSection } from '../components/profile/Notificati
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
-import type { Role, UserStatus } from '../types/user'
+import type { Role } from '../types/user'
 import { ROLE_LABEL } from '../types/user'
 
 const ROLE_DOT: Record<Role, string> = {
   Admin: 'bg-brand',
   ProjectManager: 'bg-brand/70',
   Member: 'bg-navy/45',
-}
-
-const STATUS_DISPLAY: Record<UserStatus, string> = {
-  Active: 'Active',
-  Invited: 'Invited',
-  Disabled: 'Deactivated',
-}
-
-const STATUS_DOT: Record<UserStatus, string> = {
-  Active: 'bg-[#1E8A57]',
-  Invited: 'bg-[#B8860B]',
-  Disabled: 'bg-navy/35',
 }
 
 function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
@@ -81,17 +69,6 @@ export default function ProfilePage() {
             </ProfileField>
             <ProfileField label="Role">
               <Pill label={ROLE_LABEL[user.role]} dotClassName={ROLE_DOT[user.role]} />
-            </ProfileField>
-            <ProfileField label="Status">
-              <Pill label={STATUS_DISPLAY[user.status]} dotClassName={STATUS_DOT[user.status]} />
-            </ProfileField>
-            <ProfileField label="Email verified">
-              {user.emailVerified ? 'Yes' : 'No'}
-            </ProfileField>
-            <ProfileField label="Last login">
-              {user.lastLoginAtUtc
-                ? new Date(user.lastLoginAtUtc).toLocaleString()
-                : '—'}
             </ProfileField>
           </div>
         </div>

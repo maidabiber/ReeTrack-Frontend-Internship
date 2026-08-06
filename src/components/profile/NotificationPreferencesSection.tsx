@@ -179,9 +179,8 @@ export function NotificationPreferencesSection({ userId }: NotificationPreferenc
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-display text-body-lg font-bold text-navy">Notifications</h2>
-      <p className="max-w-lede text-notice leading-[1.5] text-navy/55">
-        Important updates are always shown in the app. You can optionally also receive them by{' '}
-        {channelLabels}.
+      <p className="text-notice leading-[1.5] text-navy/55">
+        Important updates are always shown in the app. You can optionally also receive them by{' '} {channelLabels}.
       </p>
 
       {showSlackInvite && (
