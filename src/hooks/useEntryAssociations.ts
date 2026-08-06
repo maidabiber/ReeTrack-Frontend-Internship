@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { cached } from '../api/entityCache'
 import { fetchAllPages } from '../api/pagination'
 import { listTasks } from '../api/tasks'
 import type { Task } from '../types/task'
@@ -27,8 +28,10 @@ export function useEntryAssociations(init: EntryAssociationsInit) {
     let cancelled = false
     void (async () => {
       try {
-        const list = await fetchAllPages((page, pageSize) =>
-          listTasks(projectId, 'all', { page, pageSize }),
+        // Cached: the assistant's draft panel mounts one of these per drafted row, and they
+        // almost always share a project — five identical full paginations otherwise.
+        const list = await cached(`tasks:${projectId}`, () =>
+          fetchAllPages((page, pageSize) => listTasks(projectId, 'all', { page, pageSize })),
         )
         if (cancelled) return
         setTasks(list)

@@ -9,11 +9,8 @@ import { fetchAllPages } from '../../api/pagination'
 import { apiErrorMessage } from '../../api/client'
 import type { ProjectDraft, ProjectTaskDraft } from '../../types/assistant'
 import type { Project } from '../../types/project'
+import { LABEL, FIELD, AMOUNT_FIELD } from './draftFieldStyles'
 
-const LABEL = 'mb-1 block font-display text-label font-semibold text-navy/70'
-const FIELD =
-  'w-full rounded-md border-control border-navy/10 bg-white/70 px-3 py-1.5 text-body text-navy outline-none transition-colors focus:border-brand focus:bg-white'
-const AMOUNT_FIELD = `${FIELD} font-mono tabular-nums`
 const TASK_FIELD = 'rounded-md border-control border-navy/10 bg-white/70 px-3 py-1 text-sm text-navy outline-none transition-colors focus:border-brand focus:bg-white'
 
 function amountToField(value: number | null): string {

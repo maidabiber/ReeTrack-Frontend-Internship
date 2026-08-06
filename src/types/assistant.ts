@@ -20,7 +20,9 @@ export interface AssistantMessage {
   content: string
 }
 
-export type AssistantEventType = 'token' | 'draft' | 'done' | 'error'
+export type AssistantMode = 'project' | 'timeEntry'
+
+export type AssistantEventType = 'token' | 'draft' | 'time_entry_draft' | 'done' | 'error'
 
 export interface AssistantTokenEvent {
   type: 'token'
@@ -30,6 +32,11 @@ export interface AssistantTokenEvent {
 export interface AssistantDraftEvent {
   type: 'draft'
   draft: ProjectDraft
+}
+
+export interface AssistantTimeEntryDraftEvent {
+  type: 'time_entry_draft'
+  draft: TimeEntryDraft
 }
 
 export interface AssistantDoneEvent {
@@ -46,11 +53,41 @@ export interface AssistantErrorEvent {
 export type AssistantEvent =
   | AssistantTokenEvent
   | AssistantDraftEvent
+  | AssistantTimeEntryDraftEvent
   | AssistantDoneEvent
   | AssistantErrorEvent
 
+export type MentionType = 'client' | 'project' | 'task' | 'tag'
+
 export interface MessageMention {
-  type: string
+  type: MentionType
   id: string
   name: string
+  /**
+   * Owning project, sent for task mentions. Without it the assistant resolves a task with
+   * no project, and the draft row can't render the task at all.
+   */
+  projectId?: string | null
+  projectName?: string | null
+}
+
+// All date/time fields are local wall-clock strings (yyyy-MM-dd / HH:mm), never
+// Date objects — UTC conversion happens exactly once, in toRequest, at create time.
+export interface TimeEntryDraftItem {
+  entryDate: string
+  startTime: string | null
+  endTime: string | null
+  durationMinutes: number
+  description: string | null
+  projectId: string | null
+  projectName: string | null
+  projectTaskId: string | null
+  taskName: string | null
+  tagIds: string[]
+  tagNames: string[]
+  isBillable: boolean
+}
+
+export interface TimeEntryDraft {
+  entries: TimeEntryDraftItem[]
 }

@@ -209,6 +209,68 @@ export function createTimeEntry(request: TimeEntryRequest): Promise<TimeEntry> {
     .then(toTimeEntry)
 }
 
+/** A batch row the server refused to create because its range collides with something. */
+export interface BatchEntryConflict {
+  /** Zero-based position of the row in the submitted batch. */
+  index: number
+  message: string
+  /** Already-saved entries this row collides with. */
+  overlappingEntries: OverlapEntry[]
+  /** Other rows of the same batch this row collides with, zero-based. */
+  overlappingEntryIndexes: number[]
+}
+
+export interface BatchCreateResult {
+  created: TimeEntry[]
+  conflicts: BatchEntryConflict[]
+}
+
+interface BatchEntryConflictResponse {
+  index: number
+  message: string
+  overlappingEntries?: OverlapEntryResponse[]
+  overlappingEntryIndexes?: number[]
+}
+
+interface CreateTimeEntriesBatchResponse {
+  created?: TimeEntryResponse[]
+  conflicts?: BatchEntryConflictResponse[]
+}
+
+/**
+ * Creates several entries as one unit. Overlaps come back as `conflicts` rather than a 409:
+ * the caller drafted a batch and needs to know which rows are the problem. With
+ * `skipOverlapping` false (the default) a single conflict means nothing was written at all.
+ */
+export function createTimeEntriesBatch(
+  entries: TimeEntryRequest[],
+  options: { skipOverlapping?: boolean } = {},
+): Promise<BatchCreateResult> {
+  if (entries.length === 0) {
+    return Promise.reject(new Error('At least one time entry is required.'))
+  }
+
+  return apiClient
+    .post<CreateTimeEntriesBatchResponse>('/time-entries/batch', {
+      entries,
+      skipOverlapping: options.skipOverlapping ?? false,
+    })
+    .then((response) => {
+      if (!response || typeof response !== 'object') {
+        throw new Error('Unexpected response when creating time entries.')
+      }
+      return {
+        created: (response.created ?? []).map(toTimeEntry),
+        conflicts: (response.conflicts ?? []).map((conflict) => ({
+          index: conflict.index,
+          message: conflict.message,
+          overlappingEntries: conflict.overlappingEntries ?? [],
+          overlappingEntryIndexes: conflict.overlappingEntryIndexes ?? [],
+        })),
+      }
+    })
+}
+
 export function updateTimeEntry(id: string, request: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
     .put<TimeEntryResponse>(`/time-entries/${id}`, request)
