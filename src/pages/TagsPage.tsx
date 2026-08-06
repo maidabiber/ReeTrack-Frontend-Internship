@@ -20,8 +20,6 @@ import { PAGE_PAD } from '../components/layout/pageChrome'
 import { apiErrorMessage } from '../api/client'
 import { createTag, deleteTag, listTags, updateTag } from '../api/tags'
 import { fetchAllPages } from '../api/pagination'
-import { useAuth } from '../hooks/useAuth'
-import { Permissions } from '../lib/permissions'
 import type { Tag } from '../types/tag'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; tag: Tag } | null
@@ -35,8 +33,7 @@ const GRID = 'grid grid-cols-[2.6fr_0.9fr_32px] items-center gap-2.5 px-3.5 py-2
  * is in use — the confirm dialog surfaces the usage count first.
  */
 export default function TagsPage() {
-  const { hasPermission } = useAuth()
-  const canManage = hasPermission(Permissions.ProjectsManage)
+  const canManage = true
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)

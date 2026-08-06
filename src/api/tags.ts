@@ -8,8 +8,8 @@ import {
 } from './pagination'
 
 /**
- * Tags API (TagsController, RT-44). Reads are member-accessible; mutations
- * require manage.projects.manage (ProjectManager+).
+ * Tags API (TagsController, RT-44). Reads and mutations are accessible to any
+ * authenticated user.
  */
 
 export type ListTagsOptions = ListQueryOptions
