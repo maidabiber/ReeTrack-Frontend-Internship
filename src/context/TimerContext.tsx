@@ -15,6 +15,7 @@ import type { StopTimerResult, TimeEntryRequest } from '../api/timeEntries'
 import { fetchAllPages } from '../api/pagination'
 import { ApiError, apiErrorMessage } from '../api/client'
 import { elapsedSecondsSince } from '../lib/formatDuration'
+import { isDurationLimitError } from '../lib/timeEntryErrors'
 import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -267,6 +268,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         throw err
       }
 
+      if (isDurationLimitError(err)) {
+        throw err
+      }
+
       const message = apiErrorMessage(err, fallbackError)
       setError(message)
       throw err
@@ -311,6 +316,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
+          throw err
+        }
+
+        if (isDurationLimitError(err)) {
           throw err
         }
 

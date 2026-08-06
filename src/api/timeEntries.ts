@@ -35,6 +35,16 @@ export interface TimeEntryRequest {
   projectTaskId?: string | null
   tagIds?: string[]
   assigneeUserIds?: string[]
+  /** `Date#getTimezoneOffset()` so daily budget uses the local calendar day. */
+  utcOffsetMinutes?: number
+}
+
+/** Attach the client's current timezone offset for local-day daily budget checks. */
+function withUtcOffset(request: TimeEntryRequest = {}): TimeEntryRequest {
+  return {
+    ...request,
+    utcOffsetMinutes: new Date().getTimezoneOffset(),
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -221,19 +231,19 @@ export async function getActiveTimer(): Promise<ActiveTimer | null> {
 
 export function startTimer(request?: TimeEntryRequest): Promise<ActiveTimer> {
   return apiClient
-    .post<TimeEntryResponse>('/time-entries/timer/start', request)
+    .post<TimeEntryResponse>('/time-entries/timer/start', withUtcOffset(request))
     .then(toActiveTimer)
 }
 
 export function stopTimer(request?: TimeEntryRequest): Promise<StopTimerResult> {
   return apiClient
-    .post<StopTimerResponse>('/time-entries/timer/stop', request ?? {})
+    .post<StopTimerResponse>('/time-entries/timer/stop', withUtcOffset(request))
     .then(toStopTimerResult)
 }
 
 export function createTimeEntry(request: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
-    .post<TimeEntryResponse>('/time-entries', request)
+    .post<TimeEntryResponse>('/time-entries', withUtcOffset(request))
     .then(toTimeEntry)
 }
 
@@ -280,7 +290,7 @@ export function createTimeEntriesBatch(
 
   return apiClient
     .post<CreateTimeEntriesBatchResponse>('/time-entries/batch', {
-      entries,
+      entries: entries.map((entry) => withUtcOffset(entry)),
       skipOverlapping: options.skipOverlapping ?? false,
     })
     .then((response) => {
@@ -301,7 +311,7 @@ export function createTimeEntriesBatch(
 
 export function updateTimeEntry(id: string, request: TimeEntryRequest): Promise<TimeEntry> {
   return apiClient
-    .put<TimeEntryResponse>(`/time-entries/${id}`, request)
+    .put<TimeEntryResponse>(`/time-entries/${id}`, withUtcOffset(request))
     .then(toTimeEntry)
 }
 
@@ -311,7 +321,7 @@ export function deleteTimeEntry(id: string): Promise<void> {
 
 export function createSharedTimeEntry(request: TimeEntryRequest): Promise<TimeEntry[]> {
   return apiClient
-    .post<Record<string, unknown>>('/time-entries/shared', request)
+    .post<Record<string, unknown>>('/time-entries/shared', withUtcOffset(request))
     .then(extractEntries)
 }
 
@@ -320,7 +330,7 @@ export function shareExistingTimeEntry(
   request: TimeEntryRequest,
 ): Promise<TimeEntry[]> {
   return apiClient
-    .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, request)
+    .post<Record<string, unknown>>(`/time-entries/${entryId}/share`, withUtcOffset(request))
     .then(extractEntries)
 }
 
@@ -335,7 +345,7 @@ export function updatePendingTimeEntry(
   request: TimeEntryRequest,
 ): Promise<TimeEntry> {
   return apiClient
-    .put<TimeEntryResponse>(`/time-entries/pending/${id}`, request)
+    .put<TimeEntryResponse>(`/time-entries/pending/${id}`, withUtcOffset(request))
     .then(toTimeEntry)
 }
 
@@ -344,7 +354,7 @@ export function approvePendingTimeEntry(
   request?: TimeEntryRequest,
 ): Promise<TimeEntry> {
   return apiClient
-    .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`, request)
+    .post<TimeEntryResponse>(`/time-entries/pending/${id}/approve`, withUtcOffset(request))
     .then(toTimeEntry)
 }
 

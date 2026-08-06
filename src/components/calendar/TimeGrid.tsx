@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useViewportHeight } from '../../hooks/useViewportHeight'
+import { formatHoursLabel } from '../charts/chartFormat'
+import type { ActiveTimer, TimeEntry } from '../../types/timeEntry'
+import { calendarDayTotalSeconds } from './calendarDayStats'
 import type { CalendarEvent } from './types'
 import {
   eventHeightPercent,
@@ -49,6 +52,9 @@ interface TimeGridProps {
   initialScrollHour?: number
   /** When false, hides the weekday/date header row. Defaults to true. */
   showDayHeader?: boolean
+  timeEntries?: TimeEntry[]
+  activeTimer?: ActiveTimer | null
+  activeTimerElapsedSeconds?: number
 }
 
 export function TimeGrid({
@@ -67,6 +73,9 @@ export function TimeGrid({
   holidaysByDate,
   initialScrollHour = SCROLL_TO_HOUR,
   showDayHeader = true,
+  timeEntries = [],
+  activeTimer = null,
+  activeTimerElapsedSeconds = 0,
 }: TimeGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingScrollRef = useRef<number | null>(null)
@@ -75,6 +84,20 @@ export function TimeGrid({
   const columnRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const isMultiDay = days.length > 1
   const viewportHeight = useViewportHeight()
+
+  const dayStats = useMemo(
+    () =>
+      days.map((day) => ({
+        day,
+        totalSeconds: calendarDayTotalSeconds(
+          day,
+          timeEntries,
+          activeTimer,
+          activeTimerElapsedSeconds,
+        ),
+      })),
+    [days, timeEntries, activeTimer, activeTimerElapsedSeconds],
+  )
 
   const getColumnRects = useCallback(() => {
     return days
@@ -274,7 +297,7 @@ export function TimeGrid({
         }`}
       >
         <div className="w-11 flex-shrink-0 sm:w-14" />
-        {days.map((day) => {
+        {dayStats.map(({ day, totalSeconds }) => {
           const holidayName = holidaysByDate?.get(toDateKey(day))
           const isHoliday = !!holidayName
           return (
@@ -303,13 +326,18 @@ export function TimeGrid({
               >
                 {day.getDate()}
               </span>
-              {holidayName ? (
-                <span className="mt-1.5 max-w-full truncate rounded-md bg-brand px-2 py-0.5 text-xs font-semibold leading-tight text-cream">
-                  {holidayName}
+              {totalSeconds > 0 ? (
+                <span className="mt-1.5 font-mono text-sm tabular-nums text-navy/60">
+                  {formatHoursLabel(totalSeconds)}
                 </span>
               ) : (
-                <span className="mt-1.5 h-[22px]" aria-hidden />
+                <span className="mt-1.5 h-[18px]" aria-hidden />
               )}
+              {holidayName ? (
+                <span className="mt-1 max-w-full truncate rounded-md bg-brand px-2 py-0.5 text-xs font-semibold leading-tight text-cream">
+                  {holidayName}
+                </span>
+              ) : null}
             </div>
           )
         })}

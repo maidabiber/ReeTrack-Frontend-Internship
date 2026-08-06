@@ -7,6 +7,9 @@ import { EditEntryModal } from '../time/EditEntryModal'
 import { ReviewPendingEntryModal } from '../time/ReviewPendingEntryModal'
 
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { MAX_MANUAL_DURATION_SECONDS } from '../../lib/manualEntry'
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
+import { DurationLimitModal } from '../time/durationLimitModal'
 import { OverlapAlertModal } from '../time/overlapAlert'
 
 import { useTimer } from '../../hooks/useTimer'
@@ -68,9 +71,16 @@ export function EventCalendar() {
   const [creatingFromEvent, setCreatingFromEvent] = useState<CalendarEvent | null>(null)
   const [creatingRange, setCreatingRange] = useState<{ start: Date; end: Date } | null>(null)
   const [holidaysByDate, setHolidaysByDate] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
 
   const overlapAlert = useOverlapAlert()
   const { overlapWarning, showOverlapAlert } = overlapAlert
+
+  const handleDurationLimitError = useCallback((err: unknown) => {
+    if (isDurationLimitError(err)) {
+      setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+    }
+  }, [])
 
   // The visible week's timesheet lock: when submitted/approved, entries in it
   // can't be dragged, resized, created or edited (the backend 409s too).
@@ -189,6 +199,12 @@ export function EventCalendar() {
         return
       }
 
+      const durationSeconds = Math.round((newEnd.getTime() - newStart.getTime()) / 1000)
+      if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+        setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+        return
+      }
+
       const save: PendingDragSave = {
         entryId: entry.id,
         description: entry.description ?? undefined,
@@ -215,9 +231,10 @@ export function EventCalendar() {
           })
           overlapAlert.clearOverlapAlert()
         },
+        onOtherError: handleDurationLimitError,
       })
     },
-    [isEventEditable, overlapAlert, resolveEntry, updateEntry],
+    [handleDurationLimitError, isEventEditable, overlapAlert, resolveEntry, updateEntry],
   )
 
   const handleEventDuplicate = useCallback(
@@ -226,6 +243,12 @@ export function EventCalendar() {
 
       const entry = resolveEntry(event)
       if (!entry) return
+
+      const durationSeconds = Math.round((newEnd.getTime() - newStart.getTime()) / 1000)
+      if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+        setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
+        return
+      }
 
       await overlapAlert.saveOrShowOverlapAlert({
         validationError: null,
@@ -242,9 +265,10 @@ export function EventCalendar() {
           })
           overlapAlert.clearOverlapAlert()
         },
+        onOtherError: handleDurationLimitError,
       })
     },
-    [isEventEditable, resolveEntry, addManualEntry, overlapAlert],
+    [handleDurationLimitError, isEventEditable, resolveEntry, addManualEntry, overlapAlert],
   )
 
   function handleCreateFromCalendarEvent(event: CalendarEvent) {
@@ -371,6 +395,9 @@ export function EventCalendar() {
           isEventEditable={isEventEditable}
           canEditSelectedEvent={canEditSelectedEvent}
           holidaysByDate={holidaysByDate}
+          timeEntries={entries}
+          activeTimer={activeTimer}
+          activeTimerElapsedSeconds={elapsedSeconds}
           onEditEntry={
             selectedTimeEntry
               ? () => {
@@ -402,6 +429,9 @@ export function EventCalendar() {
           pendingCreateRange={creatingRange}
           isEventEditable={isEventEditable}
           holidaysByDate={holidaysByDate}
+          timeEntries={entries}
+          activeTimer={activeTimer}
+          activeTimerElapsedSeconds={elapsedSeconds}
         />
       )}
 
@@ -462,6 +492,13 @@ export function EventCalendar() {
         <OverlapAlertModal
           message={overlapWarning}
           onDismiss={overlapAlert.clearOverlapAlert}
+        />
+      ) : null}
+
+      {durationLimitMessage ? (
+        <DurationLimitModal
+          message={durationLimitMessage}
+          onDismiss={() => setDurationLimitMessage(null)}
         />
       ) : null}
     </div>

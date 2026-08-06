@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { CalendarEvent } from './types'
+import type { ActiveTimer, TimeEntry } from '../../types/timeEntry'
 import { isSameDay, startOfMonth } from './dateUtils'
 import { TimeGrid } from './TimeGrid'
 import { MiniMonthCalendar } from './MiniMonthCalendar'
@@ -26,6 +27,9 @@ interface DayViewProps {
   holidaysByDate?: ReadonlyMap<string, string>
   onEditEntry?: () => void
   onCreateTimeEntry?: () => void
+  timeEntries?: TimeEntry[]
+  activeTimer?: ActiveTimer | null
+  activeTimerElapsedSeconds?: number
 }
 
 export function DayView({
@@ -47,6 +51,9 @@ export function DayView({
   holidaysByDate,
   onEditEntry,
   onCreateTimeEntry,
+  timeEntries,
+  activeTimer,
+  activeTimerElapsedSeconds,
 }: DayViewProps) {
   const [displayMonth, setDisplayMonth] = useState(() => startOfMonth(selectedDate))
 
@@ -85,6 +92,9 @@ export function DayView({
           isEventEditable={isEventEditable}
           holidaysByDate={holidaysByDate}
           allowHorizontalDrag={false}
+          timeEntries={timeEntries}
+          activeTimer={activeTimer}
+          activeTimerElapsedSeconds={activeTimerElapsedSeconds}
         />
       </div>
 

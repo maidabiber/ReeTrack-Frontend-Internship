@@ -1,11 +1,15 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Icon } from '../ui/Icon'
 import type { OverlapEntry } from '../../api/timeEntries'
 import type { TimeEntry } from '../../types/timeEntry'
 import type { CalendarEvent } from '../calendar/types'
 import { formatTime } from '../calendar/dateUtils'
+import { apiErrorMessage } from '../../api/client'
 import { useTimer } from '../../hooks/useTimer'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
+import { MAX_MANUAL_DURATION_SECONDS } from '../../lib/manualEntry'
+import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
+import { DurationLimitModal } from './durationLimitModal'
 import { OverlapAlertModal } from './overlapAlert'
 import { OverlapDayPreview } from './OverlapDayPreview'
 
@@ -65,6 +69,7 @@ export function TimerOverlapResolveModal({
     clearOverlapAlert,
     saveOrShowOverlapAlert,
   } = useOverlapAlert()
+  const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
 
   const leaveWarning = suggestedClipEndedAtUtc
     ? `If you leave this page, this entry will be clipped to end at ${formatTime(new Date(suggestedClipEndedAtUtc))} and saved.`
@@ -78,6 +83,12 @@ export function TimerOverlapResolveModal({
         newStart.getTime() === event.start.getTime() &&
         newEnd.getTime() === event.end.getTime()
       ) {
+        return
+      }
+
+      const durationSeconds = Math.round((newEnd.getTime() - newStart.getTime()) / 1000)
+      if (durationSeconds > MAX_MANUAL_DURATION_SECONDS) {
+        setDurationLimitMessage(DURATION_LIMIT_MESSAGE)
         return
       }
 
@@ -96,7 +107,11 @@ export function TimerOverlapResolveModal({
           })
           clearOverlapAlert()
         },
-        onOtherError: () => undefined,
+        onOtherError: (err) => {
+          if (isDurationLimitError(err)) {
+            setDurationLimitMessage(apiErrorMessage(err, DURATION_LIMIT_MESSAGE))
+          }
+        },
       })
     },
     [clearOverlapAlert, entry, saveOrShowOverlapAlert, updateEntry],
@@ -165,6 +180,13 @@ export function TimerOverlapResolveModal({
 
       {showOverlapAlert && overlapWarning ? (
         <OverlapAlertModal message={overlapWarning} onDismiss={clearOverlapAlert} />
+      ) : null}
+
+      {durationLimitMessage ? (
+        <DurationLimitModal
+          message={durationLimitMessage}
+          onDismiss={() => setDurationLimitMessage(null)}
+        />
       ) : null}
     </>
   )

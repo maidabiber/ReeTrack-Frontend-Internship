@@ -1,4 +1,5 @@
 import type { CalendarEvent } from './types'
+import type { ActiveTimer, TimeEntry } from '../../types/timeEntry'
 import { getWeekDays } from './dateUtils'
 import { TimeGrid } from './TimeGrid'
 
@@ -15,6 +16,9 @@ interface WeekViewProps {
   pendingCreateRange?: { start: Date; end: Date } | null
   isEventEditable?: (event: CalendarEvent) => boolean
   holidaysByDate?: ReadonlyMap<string, string>
+  timeEntries?: TimeEntry[]
+  activeTimer?: ActiveTimer | null
+  activeTimerElapsedSeconds?: number
 }
 
 export function WeekView({
@@ -30,6 +34,9 @@ export function WeekView({
   pendingCreateRange,
   isEventEditable,
   holidaysByDate,
+  timeEntries,
+  activeTimer,
+  activeTimerElapsedSeconds,
 }: WeekViewProps) {
   const days = getWeekDays(selectedDate)
 
@@ -49,6 +56,9 @@ export function WeekView({
         isEventEditable={isEventEditable}
         holidaysByDate={holidaysByDate}
         allowHorizontalDrag
+        timeEntries={timeEntries}
+        activeTimer={activeTimer}
+        activeTimerElapsedSeconds={activeTimerElapsedSeconds}
       />
     </div>
   )
