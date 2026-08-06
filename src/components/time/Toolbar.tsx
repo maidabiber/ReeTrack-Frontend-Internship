@@ -3,9 +3,7 @@ import { useTimer } from '../../hooks/useTimer'
 import { useTimeTotals } from '../../hooks/useTimeTotals'
 import { useMyHourTarget } from '../../hooks/useMyHourTarget'
 import { formatDurationHms } from '../../lib/formatDuration'
-import type { DateRangeKey } from '../../lib/dateRangeFilter'
 import { formatLoggedVsTarget, targetSecondsForMode } from '../../lib/hourTargetProgress'
-import { DateRangeFilter } from './DateRangeFilter'
 
 export type TimerContentView = 'list' | 'calendar' | 'timesheet'
 
@@ -23,13 +21,9 @@ const VIEW_OPTIONS: ReadonlyArray<{
 export function Toolbar({
   contentView,
   onContentViewChange,
-  dateRange,
-  onDateRangeChange,
 }: {
   contentView: TimerContentView
   onContentViewChange: (view: TimerContentView) => void
-  dateRange: DateRangeKey
-  onDateRangeChange: (key: DateRangeKey) => void
 }) {
   const { entries, activeTimer, elapsedSeconds } = useTimer()
   const { todayTotalSeconds, weekTotalSeconds } = useTimeTotals(
@@ -53,10 +47,6 @@ export function Toolbar({
 
   return (
     <div className="mb-1 flex w-full flex-wrap items-center gap-3 sm:gap-4">
-      {contentView === 'list' ? (
-        <DateRangeFilter value={dateRange} onChange={onDateRangeChange} />
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-navy/60">
         <span>
           <span className="sm:hidden">Today</span>

@@ -12,6 +12,7 @@ import {
   updateTimeEntry,
 } from '../api/timeEntries'
 import type { StopTimerResult, TimeEntryRequest } from '../api/timeEntries'
+import { fetchAllPages } from '../api/pagination'
 import { ApiError, apiErrorMessage } from '../api/client'
 import { elapsedSecondsSince } from '../lib/formatDuration'
 import type { ActiveTimer, TimeEntry } from '../types/timeEntry'
@@ -70,7 +71,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    const [active, list] = await Promise.all([getActiveTimer(), listTimeEntries()])
+    const [active, list] = await Promise.all([
+      getActiveTimer(),
+      fetchAllPages((page, pageSize) => listTimeEntries({ page, pageSize })),
+    ])
     setActiveTimer(active)
     setEntries(list)
   }, [isAuthenticated])
@@ -92,7 +96,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        const [active, list] = await Promise.all([getActiveTimer(), listTimeEntries()])
+        const [active, list] = await Promise.all([
+          getActiveTimer(),
+          fetchAllPages((page, pageSize) => listTimeEntries({ page, pageSize })),
+        ])
         if (cancelled) return
         setActiveTimer(active)
         setEntries(list)

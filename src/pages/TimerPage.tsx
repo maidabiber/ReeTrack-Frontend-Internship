@@ -5,7 +5,6 @@ import { Toolbar, type TimerContentView } from '../components/time/Toolbar'
 import { EntriesCard } from '../components/time/EntriesCard'
 import { EventCalendar } from '../components/calendar/EventCalendar'
 import { PAGE_PAD } from '../components/layout/pageChrome'
-import type { DateRangeKey } from '../lib/dateRangeFilter'
 import { useAuth } from '../hooks/useAuth'
 import { Permissions } from '../lib/permissions'
 
@@ -29,7 +28,6 @@ export default function TimerPage() {
   const { isAuthenticated, isInitializing, hasPermission } = useAuth()
   const isTimesheet = useLocation().pathname.startsWith('/timesheet')
   const [listView, setListView] = useState<Exclude<TimerContentView, 'timesheet'>>('list')
-  const [dateRange, setDateRange] = useState<DateRangeKey>('all')
   const contentView: TimerContentView = isTimesheet ? 'timesheet' : listView
 
   // Redirect admins/PMs to /overview on the initial app load only.
@@ -59,16 +57,11 @@ export default function TimerPage() {
           <TrackerBar />
         </div>
 
-        <Toolbar
-          contentView={contentView}
-          onContentViewChange={handleContentViewChange}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-        />
+        <Toolbar contentView={contentView} onContentViewChange={handleContentViewChange} />
 
         <div className="mt-4">
           {contentView === 'list' ? (
-            <EntriesCard dateRange={dateRange} onDateRangeChange={setDateRange} />
+            <EntriesCard />
           ) : contentView === 'calendar' ? (
             <EventCalendar />
           ) : (

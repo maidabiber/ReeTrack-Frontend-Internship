@@ -9,6 +9,7 @@ import {
   Heading,
 } from 'react-aria-components'
 import type { DateValue } from 'react-aria-components'
+import { cn } from '../../../lib/utils'
 import { CALENDAR_CELL_CLASS } from './fieldStyles'
 
 type PickerCalendarProps = {
@@ -19,32 +20,48 @@ type PickerCalendarProps = {
 export function PickerCalendar({ focusedValue, onFocusChange }: PickerCalendarProps) {
   return (
     <Calendar focusedValue={focusedValue ?? undefined} onFocusChange={onFocusChange}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <Button
-          slot="previous"
-          className="flex size-8 items-center justify-center rounded-md text-navy/60 outline-none hover:bg-surface-muted"
-        >
-          ‹
-        </Button>
-        <Heading className="font-display text-sm font-semibold text-navy" />
-        <Button
-          slot="next"
-          className="flex size-8 items-center justify-center rounded-md text-navy/60 outline-none hover:bg-surface-muted"
-        >
-          ›
-        </Button>
+      <div className="mb-4 flex items-center justify-between">
+        <Heading className="font-display text-[22px] font-semibold tracking-tight text-navy" />
+        <div className="flex gap-1">
+          <Button
+            slot="previous"
+            className="grid size-7 place-items-center rounded-full text-navy/50 outline-none hover:bg-surface-muted hover:text-navy"
+            aria-label="Previous month"
+          >
+            ‹
+          </Button>
+          <Button
+            slot="next"
+            className="grid size-7 place-items-center rounded-full text-navy/50 outline-none hover:bg-surface-muted hover:text-navy"
+            aria-label="Next month"
+          >
+            ›
+          </Button>
+        </div>
       </div>
 
-      <CalendarGrid className="border-separate border-spacing-1">
+      <CalendarGrid className="w-full border-separate border-spacing-y-1">
         <CalendarGridHeader>
           {(day) => (
-            <CalendarHeaderCell className="pb-1 text-center text-xs font-semibold uppercase tracking-wide text-navy/40">
-              {day}
+            <CalendarHeaderCell className="text-sm text-navy/50" key={day}>
+              {day.charAt(0)}
             </CalendarHeaderCell>
           )}
         </CalendarGridHeader>
         <CalendarGridBody>
-          {(date) => <CalendarCell date={date} className={CALENDAR_CELL_CLASS} />}
+          {(date) => (
+            <CalendarCell
+              date={date}
+              className={(renderProps) =>
+                cn(
+                  CALENDAR_CELL_CLASS,
+                  renderProps.isToday &&
+                    !renderProps.isSelected &&
+                    'font-semibold ring-1 ring-inset ring-ink/40',
+                )
+              }
+            />
+          )}
         </CalendarGridBody>
       </CalendarGrid>
     </Calendar>

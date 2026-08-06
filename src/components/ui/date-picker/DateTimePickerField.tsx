@@ -1,280 +1,156 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { getLocalTimeZone, today, toCalendarDateTime } from '@internationalized/date'
-import type { CalendarDateTime } from '@internationalized/date'
-import {
-  Button,
-  DatePicker,
-  Dialog,
-  Group,
-  Popover,
-} from 'react-aria-components'
-import type { DateValue } from 'react-aria-components'
-import { Icon } from '../Icon'
+import { useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { Button, DatePicker, Group } from 'react-aria-components'
+import type { CalendarDate } from '@internationalized/date'
 import { cn } from '../../../lib/utils'
 import {
-  calendarDateTimeToDate,
-  dateToCalendarDateTime,
-  formatPickerDateTime,
+  formatPickerDateLabel,
+  todayCalendarDate,
 } from '../../../lib/calendarDate'
+import { formatTimeFromDate } from '../../../lib/timeInputUtils'
 import type { ManualFieldState } from '../../time/ManualField'
-import { FIELD_STATE_STYLES, MODAL_LABEL_CLASS, MODAL_PICKER_BUTTON_CLASS, MODAL_PICKER_GROUP_CLASS, TRACKER_TIME_CLASS, TRACKER_VALUE_CLASS, TRIGGER_BUTTON_SIZES, TRIGGER_GROUP_CLASS } from './fieldStyles'
-import { InputDateSegments } from './InputDateSegments'
+import { FIELD_STATE_STYLES, MODAL_LABEL_CLASS } from './fieldStyles'
 import { PickerCalendar } from './PickerCalendar'
-import { TIME_SLOTS, timeSlotId } from './timeSlots'
+import { PickerPopover } from './PickerPopover'
+import { TimeSegmentField } from './TimeSegmentField'
 
 type DateTimePickerFieldProps = {
   label: string
-  value: Date
-  onChange: (value: Date) => void
+  dateValue: CalendarDate | null
+  timeValue: string
+  onDateChange: (value: CalendarDate) => void
+  onTimeChange: (value: string) => void
   disabled?: boolean
   fieldState?: ManualFieldState
   hideLabel?: boolean
-  compact?: boolean
   variant?: 'tracker' | 'modal'
   className?: string
 }
 
-function isCalendarDateTime(value: DateValue): value is CalendarDateTime {
-  return 'hour' in value
-}
-
 export function DateTimePickerField({
   label,
-  value,
-  onChange,
+  dateValue,
+  timeValue,
+  onDateChange,
+  onTimeChange,
   disabled = false,
   fieldState = 'default',
   hideLabel = false,
-  compact = false,
-  variant = 'tracker',
-  className = '',
+  variant = 'modal',
+  className,
 }: DateTimePickerFieldProps) {
   const isModal = variant === 'modal'
-  const calendarValue = useMemo(() => dateToCalendarDateTime(value), [value])
-  const [focusedValue, setFocusedValue] = useState<DateValue | null>(null)
-  const [prevValueKey, setPrevValueKey] = useState(value.getTime())
+  const [isOpen, setIsOpen] = useState(false)
+  const groupRef = useRef<HTMLDivElement>(null)
 
-  if (value.getTime() !== prevValueKey) {
-    setPrevValueKey(value.getTime())
-    setFocusedValue(null)
+  const formattedDate = dateValue ? formatPickerDateLabel(dateValue) : 'Pick date'
+  const isPlaceholder = !dateValue
+
+  const handleToday = () => {
+    const now = new Date()
+    onDateChange(todayCalendarDate())
+    onTimeChange(formatTimeFromDate(now))
+    setIsOpen(false)
   }
 
-  const pickerFocusedValue = focusedValue ?? calendarValue
-  const formatted = useMemo(
-    () => formatPickerDateTime(value, compact && !isModal),
-    [value, compact, isModal],
-  )
-
-  const handleChange = (next: DateValue | null) => {
-    if (!next || !isCalendarDateTime(next)) return
-    onChange(calendarDateTimeToDate(next))
+  const focusHour = () => {
+    const hourInput = groupRef.current?.querySelector<HTMLInputElement>(
+      'input[aria-label="Hour (24-hour)"]',
+    )
+    hourInput?.focus({ preventScroll: true })
+    hourInput?.select()
   }
 
-  const handleTodayClick = () => {
-    const nextDay = today(getLocalTimeZone())
-    const next = isCalendarDateTime(calendarValue)
-      ? toCalendarDateTime(nextDay).set({ hour: calendarValue.hour, minute: calendarValue.minute })
-      : toCalendarDateTime(nextDay)
-
-    onChange(calendarDateTimeToDate(next))
-    setFocusedValue(next)
+  /** Focus hour after the calendar closes so a date pick still selects time. */
+  const scheduleFocusHour = () => {
+    if (disabled) return
+    queueMicrotask(focusHour)
+    requestAnimationFrame(focusHour)
   }
 
-  const handleTimeClick = (slotId: string) => {
-    const slot = TIME_SLOTS.find((item) => item.id === slotId)
-    if (!slot) return
-
-    const base = isCalendarDateTime(calendarValue)
-      ? calendarValue
-      : toCalendarDateTime(today(getLocalTimeZone()))
-    const next = base.set({ hour: slot.hour, minute: slot.minute })
-    onChange(calendarDateTimeToDate(next))
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) scheduleFocusHour()
   }
 
-  const selectedTimeId =
-    isCalendarDateTime(calendarValue)
-      ? timeSlotId(calendarValue.hour, calendarValue.minute)
-      : null
+  const isDateButtonTarget = (target: EventTarget | null) =>
+    (target as HTMLElement | null)?.closest?.('button, [role="button"]') != null
 
-  const triggerClass = isModal
-    ? MODAL_PICKER_BUTTON_CLASS
-    : compact
-      ? TRIGGER_BUTTON_SIZES.datetime.compact
-      : TRIGGER_BUTTON_SIZES.datetime.default
+  const isTimeInputTarget = (target: EventTarget | null) =>
+    (target as HTMLElement | null)?.closest?.('input') != null
+
+  const handleControlPointerDownCapture = (event: ReactPointerEvent) => {
+    if (disabled) return
+    // Let the date Button complete its press so the popover can open.
+    if (isDateButtonTarget(event.target)) return
+    // Leave hour/minute alone so clicking minutes still selects minutes.
+    if (isTimeInputTarget(event.target)) return
+    focusHour()
+  }
+
+  const handleControlClick = (event: MouseEvent) => {
+    if (disabled) return
+    if (isDateButtonTarget(event.target)) return
+    if (isTimeInputTarget(event.target)) return
+    scheduleFocusHour()
+  }
 
   return (
     <DatePicker
-      shouldCloseOnSelect={false}
+      value={dateValue}
       aria-label={hideLabel ? label : undefined}
-      value={calendarValue}
-      onChange={handleChange}
+      onChange={(next) => {
+        if (next) onDateChange(next)
+      }}
       isDisabled={disabled}
+      isOpen={isOpen}
+      onOpenChange={handleOpenChange}
       className={cn(
-        isModal
-          ? 'flex w-full min-w-0 flex-col'
-          : hideLabel
-            ? 'flex h-9 w-fit items-center'
-            : 'flex w-fit flex-col gap-1',
+        isModal ? 'flex w-full min-w-0 flex-col' : 'flex w-fit flex-col gap-1',
         className,
       )}
     >
       {hideLabel ? null : (
-        <span className={isModal ? MODAL_LABEL_CLASS : 'font-display text-sm font-semibold uppercase tracking-wide text-navy/45'}>
+        <span
+          className={
+            isModal
+              ? MODAL_LABEL_CLASS
+              : 'font-display text-sm font-semibold uppercase tracking-wide text-navy/45'
+          }
+        >
           {label}
         </span>
       )}
 
       <Group
+        ref={groupRef}
         className={cn(
-          isModal ? MODAL_PICKER_GROUP_CLASS : TRIGGER_GROUP_CLASS,
-          FIELD_STATE_STYLES[fieldState],
+          'flex items-stretch overflow-hidden rounded-lg border bg-white shadow-[0_1px_2px_rgba(31,43,77,0.04)] transition-colors',
+          isModal ? 'h-[33px] rounded-md' : 'h-9',
+          isOpen ? 'border-navy/30 ring-1 ring-navy/15' : FIELD_STATE_STYLES[fieldState],
           disabled && 'opacity-60',
         )}
+        onPointerDownCapture={handleControlPointerDownCapture}
+        onClick={handleControlClick}
       >
-        <Button
-          className={cn(
-            'flex items-center text-left font-sans outline-none',
-            isModal ? triggerClass : cn('h-full w-auto', triggerClass),
-          )}
-        >
-          <Icon name="calendar" className="size-4 shrink-0 text-navy/40" />
-          <span className="min-w-0 truncate">
-            {isModal ? (
-              <>
-                <span className="text-body text-navy">{formatted.date}</span>{' '}
-                <span className="text-body text-navy/50">{formatted.time}</span>
-              </>
-            ) : (
-              <>
-                <span className={TRACKER_VALUE_CLASS}>{formatted.date}</span>{' '}
-                <span className={TRACKER_TIME_CLASS}>{formatted.time}</span>
-              </>
-            )}
-          </span>
+        <Button className="whitespace-nowrap px-3 text-left text-[13px] font-medium text-navy outline-none">
+          <span className={cn(isPlaceholder && 'text-navy/35')}>{formattedDate}</span>
         </Button>
+
+        <div aria-hidden="true" className="my-1.5 w-px bg-navy/[0.08]" />
+
+        <TimeSegmentField
+          bare
+          label="Time"
+          value={timeValue}
+          onChange={onTimeChange}
+          disabled={disabled}
+          variant={variant}
+        />
       </Group>
 
-      <Popover
-        offset={8}
-        placement="bottom end"
-        className={({ isEntering, isExiting }) =>
-          cn(
-            'z-50 outline-none',
-            isEntering && 'animate-in fade-in duration-150 ease-out',
-            isExiting && 'animate-out fade-out duration-100 ease-in',
-          )
-        }
-      >
-        <Dialog className="rounded-2xl border border-navy/[0.08] bg-white shadow-dropdown outline-none">
-          {({ close }) => (
-            <>
-              <div className="flex">
-                <div className="flex flex-col px-5 py-4">
-                  
-                  <PickerCalendar focusedValue={pickerFocusedValue} onFocusChange={setFocusedValue} />
-                  <div className="mt-3 flex flex-col gap-2 md:hidden">
-                    <div className="flex gap-2">
-                      <InputDateSegments compact />
-                      <PickerActionButton onClick={handleTodayClick}>Today</PickerActionButton>
-                    </div>
-                    <label className="flex flex-col gap-1">
-                      <span className="sr-only">Time</span>
-                      <div className="relative">
-                        <Icon
-                          name="clock"
-                          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-navy/40"
-                        />
-                        <select
-                          aria-label="Time"
-                          value={selectedTimeId ?? ''}
-                          onChange={(event) => handleTimeClick(event.target.value)}
-                          className="h-8 w-full appearance-none rounded-md border border-navy/10 bg-surface-muted pl-8 pr-2 text-sm text-navy outline-none focus:border-brand/40"
-                        >
-                          <option value="" disabled>
-                            Time
-                          </option>
-                          {TIME_SLOTS.map((slot) => (
-                            <option key={slot.id} value={slot.id}>
-                              {slot.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="relative hidden min-h-0 w-36 flex-col border-l border-navy/[0.06] md:flex">
-                  <div className="px-4 pb-2 pt-5 text-center text-xs font-semibold uppercase tracking-wide text-navy/45">
-                    Time
-                  </div>
-                  <ul className="flex max-h-72 min-h-0 flex-col gap-1 overflow-y-auto px-3 pb-4">
-                    {TIME_SLOTS.map((slot) => {
-                      const isSelected = selectedTimeId === slot.id
-                      return (
-                        <li key={slot.id}>
-                          <PickerActionButton
-                            onClick={() => handleTimeClick(slot.id)}
-                            className={cn('w-full', isSelected && 'border-brand/30 bg-brand-tint text-brand')}
-                          >
-                            {slot.label}
-                          </PickerActionButton>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="flex gap-2 border-t border-navy/[0.06] p-3">
-                <div className="mr-auto hidden items-center gap-2 md:flex">
-                  <InputDateSegments />
-                  <PickerActionButton onClick={handleTodayClick}>Today</PickerActionButton>
-                </div>
-
-                <PickerActionButton onClick={close} className="max-md:flex-1">
-                  Cancel
-                </PickerActionButton>
-                <PickerActionButton
-                  onClick={close}
-                  variant="primary"
-                  className="max-md:flex-1"
-                >
-                  Apply
-                </PickerActionButton>
-              </div>
-            </>
-          )}
-        </Dialog>
-      </Popover>
+      <PickerPopover onToday={handleToday}>
+        <PickerCalendar />
+      </PickerPopover>
     </DatePicker>
-  )
-}
-
-function PickerActionButton({
-  children,
-  onClick,
-  className = '',
-  variant = 'secondary',
-}: {
-  children: ReactNode
-  onClick?: () => void
-  className?: string
-  variant?: 'primary' | 'secondary'
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-md px-3 py-1.5 text-sm font-semibold outline-none transition-colors',
-        variant === 'primary'
-          ? 'bg-brand text-white hover:bg-brand-deep'
-          : 'border border-navy/10 bg-white text-navy hover:bg-surface-muted',
-        className,
-      )}
-    >
-      {children}
-    </button>
   )
 }

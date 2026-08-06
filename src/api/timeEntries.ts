@@ -1,3 +1,4 @@
+import type { PagedResult } from '../types/paged'
 import type {
   ActiveTimer,
   TimeEntry,
@@ -5,6 +6,19 @@ import type {
   TimeEntryTag,
 } from '../types/timeEntry'
 import { apiClient } from './client'
+import { appendListQueryParams, toPagedResult } from './pagination'
+
+export type TimeEntrySort = 'newest' | 'oldest'
+
+export interface ListTimeEntriesOptions {
+  page?: number
+  pageSize?: number
+  /** Local calendar day as yyyy-MM-dd, or omit for all dates. */
+  date?: string | null
+  sort?: TimeEntrySort
+  /** `Date#getTimezoneOffset()` so `date` maps to the correct local day. */
+  utcOffsetMinutes?: number
+}
 
 // ---------------------------------------------------------------------------
 // Single request type matching the backend TimeEntryRequest
@@ -179,10 +193,24 @@ function toStopTimerResult(response: StopTimerResponse): StopTimerResult {
 // API functions
 // ---------------------------------------------------------------------------
 
-export function listTimeEntries(): Promise<TimeEntry[]> {
+export function listTimeEntries(
+  options: ListTimeEntriesOptions = {},
+): Promise<PagedResult<TimeEntry>> {
+  const params = new URLSearchParams()
+  appendListQueryParams(params, {
+    page: options.page,
+    pageSize: options.pageSize,
+  })
+  if (options.date?.trim()) params.set('date', options.date.trim())
+  if (options.sort) params.set('sort', options.sort)
+  if (options.utcOffsetMinutes != null) {
+    params.set('utcOffsetMinutes', String(options.utcOffsetMinutes))
+  }
+  const qs = params.toString()
+  const path = qs ? `/time-entries?${qs}` : '/time-entries'
   return apiClient
-    .get<TimeEntryResponse[]>('/time-entries')
-    .then((entries) => entries.map(toTimeEntry))
+    .get<PagedResult<TimeEntryResponse>>(path)
+    .then((result) => toPagedResult(result, toTimeEntry))
 }
 
 export async function getActiveTimer(): Promise<ActiveTimer | null> {

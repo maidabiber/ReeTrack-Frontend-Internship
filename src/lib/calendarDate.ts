@@ -1,6 +1,11 @@
 import { CalendarDate, Time, getLocalTimeZone, today, toCalendarDateTime } from '@internationalized/date'
 import type { CalendarDateTime } from '@internationalized/date'
 
+export interface TimeInputParts {
+  hours: number
+  minutes: number
+}
+
 export function dateToCalendarDate(date: Date): CalendarDate {
   return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
@@ -65,6 +70,16 @@ export function todayCalendarDate(): CalendarDate {
 export function toTimeInputValue(date: Date): string {
   const pad = (part: number) => String(part).padStart(2, '0')
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function parseTimeInputValue(value: string): TimeInputParts | null {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+
+  return {
+    hours: Number(match[1]),
+    minutes: Number(match[2]),
+  }
 }
 
 export function mergeDateAndTime(dateValue: string, timeValue: string): Date | null {

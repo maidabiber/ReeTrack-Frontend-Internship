@@ -19,7 +19,7 @@ import {
 } from '../../lib/reportQuery'
 import type { ReportQuery } from '../../types/reportQuery'
 import { Icon } from '../ui/Icon'
-import { DatePickerField } from '../ui/date-picker/DatePickerField'
+import { DatePickerField } from '../ui/date-picker'
 import {
   ReportEntityMultiSelect,
   type ReportEntityOption,

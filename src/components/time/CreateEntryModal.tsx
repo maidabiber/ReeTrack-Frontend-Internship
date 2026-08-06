@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { apiErrorMessage } from '../../api/client'
 import { useEntryAssociations } from '../../hooks/useEntryAssociations'
+import { useManualEntryRangeFields } from '../../hooks/useManualEntryRangeFields'
 import { useTimer } from '../../hooks/useTimer'
 import { useWeekLock } from '../../hooks/useWeekLock'
 import { WeekLockBanner } from '../timesheet/WeekLockBanner'
@@ -16,8 +17,8 @@ import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntr
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
 import { DurationLimitModal } from './durationLimitModal'
 import { OverlapAlertModal } from './overlapAlert'
+import { ManualEntryRangeTimeFields } from './ManualEntryRangeTimeFields'
 import { TimeEntryFields } from './TimeEntryFields'
-import { ManualDateTimeFields } from './ManualDateTimeFields'
 
 interface CreateEntryModalProps {
   initialDescription: string
@@ -43,6 +44,7 @@ export function CreateEntryModal({
   const [manualEntry, setManualEntry] = useState(() =>
     createManualEntryFromCalendarEvent({ start: initialStart, end: initialEnd }),
   )
+
   // Can't create an entry into a submitted/approved week (the backend 409s too).
   const weekLock = useWeekLock(manualEntry.start)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +57,24 @@ export function CreateEntryModal({
   const endOrderError =
     manualEntry.end <= manualEntry.start ? 'End must be after start' : null
   const blockingError = validation.error ?? error
+
+  const fieldState = endOrderError ? 'error' : 'default'
+
+  const applyChange = useCallback(
+    (type: 'start' | 'end', date: Date) => {
+      setDurationLimitMessage(null)
+      overlapAlert.clearOverlapAlert()
+      setManualEntry((current) => applyManualFieldChange(current, type, date))
+    },
+    [overlapAlert],
+  )
+
+  const rangeFields = useManualEntryRangeFields({
+    start: manualEntry.start,
+    end: manualEntry.end,
+    onApplyChange: applyChange,
+    syncEndWithStart: true,
+  })
 
   const handleSave = async () => {
     setDurationLimitMessage(null)
@@ -110,36 +130,17 @@ export function CreateEntryModal({
           disabled={isSavingManual}
           error={blockingError}
           timeFields={
-            <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
-              <div className="min-w-0">
-                <ManualDateTimeFields
-                  variant="modal"
-                  label="Start"
-                  value={manualEntry.start}
-                  onChange={(parsed) => {
-                    setDurationLimitMessage(null)
-                    overlapAlert.clearOverlapAlert()
-                    setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
-                  }}
-                  fieldState={endOrderError ? 'error' : 'default'}
-                  disabled={isSavingManual}
-                />
-              </div>
-              <div className="min-w-0">
-                <ManualDateTimeFields
-                  variant="modal"
-                  label="End"
-                  value={manualEntry.end}
-                  onChange={(parsed) => {
-                    setDurationLimitMessage(null)
-                    overlapAlert.clearOverlapAlert()
-                    setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
-                  }}
-                  fieldState={endOrderError ? 'error' : 'default'}
-                  disabled={isSavingManual}
-                />
-              </div>
-            </div>
+            <ManualEntryRangeTimeFields
+              variant="modal"
+              startDateCalendarValue={rangeFields.startDateCalendarValue}
+              startTimeInput={rangeFields.startTimeInput}
+              endTimeInput={rangeFields.endTimeInput}
+              onStartDateChange={rangeFields.handleStartDateChange}
+              onStartTimeChange={rangeFields.handleStartTimeChange}
+              onEndTimeChange={rangeFields.handleEndTimeChange}
+              fieldState={fieldState}
+              disabled={isSavingManual}
+            />
           }
         />
 

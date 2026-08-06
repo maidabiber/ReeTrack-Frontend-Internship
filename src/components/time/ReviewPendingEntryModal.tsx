@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   approvePendingTimeEntry,
   rejectPendingTimeEntry,
@@ -6,10 +6,7 @@ import {
 } from '../../api/timeEntries'
 import { apiErrorMessage } from '../../api/client'
 import { Modal } from '../ui/Modal'
-import { ManualDateTimeFields } from './ManualDateTimeFields'
-import { ManualField } from './ManualField'
-import { DatePickerField } from '../ui/date-picker/DatePickerField'
-import { dateToCalendarDate } from '../../lib/calendarDate'
+import { useManualEntryRangeFields } from '../../hooks/useManualEntryRangeFields'
 import {
   applyManualFieldChange,
   createManualEntryFromTimeEntry,
@@ -17,9 +14,6 @@ import {
   entryDateToDateInputValue,
   formatManualDurationInput,
   MAX_MANUAL_DURATION_SECONDS,
-  parseDateInput,
-  parseDurationInput,
-  toDateInputValue,
   validateDurationOnlyEntry,
   validateManualEntry,
 } from '../../lib/manualEntry'
@@ -30,6 +24,8 @@ import {
   isOverlapConflictError,
 } from '../../lib/timeEntryErrors'
 import { DurationLimitModal } from './durationLimitModal'
+import { DurationOnlyTimeFields } from './DurationOnlyTimeFields'
+import { ManualEntryRangeTimeFields } from './ManualEntryRangeTimeFields'
 import { OverlapAlertModal } from './overlapAlert'
 
 interface ReviewPendingEntryModalProps {
@@ -66,11 +62,6 @@ export function ReviewPendingEntryModal({
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
 
-  const durationOnlyCalendarDate = useMemo(() => {
-    const parsed = parseDateInput(durationOnlyDate)
-    return parsed ? dateToCalendarDate(parsed) : dateToCalendarDate(new Date())
-  }, [durationOnlyDate])
-
   const validation = validateManualEntry(
     manualEntry,
     allPending.filter((item) => item.status === 'Confirmed'),
@@ -85,7 +76,23 @@ export function ReviewPendingEntryModal({
     ? durationOnlyValidationError ?? durationParseError ?? error
     : validation.error ?? error
 
+  const rangeFieldState = endOrderError ? 'error' : 'default'
   const busy = isApproving || isRejecting
+
+  const applyChange = useCallback(
+    (type: 'start' | 'end', date: Date) => {
+      setOverlapWarning(null)
+      setManualEntry((current) => applyManualFieldChange(current, type, date))
+    },
+    [],
+  )
+
+  const rangeFields = useManualEntryRangeFields({
+    start: manualEntry.start,
+    end: manualEntry.end,
+    onApplyChange: applyChange,
+    syncEndWithStart: true,
+  })
 
   const buildApproveRequest = (): TimeEntryRequest | null => {
     if (isDurationOnly) {
@@ -186,81 +193,30 @@ export function ReviewPendingEntryModal({
         </div>
 
         {isDurationOnly ? (
-          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
-            <div className="min-w-0">
-              <DatePickerField
-                variant="modal"
-                label="Date"
-                value={durationOnlyCalendarDate}
-                onChange={(nextDate) =>
-                  setDurationOnlyDate(
-                    toDateInputValue(
-                      new Date(nextDate.year, nextDate.month - 1, nextDate.day),
-                    ),
-                  )
-                }
-                disabled={busy}
-              />
-            </div>
-            <div className="min-w-0">
-              <ManualField
-                variant="modal"
-                label="Duration"
-                type="text"
-                value={durationOnlyInput}
-                onChange={(value) => {
-                  setDurationOnlyInput(value)
-                  setDurationParseError(null)
-                  setDurationLimitMessage(null)
-                  const parsed = parseDurationInput(value)
-                  if (parsed === null) return
-                  setDurationOnlySeconds(parsed)
-                }}
-                onBlur={() => {
-                  const parsed = parseDurationInput(durationOnlyInput)
-                  if (durationOnlyInput.trim() && parsed === null) {
-                    setDurationParseError('Use 1:30 or 1:30:00')
-                    return
-                  }
-                  setDurationParseError(null)
-                  setDurationOnlyInput(formatManualDurationInput(durationOnlySeconds))
-                }}
-                className="font-mono tabular-nums"
-                fieldState={durationParseError ? 'error' : 'default'}
-                hint={durationParseError ?? undefined}
-                disabled={busy}
-              />
-            </div>
-          </div>
+          <DurationOnlyTimeFields
+            dateValue={durationOnlyDate}
+            onDateChange={setDurationOnlyDate}
+            durationInput={durationOnlyInput}
+            onDurationInputChange={setDurationOnlyInput}
+            durationSeconds={durationOnlySeconds}
+            onDurationSecondsChange={setDurationOnlySeconds}
+            durationParseError={durationParseError}
+            onDurationParseErrorChange={setDurationParseError}
+            onClearDurationLimit={() => setDurationLimitMessage(null)}
+            disabled={busy}
+          />
         ) : (
-          <div className="mb-3 grid grid-cols-1 items-start gap-x-3 gap-y-3 sm:grid-cols-2">
-            <div className="min-w-0">
-              <ManualDateTimeFields
-                variant="modal"
-                label="Start"
-                value={manualEntry.start}
-                onChange={(parsed) => {
-                  setOverlapWarning(null)
-                  setManualEntry((current) => applyManualFieldChange(current, 'start', parsed))
-                }}
-                fieldState={endOrderError ? 'error' : 'default'}
-                disabled={busy}
-              />
-            </div>
-            <div className="min-w-0">
-              <ManualDateTimeFields
-                variant="modal"
-                label="End"
-                value={manualEntry.end}
-                onChange={(parsed) => {
-                  setOverlapWarning(null)
-                  setManualEntry((current) => applyManualFieldChange(current, 'end', parsed))
-                }}
-                fieldState={endOrderError ? 'error' : 'default'}
-                disabled={busy}
-              />
-            </div>
-          </div>
+          <ManualEntryRangeTimeFields
+            variant="modal"
+            startDateCalendarValue={rangeFields.startDateCalendarValue}
+            startTimeInput={rangeFields.startTimeInput}
+            endTimeInput={rangeFields.endTimeInput}
+            onStartDateChange={rangeFields.handleStartDateChange}
+            onStartTimeChange={rangeFields.handleStartTimeChange}
+            onEndTimeChange={rangeFields.handleEndTimeChange}
+            fieldState={rangeFieldState}
+            disabled={busy}
+          />
         )}
 
         <label className="mb-3 flex cursor-pointer items-center gap-2.5">

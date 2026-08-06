@@ -1,21 +1,22 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo } from 'react'
 import { Icon } from '../ui/Icon'
 import { WeekLockIcon } from '../timesheet/WeekLockBanner'
 import { ManualField, ManualFormNotice } from './ManualField'
-import { ManualDateTimeFields } from './ManualDateTimeFields'
 import { DurationLimitModal } from './durationLimitModal'
+import { ManualEntryRangeTimeFields } from './ManualEntryRangeTimeFields'
 import { OverlapAlertModal } from './overlapAlert'
 import {
   useTimeEntryForm,
   type TimeEntryFormVariant,
 } from '../../hooks/useTimeEntryForm'
+import { useManualEntryRangeFields } from '../../hooks/useManualEntryRangeFields'
 import type { Teammate } from '../../lib/mention'
 import type { TimeEntryAssociations } from '../../types/timeEntry'
 import type { TimeEntryTemplate } from '../../types/timeEntryTemplate'
 import type { SmartParseSeed } from '../../types/smartTimeParse'
 import { dateToCalendarDate } from '../../lib/calendarDate'
 import { parseDateInput, toDateInputValue } from '../../lib/manualEntry'
-import { DatePickerField } from '../ui/date-picker/DatePickerField'
+import { DatePickerField } from '../ui/date-picker'
 import { TrackerModeMenu, type TrackerMode } from './TrackerModeMenu'
 
 export type TimeEntryInputHandle = {
@@ -116,34 +117,41 @@ export const TimeEntryInput = forwardRef<TimeEntryInputHandle, TimeEntryInputPro
       return parsed ? dateToCalendarDate(parsed) : dateToCalendarDate(new Date())
     }, [form.entryDate])
 
+    const applyRangeChange = useCallback(
+      (type: 'start' | 'end', date: Date) => {
+        if (type === 'start') form.setStartFromDate(date)
+        else form.setEndFromDate(date)
+      },
+      [form],
+    )
+
+    const rangeFields = useManualEntryRangeFields({
+      start: form.manualEntry.start,
+      end: form.manualEntry.end,
+      onApplyChange: applyRangeChange,
+      syncEndWithStart: false,
+    })
+
     const timeFields =
       variant === 'range' ? (
-        <>
-          <ManualDateTimeFields
-            label="Start"
-            hideLabel
-            compact
-            value={form.manualEntry.start}
-            onChange={(date) => form.setStartFromDate(date)}
-            fieldState={form.timeFieldState}
-            disabled={fieldsAreDisabled}
-          />
-          <ManualDateTimeFields
-            label="End"
-            hideLabel
-            compact
-            value={form.manualEntry.end}
-            onChange={(date) => form.setEndFromDate(date)}
-            fieldState={form.timeFieldState}
-            disabled={fieldsAreDisabled}
-          />
-        </>
+        <ManualEntryRangeTimeFields
+          variant="tracker"
+          layout="tracker-inline"
+          startDateCalendarValue={rangeFields.startDateCalendarValue}
+          startTimeInput={rangeFields.startTimeInput}
+          endTimeInput={rangeFields.endTimeInput}
+          onStartDateChange={rangeFields.handleStartDateChange}
+          onStartTimeChange={rangeFields.handleStartTimeChange}
+          onEndTimeChange={rangeFields.handleEndTimeChange}
+          fieldState={form.timeFieldState}
+          disabled={fieldsAreDisabled}
+        />
       ) : (
         <div className={isInline ? 'flex flex-wrap items-center gap-1.5' : 'flex items-center gap-2'}>
           <DatePickerField
             label="Date"
             hideLabel
-            compact
+            variant="tracker"
             value={durationEntryDate}
             onChange={(nextDate) =>
               form.setEntryDate(
