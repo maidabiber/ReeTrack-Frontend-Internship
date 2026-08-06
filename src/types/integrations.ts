@@ -1,17 +1,6 @@
-/** Mirrors backend CalendarProviderType enum (serialized as number). */
-export const CalendarProviderType = {
-  Google: 0,
-} as const;
+export type CalendarProviderType = 'Google'
 
-export type CalendarProviderType = typeof CalendarProviderType[keyof typeof CalendarProviderType];
-
-export const CalendarSyncStatus = {
-  Idle: 0,
-  Syncing: 1,
-  Error: 2,
-} as const;
-
-export type CalendarSyncStatus = typeof CalendarSyncStatus[keyof typeof CalendarSyncStatus];
+export type CalendarSyncStatus = 'Idle' | 'Syncing' | 'Error'
 
 /** Mirrors backend CalendarConnectionDto. */
 export interface CalendarConnection {

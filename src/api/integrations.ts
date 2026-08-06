@@ -3,6 +3,8 @@ import type {
   ApiMessageResponse,
   CalendarConnection,
   CalendarEventsQuery,
+  CalendarProviderType,
+  CalendarSyncStatus,
   SyncedCalendarEvent,
 } from '../types/integrations'
 
@@ -41,22 +43,20 @@ export function getIntegrationErrorFromUrl(search: string): string | null {
   return value && value.length > 0 ? value : null
 }
 
-export function calendarProviderLabel(providerType: number): string {
-  switch (providerType) {
-    case 0:
-      return 'Google Calendar'
-    default:
-      return 'Calendar'
-  }
+const PROVIDER_LABELS: Record<CalendarProviderType, string> = {
+  Google: 'Google Calendar',
 }
 
-export function calendarSyncStatusLabel(status: number): string {
-  switch (status) {
-    case 1:
-      return 'Syncing'
-    case 2:
-      return 'Error'
-    default:
-      return 'Connected'
-  }
+const SYNC_STATUS_LABELS: Record<CalendarSyncStatus, string> = {
+  Idle: 'Connected',
+  Syncing: 'Syncing',
+  Error: 'Error',
+}
+
+export function calendarProviderLabel(providerType: CalendarProviderType): string {
+  return PROVIDER_LABELS[providerType] ?? 'Calendar'
+}
+
+export function calendarSyncStatusLabel(status: CalendarSyncStatus): string {
+  return SYNC_STATUS_LABELS[status] ?? 'Connected'
 }

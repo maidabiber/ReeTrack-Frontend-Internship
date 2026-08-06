@@ -5,7 +5,7 @@ import {
   syncCalendarConnection,
 } from '../../api/integrations'
 import { apiErrorMessage } from '../../api/client'
-import { CalendarProviderType, CalendarSyncStatus, type CalendarConnection } from '../../types/integrations'
+import type { CalendarConnection, CalendarSyncStatus } from '../../types/integrations'
 import { GoogleCalendarConnectButton } from './GoogleCalendarConnectButton'
 import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal'
 import { Icon } from '../ui/Icon'
@@ -13,9 +13,9 @@ import { Pill } from '../ui/Pill'
 import { GoogleIcon } from '../ui/GoogleIcon'
 
 const SYNC_STATUS_DOT: Record<CalendarSyncStatus, string> = {
-  [CalendarSyncStatus.Idle]: 'bg-[#1E8A57]',
-  [CalendarSyncStatus.Syncing]: 'bg-[#B8860B]',
-  [CalendarSyncStatus.Error]: 'bg-red',
+  Idle: 'bg-[#1E8A57]',
+  Syncing: 'bg-[#B8860B]',
+  Error: 'bg-red',
 }
 
 function formatLastSynced(value: string | null): string {
@@ -41,7 +41,7 @@ export function GoogleCalendarCard() {
     listCalendarConnections()
       .then((connections) => {
         if (cancelled) return
-        const google = connections.find((item) => item.providerType === CalendarProviderType.Google) ?? null
+        const google = connections.find((item) => item.providerType === 'Google') ?? null
         setConnection(google)
         setLoadError(null)
         setFetchedKey(reloadKey)
@@ -82,8 +82,8 @@ export function GoogleCalendarCard() {
   }
 
   const isConnected = connection !== null
-  const syncStatus = connection?.syncStatus ?? CalendarSyncStatus.Idle
-  const actionsDisabled = isSyncing || syncStatus === CalendarSyncStatus.Syncing
+  const syncStatus = connection?.syncStatus ?? 'Idle'
+  const actionsDisabled = isSyncing || syncStatus === 'Syncing'
 
   return (
     <>
@@ -116,7 +116,7 @@ export function GoogleCalendarCard() {
               </p>
             )}
 
-            {isConnected && syncStatus === CalendarSyncStatus.Error && connection.lastSyncError && (
+            {isConnected && syncStatus === 'Error' && connection.lastSyncError && (
               <p className="mt-2 text-sm leading-[1.5] text-red">{connection.lastSyncError}</p>
             )}
 
@@ -148,7 +148,7 @@ export function GoogleCalendarCard() {
 
             {!isLoading && !loadError && isConnected && (
               <Pill
-                label={syncStatus === CalendarSyncStatus.Error ? 'Error' : syncStatus === CalendarSyncStatus.Syncing ? 'Syncing' : 'Connected'}
+                label={syncStatus === 'Error' ? 'Error' : syncStatus === 'Syncing' ? 'Syncing' : 'Connected'}
                 dotClassName={SYNC_STATUS_DOT[syncStatus]}
               />
             )}
@@ -184,7 +184,7 @@ export function GoogleCalendarCard() {
               disabled={actionsDisabled}
               className="rounded-full bg-brand px-4 py-2 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {syncStatus === CalendarSyncStatus.Error ? 'Retry sync' : 'Sync now'}
+              {syncStatus === 'Error' ? 'Retry sync' : 'Sync now'}
             </button>
           </div>
         )}
