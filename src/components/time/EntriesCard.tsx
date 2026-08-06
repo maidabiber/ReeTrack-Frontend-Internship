@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AddShareMembersModal } from './AddShareMembersModal'
 import { EditEntryModal } from './EditEntryModal'
 import { ReviewPendingEntryModal } from './ReviewPendingEntryModal'
@@ -21,6 +21,15 @@ import type { TimeEntry } from '../../types/timeEntry'
 
 const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
 const PAGE_SIZE = 15
+
+/** Outer wrapper keeps the tour ring outside overflow-hidden on the panel. */
+function EntriesListShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative" data-tour-target="entries-list">
+      <div className={TIMER_PANEL_OVERFLOW_CLASS}>{children}</div>
+    </div>
+  )
+}
 
 type DayGroup = {
   key: string
@@ -210,17 +219,17 @@ export function EntriesCard() {
 
   if (isContextInitializing && loading) {
     return (
-      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
+      <EntriesListShell>
         <div className="px-5 py-16 text-center text-body leading-[1.6] text-navy/50">
           Loading entries…
         </div>
-      </div>
+      </EntriesListShell>
     )
   }
 
   return (
     <>
-      <div className={TIMER_PANEL_OVERFLOW_CLASS}>
+      <EntriesListShell>
         <div className="flex flex-wrap items-center gap-3 border-b border-navy/[0.06] px-4 py-3">
           <label className="flex items-center gap-2 rounded-full border border-navy/[0.06] bg-white px-3 py-1.5 font-display text-sm font-bold text-navy shadow-float">
             <span className="sr-only">Filter by date</span>
@@ -360,7 +369,7 @@ export function EntriesCard() {
             </button>
           </div>
         ) : null}
-      </div>
+      </EntriesListShell>
 
       {editingEntry ? (
         <EditEntryModal

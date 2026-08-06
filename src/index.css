@@ -197,6 +197,39 @@
     box-shadow: var(--shadow-panel);
     overflow: visible;
   }
+
+  /*
+   * First-track tour highlight — spotlight effect on every step.
+   * The huge box-shadow dims the entire viewport; the target element sits
+   * above it at z-index 95 so its interior stays bright.
+   * .tour-highlight-filled keeps a white interior for panels and icon buttons.
+   * .tour-highlight-circle uses a circular frame instead of a rounded rectangle.
+   */
+  .tour-highlight {
+    position: relative;
+    z-index: 95;
+    isolation: isolate;
+  }
+
+  .tour-highlight::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    z-index: -1;
+    border-radius: 0.75rem;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(31, 43, 77, 0.5);
+    pointer-events: none;
+  }
+
+  .tour-highlight-filled::after {
+    background: #fff;
+  }
+
+  .tour-highlight-circle::after {
+    background: transparent;
+    border-radius: 9999px;
+  }
 }
 
 html,

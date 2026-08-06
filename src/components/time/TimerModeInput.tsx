@@ -175,27 +175,37 @@ export const TimerModeInput = forwardRef<TimerModeInputHandle, TimerModeInputPro
 
         {startBlocked ? <WeekLockIcon status={weekLock.status} /> : null}
 
-        <div className={`flex flex-shrink-0 text-white shadow-soft ${primaryTone} rounded-full`}>
-          <button
-            type="button"
-            aria-label={isRunning ? 'Stop timer' : 'Start timer'}
-            aria-pressed={isRunning}
-            disabled={busy || startBlocked}
-            onClick={() => void handleToggle()}
-            className="flex h-11 w-11 items-center justify-center rounded-l-full transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        <div className="flex flex-shrink-0 rounded-full text-white shadow-soft">
+          <div
+            data-tour-target="timer-play"
+            className={`flex flex-shrink-0 ${primaryTone} rounded-l-full`}
           >
-            <Icon
-              name={isRunning ? 'stop' : 'play'}
-              className={isRunning ? 'size-3.5' : 'size-icon-play translate-x-px'}
+            <button
+              type="button"
+              aria-label={isRunning ? 'Stop timer' : 'Start timer'}
+              aria-pressed={isRunning}
+              disabled={busy || startBlocked}
+              onClick={() => void handleToggle()}
+              className="flex h-11 w-11 items-center justify-center rounded-l-full transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Icon
+                name={isRunning ? 'stop' : 'play'}
+                className={isRunning ? 'size-3.5' : 'size-icon-play translate-x-px'}
+              />
+            </button>
+          </div>
+          <span aria-hidden="true" className="my-2 w-px flex-shrink-0 self-stretch bg-white/25" />
+          <div
+            data-tour-target="mode-menu"
+            className={`flex flex-shrink-0 ${primaryTone} rounded-r-full`}
+          >
+            <TrackerModeMenu
+              mode={mode}
+              onModeChange={onModeChange}
+              disabled={isRunning || busy}
+              buttonClassName="flex h-11 w-9 items-center justify-center rounded-r-full transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-60"
             />
-          </button>
-          <span aria-hidden="true" className="my-2 w-px flex-shrink-0 bg-white/25" />
-          <TrackerModeMenu
-            mode={mode}
-            onModeChange={onModeChange}
-            disabled={isRunning || busy}
-            buttonClassName="flex h-11 w-9 items-center justify-center rounded-r-full transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-60"
-          />
+          </div>
         </div>
 
         {showOverlapAlert && overlapWarning ? (

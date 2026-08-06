@@ -4,7 +4,7 @@ import type { AuthSession } from '../types/auth'
 import type { Permission } from '../lib/permissions'
 import { hasAnyPermission, hasPermission } from '../lib/permissions'
 import { clearSession, saveSession } from '../lib/authSession'
-import { getCurrentUser, signOut as apiSignOut } from '../api/auth'
+import { completeOnboarding as apiCompleteOnboarding, getCurrentUser, signOut as apiSignOut } from '../api/auth'
 import { AuthContext } from './auth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -48,6 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const completeOnboarding = useCallback(async () => {
+    await apiCompleteOnboarding()
+    setUser((current) => (current ? { ...current, hasCompletedOnboarding: true } : current))
+  }, [])
+
   const value = useMemo(() => {
     const permissions = user?.permissions ?? []
 
@@ -60,10 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasPermission: (permission: Permission) => hasPermission(permissions, permission),
       hasAnyPermission: (required: readonly Permission[]) =>
         hasAnyPermission(permissions, required),
+      hasCompletedOnboarding: user?.hasCompletedOnboarding ?? false,
+      completeOnboarding,
       signIn,
       signOut,
     }
-  }, [user, isInitializing, signIn, signOut])
+  }, [user, isInitializing, completeOnboarding, signIn, signOut])
 
   return <AuthContext value={value}>{children}</AuthContext>
 }

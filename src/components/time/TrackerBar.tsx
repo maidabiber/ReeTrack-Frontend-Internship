@@ -31,6 +31,7 @@ import { apiErrorMessage } from '../../api/client'
 import { createSmartParseSeed, resolveSmartParseVariant } from '../../lib/smartTimeParse'
 import { resolveSmartParseAssociations } from '../../lib/resolveSmartParseAssociations'
 import type { SmartParseSeed } from '../../types/smartTimeParse'
+import { TOUR_FORCE_TIMER_MODE_EVENT } from '../onboarding/tourEvents'
 
 const TIMER_PANEL_CLASS = 'timer-panel'
 
@@ -124,6 +125,13 @@ export function TrackerBar() {
   } = draft
 
   useDismissOnOutside(tagsButtonRef, tagsPickerOpen, () => setTagsPickerOpen(false))
+
+  // First-track tour: Pomodoro only exists in Timer mode.
+  useEffect(() => {
+    const onForceTimerMode = () => setTrackerMode('timer')
+    window.addEventListener(TOUR_FORCE_TIMER_MODE_EVENT, onForceTimerMode)
+    return () => window.removeEventListener(TOUR_FORCE_TIMER_MODE_EVENT, onForceTimerMode)
+  }, [])
 
   const clearShareNotice = () => setShareNotice(null)
 
@@ -361,7 +369,10 @@ export function TrackerBar() {
             error={smartParseError}
           />
         ) : (
-          <div className="flex items-start gap-3 px-4 pt-5 pb-4 sm:px-6">
+          <div
+            className="flex items-start gap-3 px-4 pt-5 pb-4 sm:px-6"
+            data-tour-target="entry-description"
+          >
             <div className="min-w-0 flex-1">
               <MentionDescriptionField
                 className="w-full border-none bg-transparent p-0 font-sans text-lg text-navy outline-none placeholder:font-medium placeholder:text-navy/40 disabled:opacity-60"
@@ -426,7 +437,7 @@ export function TrackerBar() {
             hasChips ? '' : 'border-t border-navy/[0.06]'
           }`}
         >
-          <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-2">
+          <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-2" data-tour-target="entry-details">
             <div ref={projectButtonRef} className="relative">
               <IconButton
                 name="projects"
@@ -486,22 +497,22 @@ export function TrackerBar() {
               pressed={isBillable}
               onClick={() => setBillable(!isBillable)}
             />
-
-            {trackerMode === 'timer' ? (
-              <>
-                <div className="mx-1 hidden h-5.5 w-px flex-shrink-0 bg-navy/10 sm:block" />
-                <PomodoroControls
-                  enabled={pomodoro.prefs.enabled}
-                  workMinutes={pomodoro.prefs.workMinutes}
-                  breakMinutes={pomodoro.prefs.breakMinutes}
-                  onEnabledChange={pomodoro.setEnabled}
-                  onWorkMinutesChange={pomodoro.setWorkMinutes}
-                  onBreakMinutesChange={pomodoro.setBreakMinutes}
-                  disabled={isInitializing}
-                />
-              </>
-            ) : null}
           </div>
+
+          {trackerMode === 'timer' ? (
+            <>
+              <div className="mx-1 hidden h-5.5 w-px flex-shrink-0 bg-navy/10 sm:block" />
+              <PomodoroControls
+                enabled={pomodoro.prefs.enabled}
+                workMinutes={pomodoro.prefs.workMinutes}
+                breakMinutes={pomodoro.prefs.breakMinutes}
+                onEnabledChange={pomodoro.setEnabled}
+                onWorkMinutesChange={pomodoro.setWorkMinutes}
+                onBreakMinutesChange={pomodoro.setBreakMinutes}
+                disabled={isInitializing}
+              />
+            </>
+          ) : null}
 
           <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto">
             {showSmartParseTimeFields ? (

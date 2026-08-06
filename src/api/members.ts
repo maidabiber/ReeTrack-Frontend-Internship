@@ -69,6 +69,7 @@ function toMember(response: MemberResponse): Member {
     emailVerified: response.emailVerified,
     lastLoginAtUtc: response.lastLoginAtUtc,
     pendingInvitationId: response.pendingInvitationId,
+    hasCompletedOnboarding: false,
   }
 }
 

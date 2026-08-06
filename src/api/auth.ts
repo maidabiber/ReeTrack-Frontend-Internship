@@ -19,6 +19,10 @@ export function getCurrentUser(): Promise<AuthSession> {
     .then((apiUser) => toAuthSession(apiUser))
 }
 
+export function completeOnboarding(): Promise<void> {
+  return apiClient.post('/auth/onboarding-complete').then(() => undefined)
+}
+
 export function signOut(): Promise<void> {
   return apiClient.post('/auth/logout').then(() => undefined)
 }

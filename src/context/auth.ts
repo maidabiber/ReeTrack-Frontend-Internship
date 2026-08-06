@@ -15,6 +15,11 @@ export interface AuthContextValue {
   isInitializing: boolean
   hasPermission: (permission: Permission) => boolean
   hasAnyPermission: (permissions: readonly Permission[]) => boolean
+  
+  /** True when the user has not yet completed the first-track guided tour. */
+  hasCompletedOnboarding: boolean
+  /** Persists onboarding completion on the backend and updates local state. */
+  completeOnboarding: () => Promise<void>
   signIn: (session: AuthSession) => void
   signOut: () => void
 }

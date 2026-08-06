@@ -10,6 +10,7 @@ import {
   NoticeBanner,
   SegmentedTabs,
 } from '../components/directory/DirectoryControls'
+import { EmptyDirectory } from '../components/directory/EmptyDirectory'
 import {
   HeaderCell,
   RowMenu,
@@ -374,29 +375,42 @@ export default function MembersPage() {
       </div>
 
       {view === 'members' ? (
-        <div className="rounded-2xl bg-white shadow-card">
-          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
-            <HeaderCell icon="members" label="Name" />
-            <HeaderCell icon="mail" label="Email" />
-            <HeaderCell icon="shield" label="Role" />
-            <HeaderCell icon="check-badge" label="Status" />
-            <HeaderCell icon="billable" label="Rate" />
-            <span />
-          </div>
+        !isLoading && !loadError && filtered.length === 0 && members.length === 0 ? (
+          <EmptyDirectory
+            title="No members yet"
+            description="Invite your team to get started."
+            actionLabel="Invite members"
+            onAction={(event) => {
+              event.stopPropagation()
+              setInviteOpen(true)
+            }}
+          />
+        ) : !isLoading && !loadError && filtered.length === 0 ? (
+          <EmptyDirectory title="No members match your search or filters." />
+        ) : (
+          <div className="rounded-2xl bg-white shadow-card">
+            <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
+              <HeaderCell icon="members" label="Name" />
+              <HeaderCell icon="mail" label="Email" />
+              <HeaderCell icon="shield" label="Role" />
+              <HeaderCell icon="check-badge" label="Status" />
+              <HeaderCell icon="billable" label="Rate" />
+              <span />
+            </div>
 
-          <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <SkeletonRows />}
+            <div className="divide-y divide-navy/[0.08]">
+              {isLoading && <SkeletonRows />}
 
-            {!isLoading && loadError && (
-              <LoadErrorState
-                message={loadError}
-                onRetry={() => {
-                  setIsLoading(true)
-                  setLoadError(null)
-                  setReloadKey((key) => key + 1)
-                }}
-              />
-            )}
+              {!isLoading && loadError && (
+                <LoadErrorState
+                  message={loadError}
+                  onRetry={() => {
+                    setIsLoading(true)
+                    setLoadError(null)
+                    setReloadKey((key) => key + 1)
+                  }}
+                />
+              )}
 
             {!isLoading &&
               !loadError &&
@@ -421,15 +435,9 @@ export default function MembersPage() {
                 />
               ))}
 
-            {!isLoading && !loadError && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-body text-navy/50">
-                {members.length === 0
-                  ? 'No members yet. Invite your team to get started.'
-                  : 'No members match your search or filters.'}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )
       ) : (
         <InvitationsCard
           reloadKey={invitationsReloadKey}
@@ -446,6 +454,7 @@ export default function MembersPage() {
             setMembers((current) => current.filter((m) => m.id !== removedUserId))
           }
           showNotice={showNotice}
+          onInvite={() => setInviteOpen(true)}
         />
       )}
 
@@ -709,6 +718,7 @@ function InvitationsCard({
   onChanged,
   onRemovedUser,
   showNotice,
+  onInvite,
 }: {
   reloadKey: number
   openRowMenuId: string | null
@@ -716,6 +726,7 @@ function InvitationsCard({
   onChanged: () => void
   onRemovedUser: (removedUserId: string) => void
   showNotice: (message: string) => void
+  onInvite: () => void
 }) {
   const [invitations, setInvitations] = useState<InvitationListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -767,6 +778,20 @@ function InvitationsCard({
       .catch((error) =>
         showNotice(apiErrorMessage(error, `Could not revoke the invite to ${invitation.email}.`)),
       )
+  }
+
+  if (!isLoading && !loadError && invitations.length === 0) {
+    return (
+      <EmptyDirectory
+        title="No invitations yet"
+        description="Invite your team to get started."
+        actionLabel="Invite members"
+        onAction={(event) => {
+          event.stopPropagation()
+          onInvite()
+        }}
+      />
+    )
   }
 
   return (
@@ -870,12 +895,6 @@ function InvitationsCard({
               </Fragment>
             )
           })}
-
-        {!isLoading && !loadError && invitations.length === 0 && (
-          <div className="px-5 py-10 text-center text-body text-navy/50">
-            No invitations yet. Invite your team to get started.
-          </div>
-        )}
       </div>
     </div>
   )

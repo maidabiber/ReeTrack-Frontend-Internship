@@ -66,7 +66,10 @@ export function Toolbar({
 
       <div className="hidden flex-1 sm:block" />
 
-      <div className="flex w-full rounded-full border border-navy/[0.06] bg-white p-segment shadow-float sm:w-auto">
+      <div
+        className="flex w-full rounded-full border border-navy/[0.06] bg-white p-segment shadow-float sm:w-auto"
+        data-tour-target="content-views"
+      >
         {VIEW_OPTIONS.map((option) => (
           <button
             key={option.value}

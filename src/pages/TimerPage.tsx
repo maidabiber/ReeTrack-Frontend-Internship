@@ -4,6 +4,8 @@ import { TrackerBar } from '../components/time/TrackerBar'
 import { Toolbar, type TimerContentView } from '../components/time/Toolbar'
 import { EntriesCard } from '../components/time/EntriesCard'
 import { EventCalendar } from '../components/calendar/EventCalendar'
+import { FirstTrackTour } from '../components/onboarding/FirstTrackTour'
+import { TOUR_FORCE_LIST_VIEW_EVENT } from '../components/onboarding/tourEvents'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { useAuth } from '../hooks/useAuth'
 import { Permissions } from '../lib/permissions'
@@ -50,6 +52,13 @@ export default function TimerPage() {
     }
   }
 
+  useEffect(() => {
+    const onForceListView = () => handleContentViewChange('list')
+    window.addEventListener(TOUR_FORCE_LIST_VIEW_EVENT, onForceListView)
+    return () => window.removeEventListener(TOUR_FORCE_LIST_VIEW_EVENT, onForceListView)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTimesheet])
+
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-surface-muted/45">
       <div className={`mx-auto w-full max-w-page ${PAGE_PAD}`}>
@@ -77,6 +86,8 @@ export default function TimerPage() {
           )}
         </div>
       </div>
+
+      <FirstTrackTour />
     </div>
   )
 }

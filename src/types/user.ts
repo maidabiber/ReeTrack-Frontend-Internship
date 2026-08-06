@@ -49,6 +49,8 @@ export interface User {
   hourTargetHours: number | null
   emailVerified: boolean
   lastLoginAtUtc: string | null
+  /** True once the user has finished the first-track guided tour. */
+  hasCompletedOnboarding: boolean
 }
 
 export interface Invitation {

@@ -9,6 +9,7 @@ import {
   NoticeBanner,
   SegmentedTabs,
 } from '../components/directory/DirectoryControls'
+import { EmptyDirectory } from '../components/directory/EmptyDirectory'
 import {
   HeaderCell,
   RowMenu,
@@ -165,67 +166,79 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white shadow-card">
-          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
-            <HeaderCell icon="clients" label="Name" />
-            <HeaderCell icon="projects" label="Projects" />
-            <HeaderCell icon="check-badge" label="Status" />
-            <span />
-          </div>
+        {!isLoading && !loadError && filtered.length === 0 && clients.length === 0 ? (
+          tab === 'active' && canManage ? (
+            <EmptyDirectory
+              title="No clients yet"
+              description="Add your first client to group projects under it."
+              actionLabel="New client"
+              onAction={(event) => {
+                event.stopPropagation()
+                setModal({ mode: 'create' })
+              }}
+            />
+          ) : tab === 'active' ? (
+            <EmptyDirectory title="No clients yet" />
+          ) : (
+            <EmptyDirectory
+              title="No archived clients"
+              description="Archive a client from Active to see it here."
+            />
+          )
+        ) : !isLoading && !loadError && filtered.length === 0 ? (
+          <EmptyDirectory title="No clients match your search." />
+        ) : (
+          <div className="rounded-2xl bg-white shadow-card">
+            <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
+              <HeaderCell icon="clients" label="Name" />
+              <HeaderCell icon="projects" label="Projects" />
+              <HeaderCell icon="check-badge" label="Status" />
+              <span />
+            </div>
 
-          <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <SkeletonRows />}
+            <div className="divide-y divide-navy/[0.08]">
+              {isLoading && <SkeletonRows />}
 
-            {!isLoading && loadError && (
-              <LoadErrorState
-                message={loadError}
-                onRetry={() => {
-                  setIsLoading(true)
-                  setLoadError(null)
-                  refresh()
-                }}
-              />
-            )}
-
-            {!isLoading &&
-              !loadError &&
-              filtered.map((client, index) => (
-                <ClientRow
-                  key={client.id}
-                  client={client}
-                  index={index}
-                  expanded={expandedClientId === client.id}
-                  onToggleExpand={() =>
-                    setExpandedClientId(expandedClientId === client.id ? null : client.id)
-                  }
-                  menuOpen={openRowMenuId === client.id}
-                  onToggleMenu={(event) => {
-                    event.stopPropagation()
-                    setOpenRowMenuId(openRowMenuId === client.id ? null : client.id)
+              {!isLoading && loadError && (
+                <LoadErrorState
+                  message={loadError}
+                  onRetry={() => {
+                    setIsLoading(true)
+                    setLoadError(null)
+                    refresh()
                   }}
-                  onEdit={() => {
-                    setOpenRowMenuId(null)
-                    setModal({ mode: 'edit', client })
-                  }}
-                  onToggleArchived={() => handleToggleArchived(client)}
-                  onDelete={() => handleDelete(client)}
-                  canManage={canManage}
                 />
-              ))}
+              )}
 
-            {!isLoading && !loadError && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-body text-navy/50">
-                {clients.length === 0
-                  ? tab === 'active'
-                    ? canManage
-                      ? 'No clients yet. Add your first client to group projects under it.'
-                      : 'No clients yet.'
-                    : 'Nothing here.'
-                  : 'No clients match your search.'}
-              </div>
-            )}
+              {!isLoading &&
+                !loadError &&
+                filtered.map((client, index) => (
+                  <ClientRow
+                    key={client.id}
+                    client={client}
+                    index={index}
+                    expanded={expandedClientId === client.id}
+                    onToggleExpand={() =>
+                      setExpandedClientId(expandedClientId === client.id ? null : client.id)
+                    }
+                    menuOpen={openRowMenuId === client.id}
+                    onToggleMenu={(event) => {
+                      event.stopPropagation()
+                      setOpenRowMenuId(openRowMenuId === client.id ? null : client.id)
+                    }}
+                    onEdit={() => {
+                      setOpenRowMenuId(null)
+                      setModal({ mode: 'edit', client })
+                    }}
+                    onToggleArchived={() => handleToggleArchived(client)}
+                    onDelete={() => handleDelete(client)}
+                    canManage={canManage}
+                  />
+                ))}
+
+            </div>
           </div>
-        </div>
+        )}
 
         {modal && (
           <ClientModal
@@ -334,22 +347,24 @@ function ClientRow({
             }`}
           />
         </button>
-        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-          <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
-          <RowMenuItem
-            icon="check-badge"
-            label={client.isActive ? 'Archive' : 'Restore'}
-            onClick={onToggleArchived}
-          />
-          <RowMenuItem
-            icon="ban"
-            label="Delete"
-            danger
-            disabled={!canDelete}
-            title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
-            onClick={onDelete}
-          />
-        </RowMenu>
+        {canManage && (
+          <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+            <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
+            <RowMenuItem
+              icon="check-badge"
+              label={client.isActive ? 'Archive' : 'Restore'}
+              onClick={onToggleArchived}
+            />
+            <RowMenuItem
+              icon="ban"
+              label="Delete"
+              danger
+              disabled={!canDelete}
+              title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
+              onClick={onDelete}
+            />
+          </RowMenu>
+        )}
       </div>
 
       <div

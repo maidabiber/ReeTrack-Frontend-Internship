@@ -20,6 +20,7 @@ export function SmartParseButton({
       aria-label="Open AI time entry input"
       disabled={disabled || loading}
       onClick={onClick}
+      data-tour-target="smart-parse"
       className={`flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-gradient text-white shadow-soft transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {loading ? (

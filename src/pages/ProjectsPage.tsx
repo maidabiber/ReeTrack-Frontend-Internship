@@ -9,6 +9,7 @@ import {
   NoticeBanner,
   SegmentedTabs,
 } from '../components/directory/DirectoryControls'
+import { EmptyDirectory } from '../components/directory/EmptyDirectory'
 import {
   HeaderCell,
   RowMenu,
@@ -196,19 +197,27 @@ export default function ProjectsPage() {
           <DirectorySearch placeholder="Search projects..." value={search} onChange={setSearch} />
         </div>
 
-        {!isLoading && !loadError && filtered.length === 0 && projects.length === 0 && tab === 'active' ? (
-          canManageProjects ? (
+        {!isLoading && !loadError && filtered.length === 0 && projects.length === 0 ? (
+          tab === 'active' && canManageProjects ? (
             <EmptyDirectory
-              onCreate={(event) => {
+              title="No projects yet"
+              description="Create your first project to start tracking time against it."
+              actionLabel="New project"
+              onAction={(event) => {
                 event.stopPropagation()
                 setModal({ mode: 'create' })
               }}
             />
+          ) : tab === 'active' ? (
+            <EmptyDirectory title="No projects yet" />
           ) : (
-            <div className="rounded-2xl bg-white px-5 py-14 text-center text-body text-navy/50 shadow-card">
-              No projects yet.
-            </div>
+            <EmptyDirectory
+              title="No archived projects"
+              description="Archive a project from Active to see it here."
+            />
           )
+        ) : !isLoading && !loadError && filtered.length === 0 ? (
+          <EmptyDirectory title="No projects match your search." />
         ) : (
           <div className="rounded-2xl bg-white shadow-card">
             <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
@@ -257,11 +266,6 @@ export default function ProjectsPage() {
                   />
                 ))}
 
-              {!isLoading && !loadError && filtered.length === 0 && (
-                <div className="px-5 py-10 text-center text-body text-navy/50">
-                  {projects.length === 0 ? 'Nothing here.' : 'No projects match your search.'}
-                </div>
-              )}
             </div>
 
             {!isLoading && !loadError && filtered.length > 0 && <TotalsFooter projects={filtered} />}
@@ -319,35 +323,6 @@ function SkeletonRows() {
         </SkeletonRow>
       ))}
     </>
-  )
-}
-
-/**
- * First-run empty state. Borrows the auth screens' tilted brand-family blobs
- * (design.md §2) at card scale, so the blank directory has some character.
- */
-function EmptyDirectory({ onCreate }: { onCreate: (event: React.MouseEvent) => void }) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-white px-5 py-14 text-center shadow-card">
-      <span aria-hidden="true" className="absolute -top-12 -right-8 h-36 w-36 rounded-full bg-brand-veil" />
-      <span aria-hidden="true" className="absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-brand-tint" />
-      <span aria-hidden="true" className="absolute top-9 left-[16%] h-7 w-7 -rotate-12 rounded-[9px] bg-brand-tint" />
-      <span aria-hidden="true" className="absolute right-[20%] bottom-10 h-5 w-5 rotate-12 rounded-[7px] bg-brand-hi opacity-60" />
-      <span aria-hidden="true" className="absolute top-[30%] right-[9%] h-10 w-10 rotate-6 rounded-[12px] bg-brand opacity-80" />
-      <div className="relative">
-        <p className="font-display text-md font-semibold text-navy">No projects yet</p>
-        <p className="mx-auto mt-1 max-w-[360px] text-body leading-[1.5] text-navy/60">
-          Create your first project to start tracking time against it.
-        </p>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="mt-5 rounded-full bg-brand px-4.5 py-field font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep"
-        >
-          New project
-        </button>
-      </div>
-    </div>
   )
 }
 

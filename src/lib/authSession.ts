@@ -56,6 +56,7 @@ export function toSessionUser(apiUser: {
   displayName: string | null
   avatarUrl: string | null
   roles: string[]
+  hasCompletedOnboarding: boolean
   permissions: string[]
 }): User {
   return {
@@ -72,5 +73,6 @@ export function toSessionUser(apiUser: {
     hourTargetHours: null,
     emailVerified: true,
     lastLoginAtUtc: null,
+    hasCompletedOnboarding: apiUser.hasCompletedOnboarding,
   }
 }

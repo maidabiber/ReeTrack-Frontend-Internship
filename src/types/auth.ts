@@ -7,6 +7,7 @@ export interface AuthenticatedUserResponse {
   displayName: string | null
   avatarUrl: string | null
   roles: string[]
+  hasCompletedOnboarding: boolean
   permissions: string[]
 }
 

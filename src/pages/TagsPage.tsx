@@ -7,6 +7,7 @@ import {
   LoadErrorState,
   NoticeBanner,
 } from '../components/directory/DirectoryControls'
+import { EmptyDirectory } from '../components/directory/EmptyDirectory'
 import {
   HeaderCell,
   RowMenu,
@@ -118,63 +119,71 @@ export default function TagsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white shadow-card">
-          <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
-            <HeaderCell icon="tags" label="Name" />
-            <HeaderCell icon="reports" label="Usage" />
-            <span />
-          </div>
+        {!isLoading && !loadError && filtered.length === 0 && tags.length === 0 ? (
+          canManage ? (
+            <EmptyDirectory
+              title="No tags yet"
+              description="Create your first tag to label time entries."
+              actionLabel="New tag"
+              onAction={(event) => {
+                event.stopPropagation()
+                setModal({ mode: 'create' })
+              }}
+            />
+          ) : (
+            <EmptyDirectory title="No tags yet" />
+          )
+        ) : !isLoading && !loadError && filtered.length === 0 ? (
+          <EmptyDirectory title="No tags match your search." />
+        ) : (
+          <div className="rounded-2xl bg-white shadow-card">
+            <div className={`hidden md:grid ${GRID} border-b border-navy/[0.08]`}>
+              <HeaderCell icon="tags" label="Name" />
+              <HeaderCell icon="reports" label="Usage" />
+              <span />
+            </div>
 
-          <div className="divide-y divide-navy/[0.08]">
-            {isLoading && <SkeletonRows />}
+            <div className="divide-y divide-navy/[0.08]">
+              {isLoading && <SkeletonRows />}
 
-            {!isLoading && loadError && (
-              <LoadErrorState
-                message={loadError}
-                onRetry={() => {
-                  setIsLoading(true)
-                  setLoadError(null)
-                  refresh()
-                }}
-              />
-            )}
-
-            {!isLoading &&
-              !loadError &&
-              filtered.map((tag, index) => (
-                <TagRow
-                  key={tag.id}
-                  tag={tag}
-                  index={index}
-                  menuOpen={openRowMenuId === tag.id}
-                  onToggleMenu={(event) => {
-                    event.stopPropagation()
-                    setOpenRowMenuId(openRowMenuId === tag.id ? null : tag.id)
+              {!isLoading && loadError && (
+                <LoadErrorState
+                  message={loadError}
+                  onRetry={() => {
+                    setIsLoading(true)
+                    setLoadError(null)
+                    refresh()
                   }}
-                  onEdit={() => {
-                    setOpenRowMenuId(null)
-                    setModal({ mode: 'edit', tag })
-                  }}
-                  onDelete={() => {
-                    setOpenRowMenuId(null)
-                    setPendingDelete(tag)
-                  }}
-                  canManage={canManage}
                 />
-              ))}
+              )}
 
-            {!isLoading && !loadError && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-body text-navy/50">
-                {tags.length === 0
-                  ? canManage
-                    ? 'No tags yet. Create your first tag to label time entries.'
-                    : 'No tags yet.'
-                  : 'No tags match your search.'}
-              </div>
-            )}
+              {!isLoading &&
+                !loadError &&
+                filtered.map((tag, index) => (
+                  <TagRow
+                    key={tag.id}
+                    tag={tag}
+                    index={index}
+                    menuOpen={openRowMenuId === tag.id}
+                    onToggleMenu={(event) => {
+                      event.stopPropagation()
+                      setOpenRowMenuId(openRowMenuId === tag.id ? null : tag.id)
+                    }}
+                    onEdit={() => {
+                      setOpenRowMenuId(null)
+                      setModal({ mode: 'edit', tag })
+                    }}
+                    onDelete={() => {
+                      setOpenRowMenuId(null)
+                      setPendingDelete(tag)
+                    }}
+                    canManage={canManage}
+                  />
+                ))}
+
+            </div>
           </div>
-        </div>
-
+        )}
         {modal && (
           <TagModal
             tag={modal.mode === 'edit' ? modal.tag : null}

@@ -1,6 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../ui/Icon'
 import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
+import {
+  TOUR_CLOSE_MODE_MENU_EVENT,
+  TOUR_OPEN_MODE_MENU_EVENT,
+} from '../onboarding/tourEvents'
 
 export type TrackerMode = 'timer' | 'manual' | 'duration'
 
@@ -34,6 +38,19 @@ export function TrackerModeMenu({
 
   useDismissOnOutside(rootRef, menuOpen, () => setOpen(false))
 
+  useEffect(() => {
+    const openMenu = () => {
+      if (!disabled) setOpen(true)
+    }
+    const closeMenu = () => setOpen(false)
+    window.addEventListener(TOUR_OPEN_MODE_MENU_EVENT, openMenu)
+    window.addEventListener(TOUR_CLOSE_MODE_MENU_EVENT, closeMenu)
+    return () => {
+      window.removeEventListener(TOUR_OPEN_MODE_MENU_EVENT, openMenu)
+      window.removeEventListener(TOUR_CLOSE_MODE_MENU_EVENT, closeMenu)
+    }
+  }, [disabled])
+
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -56,6 +73,7 @@ export function TrackerModeMenu({
         <div
           role="listbox"
           aria-label="Tracker mode"
+          data-tour-target="mode-options"
           className="absolute top-[calc(100%+6px)] right-0 z-50 min-w-[9.5rem] overflow-hidden rounded-xl bg-white p-menu shadow-dropdown"
         >
           {MODE_OPTIONS.map((option) => {

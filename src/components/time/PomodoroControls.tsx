@@ -150,7 +150,11 @@ export function PomodoroControls({
   const dirty = nextWork !== workMinutes || nextBreak !== breakMinutes
 
   return (
-    <div ref={rootRef} className="relative flex flex-shrink-0 items-center">
+    <div
+      ref={rootRef}
+      className="relative flex flex-shrink-0 items-center"
+      data-tour-target="pomodoro"
+    >
       <button
         type="button"
         disabled={disabled}

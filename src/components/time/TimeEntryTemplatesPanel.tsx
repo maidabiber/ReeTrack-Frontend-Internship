@@ -84,7 +84,7 @@ export function TimeEntryTemplatesPanel({
   const hasContent = !isLoading && !loadError && templates.length > 0
 
   return (
-    <div className={`timer-panel px-4 pt-3.5 pb-3 ${hasContent ? '' : 'hidden sm:block'}`}>
+    <div className={`timer-panel px-4 pt-3.5 pb-3 ${hasContent ? '' : 'hidden sm:block'}`} data-tour-target="favourites">
       <p className="mb-3 font-display text-body font-semibold text-navy">Favourites</p>
 
       {actionError ? (
