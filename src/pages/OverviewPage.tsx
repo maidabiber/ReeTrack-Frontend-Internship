@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiErrorMessage } from '../api/client'
 import { getAdminOverview } from '../api/overview'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { StatTile } from '../components/ui/StatTile'
 import { ChartCard } from '../components/reports/ChartCard'
 import { ProjectBreakdown } from '../components/charts/ProjectBreakdown'
 import { formatHoursLabel } from '../components/charts/chartFormat'
-import { useAuth } from '../hooks/useAuth'
 import { useMemberDirectory } from '../hooks/useMemberDirectory'
 import { useOverviewEvents } from '../hooks/useOverviewEvents'
 import { OverviewRealtimeProvider } from '../context/OverviewRealtimeContext'
-import { Permissions } from '../lib/permissions'
 import type { AdminOverview, OverviewProjectDigest } from '../types/overview'
 import { ActiveTimersPanel } from '../components/overview/ActiveTimersPanel'
 import { IdleMembersPanel } from '../components/overview/IdleMembersPanel'
@@ -33,12 +30,6 @@ const SAFETY_POLL_MS = 300_000 // 5 minutes — safety net behind the realtime h
  * Uses a SignalR hub for real-time updates with a safety-net poll.
  */
 export default function OverviewPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.ReportsView)) {
-    return (
-      <AccessDenied description="Overview is available to project managers and workspace admins." />
-    )
-  }
   return (
     <OverviewRealtimeProvider>
       <OverviewDashboard />

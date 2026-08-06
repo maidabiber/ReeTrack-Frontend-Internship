@@ -18,13 +18,11 @@ import { HeaderCell, SkeletonRow, StatusMark } from '../components/directory/Dir
 import { riseDelay } from '../components/directory/directoryChrome'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { WeekEntriesList } from '../components/timesheet/WeekEntriesList'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
 import { UserAvatar } from '../components/ui/UserAvatar'
 import { useAuth } from '../hooks/useAuth'
-import { Permissions } from '../lib/permissions'
 import { invalidateWeekLock } from '../hooks/useWeekLock'
 import { formatDurationHms } from '../lib/formatDuration'
 import { parseDateInput } from '../lib/manualEntry'
@@ -81,12 +79,6 @@ function formatSubmittedAt(iso: string): string {
 }
 
 export default function TimesheetReviewPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.TimesheetReview)) {
-    return (
-      <AccessDenied description="Timesheet review is available to project managers and workspace admins." />
-    )
-  }
   return <ReviewQueue />
 }
 

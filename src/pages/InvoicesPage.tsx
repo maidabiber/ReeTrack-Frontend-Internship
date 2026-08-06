@@ -9,7 +9,6 @@ import {
   markInvoicePaid,
 } from '../api/invoices'
 import { fetchAllPages } from '../api/pagination'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
@@ -17,9 +16,7 @@ import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
 
-import { useAuth } from '../hooks/useAuth'
 import { useReportFilterDraft } from '../hooks/useReportFilterDraft'
-import { Permissions } from '../lib/permissions'
 import { cloneReportQuery } from '../lib/reportQuery'
 import { formatFullDate, formatReportMoney } from '../lib/reportView'
 import type { Invoice } from '../types/invoice'
@@ -41,14 +38,6 @@ function formatShortDateTime(isoDate: string): string {
  * Admin sees all; Project Managers are scoped to projects they created (backend).
  */
 export default function InvoicesPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.InvoicesManage)) {
-    return (
-      <AccessDenied
-        description="Invoices are available to project managers and workspace admins."
-      />
-    )
-  }
   return <InvoicesWorkspace />
 }
 

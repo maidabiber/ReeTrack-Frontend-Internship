@@ -9,7 +9,6 @@ import {
 } from '../api/customReports'
 import type { ReportExportFormat } from '../api/reports'
 import { LoadErrorState, NoticeBanner } from '../components/directory/DirectoryControls'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import {
   BlockCanvasList,
@@ -22,13 +21,11 @@ import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { BlockRenderer } from '../components/reports/render/BlockRenderer'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
-import { useAuth } from '../hooks/useAuth'
 import { useTransientNotice } from '../hooks/useTransientNotice'
 import { useCustomReportBuilder } from '../hooks/useCustomReportBuilder'
 import { BREAKPOINT, useMediaQuery } from '../hooks/useMediaQuery'
 import { useReportCatalogue } from '../hooks/useReportCatalogue'
 import { COMPARISON_OPTIONS, cloneSpec, specsEqual } from '../lib/customReportSpec'
-import { Permissions } from '../lib/permissions'
 import { formatPeriodLabel } from '../lib/reportView'
 import type {
   ComparisonMode,
@@ -44,12 +41,6 @@ import type {
  * until Edit is pressed (`?edit=1` also forces builder mode).
  */
 export default function CustomReportBuilderPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.ReportsView)) {
-    return (
-      <AccessDenied description="Custom reports are available to project managers and workspace admins." />
-    )
-  }
   return <BuilderWorkspace />
 }
 

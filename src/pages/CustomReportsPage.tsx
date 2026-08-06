@@ -18,11 +18,8 @@ import {
 import { HeaderCell, RowMenu, RowMenuItem, SkeletonRow } from '../components/directory/DirectoryTable'
 import { riseDelay } from '../components/directory/directoryChrome'
 import { PAGE_PAD } from '../components/layout/pageChrome'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { Modal } from '../components/ui/Modal'
-import { useAuth } from '../hooks/useAuth'
 import { useTransientNotice } from '../hooks/useTransientNotice'
-import { Permissions } from '../lib/permissions'
 import type { CustomReportDefinition, CustomReportOwnerFilter, CustomReportVisibility } from '../types/customReport'
 
 const GRID = 'grid grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_120px_32px] items-center gap-2.5 px-3.5 py-2.5'
@@ -40,12 +37,6 @@ const LIBRARY_FILTERS: ReadonlyArray<{ value: LibraryFilter; label: string }> = 
  * Create opens the builder; row actions cover open / rename / duplicate / delete.
  */
 export default function CustomReportsPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.ReportsView)) {
-    return (
-      <AccessDenied description="Custom reports are available to project managers and workspace admins." />
-    )
-  }
   return <CustomReportsLibrary />
 }
 

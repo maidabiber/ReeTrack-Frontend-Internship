@@ -68,14 +68,16 @@ export default function ProjectDetailPage() {
   const tabOptions = useMemo(() => {
     const options: Array<{ value: ProjectDetailTab; label: string }> = [
       { value: 'tasks', label: 'Tasks' },
-      { value: 'cost', label: 'Cost' },
     ]
+    if (canManageProjects) options.push({ value: 'cost', label: 'Cost' })
     if (canManageAlerts) options.push({ value: 'alerts', label: 'Alerts' })
     return options
-  }, [canManageAlerts])
+  }, [canManageProjects, canManageAlerts])
 
   const activeTab: ProjectDetailTab =
-    tab === 'alerts' && !canManageAlerts ? 'tasks' : tab
+    tab === 'alerts' && !canManageAlerts ? 'tasks'
+    : tab === 'cost' && !canManageProjects ? 'tasks'
+    : tab
 
   const refresh = () => setReloadKey((key) => key + 1)
 

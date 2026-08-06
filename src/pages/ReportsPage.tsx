@@ -11,10 +11,7 @@ import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
 import { PAGE_PAD } from '../components/layout/pageChrome'
-import { AccessDenied } from '../components/auth/AccessDenied'
-import { useAuth } from '../hooks/useAuth'
 import { useReportWorkspace } from '../hooks/useReportWorkspace'
-import { Permissions } from '../lib/permissions'
 import { toggleGroupBy } from '../lib/reportQuery'
 import { formatPeriodLabel } from '../lib/reportView'
 import { Icon } from '../components/ui/Icon'
@@ -32,12 +29,6 @@ const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
  * Page-gated via ReportsView; backend scopes non-Admin users to projects they created.
  */
 export default function ReportsPage() {
-  const { hasPermission } = useAuth()
-  if (!hasPermission(Permissions.ReportsView)) {
-    return (
-      <AccessDenied description="Portfolio reports are available to project managers and workspace admins." />
-    )
-  }
   return <ReportsWorkspace />
 }
 

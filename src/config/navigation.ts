@@ -87,7 +87,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: 'invoices',
         anyPermission: [Permissions.InvoicesManage],
       },
-      { label: 'Goals', path: '/goals', icon: 'goals' },
+      {
+        label: 'Goals',
+        path: '/goals',
+        icon: 'goals',
+        anyPermission: [Permissions.MembersManage],
+      },
     ],
   },
 ]

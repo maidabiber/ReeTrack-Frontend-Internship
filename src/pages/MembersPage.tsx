@@ -44,7 +44,6 @@ import {
 } from '../lib/parseInviteCsv'
 import { formatMoney } from '../lib/projectFormat'
 import { Permissions } from '../lib/permissions'
-import { AccessDenied } from '../components/auth/AccessDenied'
 import { useAuth } from '../hooks/useAuth'
 import { ROLE_IDS, ROLE_LABEL, WORKSPACE_ROLES, type InvitationStatus, type Role, type UserStatus } from '../types/user'
 
@@ -110,7 +109,7 @@ async function enrichMembersWithRates(members: Member[]): Promise<Member[]> {
  * (RT-275 / CSV batch invite).
  */
 export default function MembersPage() {
-  const { hasPermission, hasAnyPermission } = useAuth()
+  const { hasPermission } = useAuth()
   const canManageMembers = hasPermission(Permissions.MembersManage)
   const canEditRates = hasPermission(Permissions.BillableRatesManage)
 
@@ -282,10 +281,6 @@ export default function MembersPage() {
         // Keep prior rate in the row if refresh fails.
       })
     showNotice(`Hourly rate updated for ${member.displayName ?? member.email}.`)
-  }
-
-  if (!hasAnyPermission([Permissions.MembersManage, Permissions.BillableRatesManage])) {
-    return <AccessDenied description="Member management is available to workspace admins." />
   }
 
   return (
