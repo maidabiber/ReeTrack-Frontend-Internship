@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Icon } from '../components/ui/Icon'
 import { Pill } from '../components/ui/Pill'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Modal } from '../components/ui/Modal'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
 import { PAGE_PAD } from '../components/layout/pageChrome'
@@ -60,6 +61,7 @@ export default function ProjectDetailPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [editingProject, setEditingProject] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [pendingDeleteTask, setPendingDeleteTask] = useState<Task | null>(null)
   const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null)
   const [tab, setTab] = useState<ProjectDetailTab>('tasks')
 
@@ -148,12 +150,7 @@ export default function ProjectDetailPage() {
 
   const handleDeleteTask = (task: Task) => {
     setOpenTaskMenuId(null)
-    deleteTask(id, task.id)
-      .then(() => {
-        refresh()
-        showNotice(`“${task.name}” was deleted.`)
-      })
-      .catch((error) => showNotice(apiErrorMessage(error, `Could not delete “${task.name}”.`)))
+    setPendingDeleteTask(task)
   }
 
   if (isLoading) {
@@ -323,7 +320,21 @@ export default function ProjectDetailPage() {
           onSaved={(saved) => {
             setEditingTask(null)
             refresh()
-            showNotice(`“${saved.name}” was updated.`)
+            showNotice(`"${saved.name}" was updated.`)
+          }}
+        />
+      )}
+
+      {pendingDeleteTask && (
+        <ConfirmDeleteModal
+          title={`Delete "${pendingDeleteTask.name}"?`}
+          message="This will permanently remove the task and cannot be undone."
+          onCancel={() => setPendingDeleteTask(null)}
+          onConfirm={async () => {
+            await deleteTask(id, pendingDeleteTask.id)
+            setPendingDeleteTask(null)
+            refresh()
+            showNotice(`"${pendingDeleteTask.name}" was deleted.`)
           }}
         />
       )}

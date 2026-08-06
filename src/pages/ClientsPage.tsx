@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Icon } from '../components/ui/Icon'
 import { Modal } from '../components/ui/Modal'
 import {
@@ -58,6 +59,7 @@ export default function ClientsPage() {
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Client | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   const closeMenus = () => setOpenRowMenuId(null)
@@ -120,15 +122,7 @@ export default function ClientsPage() {
 
   const handleDelete = (client: Client) => {
     setOpenRowMenuId(null)
-
-    deleteClient(client.id)
-      .then(() => {
-        refresh()
-        showNotice(`${client.name} was deleted.`)
-      })
-      .catch((error) =>
-        showNotice(apiErrorMessage(error, `Could not delete ${client.name}.`)),
-      )
+    setPendingDelete(client)
   }
 
   return (
@@ -248,6 +242,20 @@ export default function ClientsPage() {
               setModal(null)
               refresh()
               showNotice(created ? `${saved.name} was added.` : `${saved.name} was updated.`)
+            }}
+          />
+        )}
+
+        {pendingDelete && (
+          <ConfirmDeleteModal
+            title={`Delete ${pendingDelete.name}?`}
+            message={`This will permanently remove the client "${pendingDelete.name}" and cannot be undone.`}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={async () => {
+              await deleteClient(pendingDelete.id)
+              setPendingDelete(null)
+              refresh()
+              showNotice(`${pendingDelete.name} was deleted.`)
             }}
           />
         )}

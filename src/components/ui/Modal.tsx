@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Icon } from './Icon'
 
+/** Nested modals must share one lock so cleanup does not restore a stale `hidden`. */
+let scrollLockCount = 0
+
 /**
  * Glass modal dialog: the page frosts behind an ink scrim, and the dialog is
  * a translucent white panel framed by the brand-gradient hairline (the same
@@ -31,10 +34,15 @@ export function Modal({
   }, [onClose])
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    scrollLockCount += 1
+    if (scrollLockCount === 1) {
+      document.body.style.overflow = 'hidden'
+    }
     return () => {
-      document.body.style.overflow = previousOverflow
+      scrollLockCount -= 1
+      if (scrollLockCount === 0) {
+        document.body.style.overflow = ''
+      }
     }
   }, [])
 

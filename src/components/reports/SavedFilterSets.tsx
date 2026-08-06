@@ -10,8 +10,8 @@ import { fetchAllPages } from '../../api/pagination'
 import { useDismissOnOutside } from '../../hooks/useDismissOnOutside'
 import { cloneReportQuery } from '../../lib/reportQuery'
 import type { ReportFilterSet, ReportQuery } from '../../types/reportQuery'
+import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal'
 import { Icon } from '../ui/Icon'
-import { Modal } from '../ui/Modal'
 
 /**
  * Personal saved filter sets for Reports (RT-54). Loading a set updates the
@@ -111,24 +111,6 @@ export function SavedFilterSets({
       setSets(await loadSets())
     } catch (cause) {
       setError(apiErrorMessage(cause, 'Could not update the filter set.'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleDelete() {
-    if (!pendingDelete) return
-    setBusy(true)
-    setError(null)
-    setNotice(null)
-    try {
-      await deleteReportFilterSet(pendingDelete.id)
-      setSelectedId('')
-      setNotice(`Deleted “${pendingDelete.name}”.`)
-      setSets(await loadSets())
-      setPendingDelete(null)
-    } catch (cause) {
-      setError(apiErrorMessage(cause, 'Could not delete the filter set.'))
     } finally {
       setBusy(false)
     }
@@ -261,36 +243,20 @@ export function SavedFilterSets({
         </section>
       ) : null}
 
-      {pendingDelete ? (
-        <Modal
+      {pendingDelete && (
+        <ConfirmDeleteModal
           title="Delete saved set?"
-          onClose={() => {
-            if (!busy) setPendingDelete(null)
+          message={`Delete "${pendingDelete.name}"? This cannot be undone.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteReportFilterSet(pendingDelete.id)
+            setSelectedId('')
+            setNotice(`Deleted "${pendingDelete.name}".`)
+            setSets(await loadSets())
+            setPendingDelete(null)
           }}
-        >
-          <p className="text-body leading-normal text-navy/70">
-            Delete “{pendingDelete.name}”? This cannot be undone.
-          </p>
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setPendingDelete(null)}
-              disabled={busy}
-              className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleDelete()}
-              disabled={busy}
-              className="flex-1 rounded-full bg-navy py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-ink disabled:opacity-50"
-            >
-              {busy ? 'Deleting…' : 'Delete'}
-            </button>
-          </div>
-        </Modal>
-      ) : null}
+        />
+      )}
     </div>
   )
 }

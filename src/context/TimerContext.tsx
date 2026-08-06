@@ -340,6 +340,21 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [refresh],
   )
 
+  const deleteEntry = useCallback(
+    async (id: string) => {
+      setError(null)
+      try {
+        await deleteTimeEntry(id)
+        setEntries((current) => current.filter((item) => item.id !== id))
+      } catch (err) {
+        const message = apiErrorMessage(err, 'Could not delete the time entry.')
+        setError(message)
+        throw err
+      }
+    },
+    [],
+  )
+
   const value = useMemo(
     () => ({
       activeTimer,
@@ -358,6 +373,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       addManualEntry,
       addDurationEntry,
       updateEntry,
+      deleteEntry,
       shareEntry,
       setPendingOverlapFromStop,
       setPendingOverlapStatus,
@@ -382,6 +398,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       addManualEntry,
       addDurationEntry,
       updateEntry,
+      deleteEntry,
       shareEntry,
       setPendingOverlapFromStop,
       setPendingOverlapStatus,

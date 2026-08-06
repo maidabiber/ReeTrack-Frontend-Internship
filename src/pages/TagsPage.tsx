@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Modal } from '../components/ui/Modal'
 import { ColorSwatchPicker } from '../components/ui/ColorSwatchPicker'
 import {
@@ -83,15 +84,16 @@ export default function TagsPage() {
 
   const refresh = () => setReloadKey((key) => key + 1)
 
-  const handleDelete = (tag: Tag) => {
-    setPendingDelete(null)
-
-    deleteTag(tag.id)
-      .then(() => {
-        refresh()
-        showNotice(`${tag.name} was deleted.`)
-      })
-      .catch((error) => showNotice(apiErrorMessage(error, `Could not delete ${tag.name}.`)))
+  const handleDelete = async (tag: Tag) => {
+    try {
+      await deleteTag(tag.id)
+      setPendingDelete(null)
+      refresh()
+      showNotice(`${tag.name} was deleted.`)
+    } catch (error) {
+      setPendingDelete(null)
+      showNotice(apiErrorMessage(error, `Could not delete ${tag.name}.`))
+    }
   }
 
   return (
@@ -197,8 +199,14 @@ export default function TagsPage() {
         )}
 
         {pendingDelete && (
-          <DeleteTagDialog
-            tag={pendingDelete}
+          <ConfirmDeleteModal
+            title={`Delete \u201c${pendingDelete.name}\u201d?`}
+            message={
+              pendingDelete.usageCount === 0
+                ? 'It is not used on any time entries.'
+                : `It is currently on ${pendingDelete.usageCount} time ${pendingDelete.usageCount === 1 ? 'entry' : 'entries'}, and will be removed from ${pendingDelete.usageCount === 1 ? 'it' : 'them'}.`
+            }
+            confirmLabel="Delete tag"
             onCancel={() => setPendingDelete(null)}
             onConfirm={() => handleDelete(pendingDelete)}
           />
@@ -388,42 +396,3 @@ function TagModal({
   )
 }
 
-/** Delete confirmation. Surfaces the usage count because deleting an in-use tag
- *  removes it from that many time entries. */
-function DeleteTagDialog({
-  tag,
-  onCancel,
-  onConfirm,
-}: {
-  tag: Tag
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  const usage =
-    tag.usageCount === 0
-      ? 'It is not used on any time entries.'
-      : `It is currently on ${tag.usageCount} time ${tag.usageCount === 1 ? 'entry' : 'entries'}, and will be removed from ${tag.usageCount === 1 ? 'it' : 'them'}.`
-
-  return (
-    <Modal title={`Delete “${tag.name}”?`} onClose={onCancel}>
-      <p className="text-body leading-[1.55] text-navy/70">{usage}</p>
-
-      <div className="mt-4.5 flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="flex-1 rounded-full bg-red py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-red/90"
-        >
-          Delete tag
-        </button>
-      </div>
-    </Modal>
-  )
-}

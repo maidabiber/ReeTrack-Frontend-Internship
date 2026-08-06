@@ -17,6 +17,7 @@ import {
 } from '../../api/timeEntryTemplates'
 import { listTimeEntries, type TimeEntrySort } from '../../api/timeEntries'
 import { apiErrorMessage } from '../../api/client'
+import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal'
 import type { TimeEntry } from '../../types/timeEntry'
 
 const TIMER_PANEL_OVERFLOW_CLASS = 'timer-panel overflow-hidden'
@@ -78,13 +79,14 @@ function groupEntriesByDay(entries: TimeEntry[], newestFirst: boolean): DayGroup
 }
 
 export function EntriesCard() {
-  const { entries: contextEntries, isInitializing: isContextInitializing, refresh } = useTimer()
+  const { entries: contextEntries, isInitializing: isContextInitializing, refresh, deleteEntry } = useTimer()
   const { user } = useAuth()
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
   const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null)
   const [shareEntry, setShareEntry] = useState<TimeEntry | null>(null)
   const [favouriteBusyId, setFavouriteBusyId] = useState<string | null>(null)
   const [favouriteNotice, setFavouriteNotice] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<TimeEntry | null>(null)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
   const [page, setPage] = useState(1)
@@ -217,6 +219,10 @@ export function EntriesCard() {
     }
   }
 
+  const handleDeleteClick = (entry: TimeEntry) => {
+    setDeleteTarget(entry)
+  }
+
   if (isContextInitializing && loading) {
     return (
       <EntriesListShell>
@@ -334,6 +340,7 @@ export function EntriesCard() {
                           currentUserId={user?.id}
                           onEntryClick={handleEntryClick}
                           onShareClick={(item) => setShareEntry(item)}
+                          onDeleteClick={handleDeleteClick}
                           onFavouriteClick={handleFavouriteClick}
                           favouriteBusyId={favouriteBusyId}
                         />
@@ -399,6 +406,18 @@ export function EntriesCard() {
           currentUserId={user.id}
           onClose={() => setShareEntry(null)}
           onShared={() => void reloadAndRefresh()}
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <ConfirmDeleteModal
+          title="Delete time entry?"
+          message="Are you sure you want to delete this entry? This action cannot be undone."
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            await deleteEntry(deleteTarget.id)
+            setDeleteTarget(null)
+          }}
         />
       ) : null}
     </>

@@ -22,6 +22,7 @@ import {
   isToday,
   startOfMonth,
 } from '../components/calendar/dateUtils'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { Icon } from '../components/ui/Icon'
 import { AccessDenied } from '../components/auth/AccessDenied'
@@ -232,7 +233,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
   const [customName, setCustomName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [pendingToggleId, setPendingToggleId] = useState<string | null>(null)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Holiday | null>(null)
   const [viewMode, setViewMode] = useState<HolidayViewMode>('list')
   const [displayMonth, setDisplayMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
@@ -345,16 +346,7 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
   }
 
   const handleDelete = (holiday: Holiday) => {
-    setPendingDeleteId(holiday.id)
-    deleteCustomHoliday(holiday.id)
-      .then(() => {
-        setHolidays((current) => current.filter((item) => item.id !== holiday.id))
-        onNotice(`${holiday.name} was deleted.`)
-      })
-      .catch((error) =>
-        onNotice(apiErrorMessage(error, `Could not delete ${holiday.name}.`)),
-      )
-      .finally(() => setPendingDeleteId(null))
+    setPendingDelete(holiday)
   }
 
   const handleCreate = () => {
@@ -474,7 +466,6 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
                       <HolidayListRow
                         holiday={holiday}
                         pendingToggleId={pendingToggleId}
-                        pendingDeleteId={pendingDeleteId}
                         onToggle={handleToggle}
                         onDelete={handleDelete}
                       />
@@ -560,7 +551,6 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
                     <HolidayListRow
                       holiday={selectedHoliday}
                       pendingToggleId={pendingToggleId}
-                      pendingDeleteId={pendingDeleteId}
                       onToggle={handleToggle}
                       onDelete={(holiday) => {
                         handleDelete(holiday)
@@ -618,6 +608,20 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
           </div>
         </div>
       )}
+
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          title={`Delete ${pendingDelete.name}?`}
+          message={`This will permanently remove the custom holiday "${pendingDelete.name}" (${pendingDelete.date}) and cannot be undone.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={async () => {
+            await deleteCustomHoliday(pendingDelete.id)
+            setHolidays((current) => current.filter((item) => item.id !== pendingDelete.id))
+            setPendingDelete(null)
+            onNotice(`${pendingDelete.name} was deleted.`)
+          }}
+        />
+      )}
     </section>
   )
 }
@@ -625,13 +629,11 @@ function HolidaysSection({ onNotice }: { onNotice: (message: string) => void }) 
 function HolidayListRow({
   holiday,
   pendingToggleId,
-  pendingDeleteId,
   onToggle,
   onDelete,
 }: {
   holiday: Holiday
   pendingToggleId: string | null
-  pendingDeleteId: string | null
   onToggle: (holiday: Holiday) => void
   onDelete: (holiday: Holiday) => void
 }) {
@@ -661,8 +663,7 @@ function HolidayListRow({
         <button
           type="button"
           onClick={() => onDelete(holiday)}
-          disabled={pendingDeleteId === holiday.id}
-          className="rounded-full px-2.5 py-1 font-display text-xs font-semibold text-red transition-colors hover:bg-red/10 disabled:opacity-60"
+          className="rounded-full px-2.5 py-1 font-display text-xs font-semibold text-red transition-colors hover:bg-red/10"
         >
           Delete
         </button>

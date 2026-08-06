@@ -17,6 +17,7 @@ import {
 } from '../../lib/manualEntry'
 import type { TimeEntry } from '../../types/timeEntry'
 import { Modal } from '../ui/Modal'
+import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal'
 
 import { DURATION_LIMIT_MESSAGE, isDurationLimitError } from '../../lib/timeEntryErrors'
 import { useOverlapAlert } from '../../hooks/useOverlapAlert'
@@ -36,7 +37,7 @@ export function EditEntryModal({
   onSaved?: () => void
 }) {
   const isDurationOnly = entry.mode === 'DurationOnly'
-  const { isSavingEdit, updateEntry } = useTimer()
+  const { isSavingEdit, updateEntry, deleteEntry } = useTimer()
   // Entries in a submitted/approved week can't be edited (the backend 409s too).
   const weekLock = useWeekLock(entry.startedAtUtc ? new Date(entry.startedAtUtc) : null)
   const [description, setDescription] = useState(entry.description ?? '')
@@ -57,6 +58,7 @@ export function EditEntryModal({
   const [error, setError] = useState<string | null>(null)
   const [durationLimitMessage, setDurationLimitMessage] = useState<string | null>(null)
   const [durationParseError, setDurationParseError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const validation = validateManualEntry(manualEntry, [], null)
   const durationOnlyValidationError = validateDurationOnlyEntry(durationOnlySeconds)
@@ -246,7 +248,35 @@ export function EditEntryModal({
             {isSavingEdit ? 'Saving…' : 'Save changes'}
           </button>
         </div>
+
+        {error ? (
+          <p className="mt-3 text-center text-sm text-red">{error}</p>
+        ) : null}
+
+        <div className="mt-3 border-t border-navy/[0.06] pt-3">
+          <button
+            type="button"
+            disabled={isSavingEdit || weekLock.locked}
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full text-center text-sm font-semibold text-navy/50 transition-colors hover:text-red disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Delete entry
+          </button>
+        </div>
       </Modal>
+
+      {showDeleteConfirm ? (
+        <ConfirmDeleteModal
+          title="Delete time entry?"
+          message="Are you sure you want to delete this entry? This action cannot be undone."
+          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirm={async () => {
+            setError(null)
+            await deleteEntry(entry.id)
+            onClose()
+          }}
+        />
+      ) : null}
 
       {durationLimitMessage ? (
         <DurationLimitModal

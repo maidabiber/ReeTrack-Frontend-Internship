@@ -29,6 +29,7 @@ export interface TimerContextValue {
   addManualEntry: (request: TimeEntryRequest) => Promise<void>
   addDurationEntry: (request: TimeEntryRequest) => Promise<void>
   updateEntry: (id: string, request: TimeEntryRequest) => Promise<void>
+  deleteEntry: (id: string) => Promise<void>
   shareEntry: (entryId: string, assigneeUserIds: string[]) => Promise<TimeEntry[]>
   setPendingOverlapFromStop: (result: StopTimerResult) => void
   setPendingOverlapStatus: (status: PendingOverlapStatus) => void

@@ -7,8 +7,8 @@ import {
 import { apiErrorMessage } from '../../api/client'
 import { CalendarProviderType, CalendarSyncStatus, type CalendarConnection } from '../../types/integrations'
 import { GoogleCalendarConnectButton } from './GoogleCalendarConnectButton'
+import { ConfirmDeleteModal } from '../ui/ConfirmDeleteModal'
 import { Icon } from '../ui/Icon'
-import { Modal } from '../ui/Modal'
 import { Pill } from '../ui/Pill'
 import { GoogleIcon } from '../ui/GoogleIcon'
 
@@ -32,7 +32,6 @@ export function GoogleCalendarCard() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [disconnectOpen, setDisconnectOpen] = useState(false)
-  const [isDisconnecting, setIsDisconnecting] = useState(false)
 
   const isLoading = fetchedKey !== reloadKey
 
@@ -79,26 +78,6 @@ export function GoogleCalendarCard() {
       })
       .finally(() => {
         setIsSyncing(false)
-      })
-  }
-
-  const handleDisconnect = () => {
-    if (!connection || isDisconnecting) return
-
-    setIsDisconnecting(true)
-    setActionError(null)
-
-    disconnectCalendarConnection(connection.id)
-      .then(() => {
-        setDisconnectOpen(false)
-        setConnection(null)
-        showNotice('Google Calendar disconnected.')
-      })
-      .catch((error) => {
-        setActionError(apiErrorMessage(error, 'Could not disconnect calendar. Please try again.'))
-      })
-      .finally(() => {
-        setIsDisconnecting(false)
       })
   }
 
@@ -194,7 +173,7 @@ export function GoogleCalendarCard() {
             <button
               type="button"
               onClick={() => setDisconnectOpen(true)}
-              disabled={actionsDisabled || isDisconnecting}
+              disabled={actionsDisabled}
               className="rounded-full border-control border-navy bg-transparent px-4 py-2 font-display text-body font-semibold text-navy disabled:cursor-not-allowed disabled:opacity-60"
             >
               Disconnect
@@ -212,30 +191,19 @@ export function GoogleCalendarCard() {
       </div>
 
       {disconnectOpen && connection && (
-        <Modal
+        <ConfirmDeleteModal
           title="Disconnect Google Calendar?"
-          subtitle="Synced events will be removed from ReeTrack. You can reconnect at any time."
-          onClose={() => !isDisconnecting && setDisconnectOpen(false)}
-        >
-          <div className="mt-4.5 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setDisconnectOpen(false)}
-              disabled={isDisconnecting}
-              className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDisconnect}
-              disabled={isDisconnecting}
-              className="flex-1 rounded-full bg-brand py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
-            </button>
-          </div>
-        </Modal>
+          message="Synced events will be removed from ReeTrack. You can reconnect at any time."
+          confirmLabel="Disconnect"
+          confirmingLabel="Disconnecting…"
+          onCancel={() => setDisconnectOpen(false)}
+          onConfirm={async () => {
+            await disconnectCalendarConnection(connection.id)
+            setDisconnectOpen(false)
+            setConnection(null)
+            showNotice('Google Calendar disconnected.')
+          }}
+        />
       )}
     </>
   )

@@ -18,6 +18,7 @@ import {
   StatusMark,
 } from '../components/directory/DirectoryTable'
 import { riseDelay, STATUS_COLOR } from '../components/directory/directoryChrome'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Icon } from '../components/ui/Icon'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { apiErrorMessage } from '../api/client'
@@ -64,6 +65,7 @@ export default function ProjectsPage() {
   const [modal, setModal] = useState<ModalState>(null)
   const [jiraImportOpen, setJiraImportOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   const closeMenus = () => setOpenRowMenuId(null)
@@ -129,13 +131,7 @@ export default function ProjectsPage() {
 
   const handleDelete = (project: Project) => {
     setOpenRowMenuId(null)
-
-    deleteProject(project.id)
-      .then(() => {
-        refresh()
-        showNotice(`${project.name} was deleted.`)
-      })
-      .catch((error) => showNotice(apiErrorMessage(error, `Could not delete ${project.name}.`)))
+    setPendingDelete(project)
   }
 
   return (
@@ -295,6 +291,20 @@ export default function ProjectsPage() {
               setJiraImportOpen(false)
               refresh()
               showNotice(message)
+            }}
+          />
+        )}
+
+        {pendingDelete && (
+          <ConfirmDeleteModal
+            title={`Delete ${pendingDelete.name}?`}
+            message={`This will permanently remove the project "${pendingDelete.name}" and cannot be undone.`}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={async () => {
+              await deleteProject(pendingDelete.id)
+              setPendingDelete(null)
+              refresh()
+              showNotice(`${pendingDelete.name} was deleted.`)
             }}
           />
         )}

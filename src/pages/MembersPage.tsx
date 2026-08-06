@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { EditHourlyRateModal } from '../components/members/EditHourlyRateModal'
 import { Icon } from '../components/ui/Icon'
 import { UserAvatar } from '../components/ui/UserAvatar'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Modal } from '../components/ui/Modal'
 import {
   DirectoryHeader,
@@ -125,6 +126,7 @@ export default function MembersPage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [rateEditMember, setRateEditMember] = useState<Member | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [pendingRevoke, setPendingRevoke] = useState<Member | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [invitationsReloadKey, setInvitationsReloadKey] = useState(0)
 
@@ -226,21 +228,7 @@ export default function MembersPage() {
 
   const handleRevoke = (member: Member) => {
     setOpenRowMenuId(null)
-    if (!member.pendingInvitationId) return
-
-    revokeInvite(member.pendingInvitationId)
-      .then(({ removedUserId }) => {
-        if (removedUserId) {
-          setMembers((current) => current.filter((m) => m.id !== removedUserId))
-        } else {
-          setReloadKey((key) => key + 1)
-        }
-        setInvitationsReloadKey((key) => key + 1)
-        showNotice(`Invite to ${member.email} revoked.`)
-      })
-      .catch((error) =>
-        showNotice(apiErrorMessage(error, `Could not revoke the invite to ${member.email}.`)),
-      )
+    setPendingRevoke(member)
   }
 
   const handleSetRole = (member: Member, nextRole: Role) => {
@@ -464,6 +452,31 @@ export default function MembersPage() {
           member={rateEditMember}
           onClose={() => setRateEditMember(null)}
           onSaved={() => handleRateSaved(rateEditMember)}
+        />
+      )}
+
+      {pendingRevoke && (
+        <ConfirmDeleteModal
+          title={`Revoke invite to ${pendingRevoke.email}?`}
+          message="This will cancel the pending invitation. The invitee will no longer be able to join using this link."
+          confirmLabel="Revoke"
+          confirmingLabel="Revoking…"
+          onCancel={() => setPendingRevoke(null)}
+          onConfirm={async () => {
+            if (!pendingRevoke.pendingInvitationId) {
+              setPendingRevoke(null)
+              return
+            }
+            const { removedUserId } = await revokeInvite(pendingRevoke.pendingInvitationId)
+            if (removedUserId) {
+              setMembers((current) => current.filter((m) => m.id !== removedUserId))
+            } else {
+              setReloadKey((key) => key + 1)
+            }
+            setInvitationsReloadKey((key) => key + 1)
+            setPendingRevoke(null)
+            showNotice(`Invite to ${pendingRevoke.email} revoked.`)
+          }}
         />
       )}
       </div>
@@ -731,6 +744,7 @@ function InvitationsCard({
   const [invitations, setInvitations] = useState<InvitationListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [pendingRevoke, setPendingRevoke] = useState<InvitationListItem | null>(null)
 
   // Refetches (reloadKey bumps) happen silently over the stale list; the
   // spinner only shows for the initial load.
@@ -769,15 +783,7 @@ function InvitationsCard({
   }
 
   const handleRevoke = (invitation: InvitationListItem) => {
-    revokeInvite(invitation.id)
-      .then(({ removedUserId }) => {
-        if (removedUserId) onRemovedUser(removedUserId)
-        onChanged()
-        showNotice(`Invite to ${invitation.email} revoked.`)
-      })
-      .catch((error) =>
-        showNotice(apiErrorMessage(error, `Could not revoke the invite to ${invitation.email}.`)),
-      )
+    setPendingRevoke(invitation)
   }
 
   if (!isLoading && !loadError && invitations.length === 0) {
@@ -896,6 +902,23 @@ function InvitationsCard({
             )
           })}
       </div>
+
+      {pendingRevoke && (
+        <ConfirmDeleteModal
+          title={`Revoke invite to ${pendingRevoke.email}?`}
+          message="This will cancel the pending invitation. The invitee will no longer be able to join using this link."
+          confirmLabel="Revoke"
+          confirmingLabel="Revoking…"
+          onCancel={() => setPendingRevoke(null)}
+          onConfirm={async () => {
+            const { removedUserId } = await revokeInvite(pendingRevoke.id)
+            if (removedUserId) onRemovedUser(removedUserId)
+            onChanged()
+            setPendingRevoke(null)
+            showNotice(`Invite to ${pendingRevoke.email} revoked.`)
+          }}
+        />
+      )}
     </div>
   )
 }

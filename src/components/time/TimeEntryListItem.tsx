@@ -24,8 +24,7 @@ import type { TimeEntry } from '../../types/timeEntry'
 const ACTION_BUTTON_CLASS =
   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-navy/10 bg-white text-navy/55 transition-colors hover:border-brand/30 hover:bg-brand-tint hover:text-navy disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-navy/10 disabled:hover:bg-white disabled:hover:text-navy/55'
 
-const TIME_RANGE_CLASS =
-  'flex shrink-0 items-center gap-1 rounded-md border border-navy/10 bg-surface-muted px-2 py-0.5 font-mono text-xs tabular-nums text-navy/70'
+const TIME_STACK_CLASS = 'font-mono text-sm tabular-nums leading-tight text-navy/70'
 
 const SWIPE_OPEN_EVENT = 'time-entry-swipe-open'
 const SWIPE_MEDIA_QUERY = '(max-width: 639px)'
@@ -38,34 +37,41 @@ type TimeEntryListItemProps = {
   currentUserId?: string
   onEntryClick: (entry: TimeEntry) => void
   onShareClick: (entry: TimeEntry) => void
+  onDeleteClick?: (entry: TimeEntry) => void
   onFavouriteClick?: (entry: TimeEntry) => void
   favouriteBusyId?: string | null
 }
 
-function TimeRangeBadge({ entry }: { entry: TimeEntry }) {
-  if (!entry.startedAtUtc || entry.mode === 'DurationOnly') return null
+function formatEntryClock(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function EntryTimeBlock({ entry }: { entry: TimeEntry }) {
+  const showRange = Boolean(entry.startedAtUtc) && entry.mode !== 'DurationOnly'
 
   return (
-    <div className={TIME_RANGE_CLASS}>
-      <span>
-        {new Date(entry.startedAtUtc).toLocaleTimeString(undefined, {
-          hour: 'numeric',
-          minute: '2-digit',
-        })}
-      </span>
-      {entry.endedAtUtc && !entry.isRunning ? (
+    <div className="flex shrink-0 items-center gap-2">
+      {showRange ? (
         <>
-          <span className="text-navy/30">→</span>
-          <span>
-            {new Date(entry.endedAtUtc).toLocaleTimeString(undefined, {
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
-          </span>
+          <div className={`flex flex-col items-end gap-0.5 ${TIME_STACK_CLASS}`}>
+            <span>{formatEntryClock(entry.startedAtUtc!)}</span>
+            {entry.endedAtUtc && !entry.isRunning ? (
+              <span>{formatEntryClock(entry.endedAtUtc)}</span>
+            ) : entry.isRunning ? (
+              <span className="flex h-[1em] items-center justify-end" title="Running">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-brand" />
+              </span>
+            ) : null}
+          </div>
+          <div aria-hidden="true" className="w-px self-stretch bg-navy/10" />
         </>
-      ) : entry.isRunning ? (
-        <span className="h-2 w-2 animate-pulse rounded-full bg-brand" title="Running" />
       ) : null}
+      <div className="self-center font-mono text-md tabular-nums text-navy">
+        {formatDurationHms(entry.durationSeconds)}
+      </div>
     </div>
   )
 }
@@ -79,6 +85,7 @@ export function TimeEntryListItem({
   currentUserId,
   onEntryClick,
   onShareClick,
+  onDeleteClick,
   onFavouriteClick,
   favouriteBusyId = null,
 }: TimeEntryListItemProps) {
@@ -118,6 +125,7 @@ export function TimeEntryListItem({
     !entry.isRunning &&
     entry.status === 'Confirmed' &&
     !isPendingCard
+  const canDelete = canFavourite
   const showActions = canFavourite || canAddMembers
   const isFavouriteBusy = favouriteBusyId === entry.id
   const avatarRing = isPendingCard ? PENDING_ENTRY_AVATAR_RING_CLASS : 'ring-white'
@@ -287,6 +295,21 @@ export function TimeEntryListItem({
           <Icon name="share" className="h-3.5 w-3.5" />
         </button>
       ) : null}
+
+      {canDelete ? (
+        <button
+          type="button"
+          title="Delete entry"
+          aria-label="Delete entry"
+          onClick={() => {
+            closeSwipe()
+            onDeleteClick?.(entry)
+          }}
+          className={ACTION_BUTTON_CLASS}
+        >
+          <Icon name="trash" className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
     </>
   )
 
@@ -374,12 +397,7 @@ export function TimeEntryListItem({
                   />
                 </div>
               ) : null}
-              <div className="flex shrink-0 flex-col items-center gap-0.5">
-                <TimeRangeBadge entry={entry} />
-                <div className="font-mono text-md tabular-nums text-navy">
-                  {formatDurationHms(entry.durationSeconds)}
-                </div>
-              </div>
+              <EntryTimeBlock entry={entry} />
               {!isReadOnlyPending ? (
                 <Icon name="chevron-right" className="hidden h-4 w-4 shrink-0 text-navy/30 sm:block" />
               ) : null}
@@ -387,7 +405,7 @@ export function TimeEntryListItem({
           </button>
 
           {showActions ? (
-            <div className="hidden shrink-0 items-center gap-1.5 sm:flex sm:max-w-0 sm:overflow-hidden sm:opacity-0 sm:transition-[max-width,opacity] sm:duration-200 sm:ease-out sm:group-hover:max-w-[5rem] sm:group-hover:opacity-100 sm:group-focus-within:max-w-[5rem] sm:group-focus-within:opacity-100">
+            <div className="hidden shrink-0 items-center gap-1.5 sm:flex sm:max-w-0 sm:overflow-hidden sm:opacity-0 sm:transition-[max-width,opacity] sm:duration-200 sm:ease-out sm:group-hover:max-w-[8rem] sm:group-hover:opacity-100 sm:group-focus-within:max-w-[8rem] sm:group-focus-within:opacity-100">
               {actionButtons}
             </div>
           ) : null}

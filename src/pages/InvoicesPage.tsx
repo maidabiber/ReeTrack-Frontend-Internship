@@ -13,8 +13,8 @@ import { AccessDenied } from '../components/auth/AccessDenied'
 import { PAGE_PAD } from '../components/layout/pageChrome'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
+import { ConfirmDeleteModal } from '../components/ui/ConfirmDeleteModal'
 import { Icon } from '../components/ui/Icon'
-import { Modal } from '../components/ui/Modal'
 import { Pill } from '../components/ui/Pill'
 
 import { useAuth } from '../hooks/useAuth'
@@ -76,7 +76,6 @@ function InvoicesWorkspace() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [selected, setSelected] = useState<Invoice | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Invoice | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [markingPaid, setMarkingPaid] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -198,21 +197,17 @@ function InvoicesWorkspace() {
     const invoice = pendingDelete
     if (!invoice) return
 
-    setDeleting(true)
-    deleteInvoice(invoice.id)
+    return deleteInvoice(invoice.id)
       .then(() => {
-        setPendingDelete(null)
         setSelected(null)
         setIsLoading(true)
         setReloadKey((key) => key + 1)
         showNotice(`${invoice.number} was deleted.`)
+        setPendingDelete(null)
       })
       .catch((cause) => {
         setPendingDelete(null)
         setError(apiErrorMessage(cause, `Could not delete ${invoice.number}.`))
-      })
-      .finally(() => {
-        setDeleting(false)
       })
   }
 
@@ -353,16 +348,14 @@ function InvoicesWorkspace() {
         />
       </div>
 
-      {pendingDelete ? (
-        <DeleteInvoiceDialog
-          invoice={pendingDelete}
-          deleting={deleting}
-          onCancel={() => {
-            if (!deleting) setPendingDelete(null)
-          }}
-          onConfirm={handleDeleteConfirmed}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          title={`Delete ${pendingDelete.number}?`}
+          message={`This permanently removes the draft and its ${pendingDelete.lineItems.length} line ${pendingDelete.lineItems.length === 1 ? 'item' : 'items'} from your workspace.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void handleDeleteConfirmed()}
         />
-      ) : null}
+      )}
     </div>
   )
 }
@@ -563,45 +556,5 @@ function InvoiceDetail({
         </div>
       </div>
     </article>
-  )
-}
-
-function DeleteInvoiceDialog({
-  invoice,
-  deleting,
-  onCancel,
-  onConfirm,
-}: {
-  invoice: Invoice
-  deleting: boolean
-  onCancel: () => void
-  onConfirm: () => void
-}) {
-  return (
-    <Modal title={`Delete ${invoice.number}?`} onClose={onCancel}>
-      <p className="text-body leading-[1.55] text-navy/70">
-        This permanently removes the draft and its {invoice.lineItems.length} line{' '}
-        {invoice.lineItems.length === 1 ? 'item' : 'items'} from your workspace.
-      </p>
-
-      <div className="mt-4.5 flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={deleting}
-          className="flex-1 rounded-full border-control border-navy bg-transparent py-2.5 font-display text-body font-semibold text-navy disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={deleting}
-          className="flex-1 rounded-full bg-red py-2.5 font-display text-body font-semibold text-white transition-colors hover:bg-red/90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {deleting ? 'Deleting…' : 'Delete'}
-        </button>
-      </div>
-    </Modal>
   )
 }
