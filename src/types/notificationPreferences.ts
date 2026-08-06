@@ -28,7 +28,7 @@ export interface ProfileNotificationTypeRow {
   type: NotificationType
   label: string
   description: string
-  /** When true, only Admins (and later Project Managers) see this row. */
+  /** When true, only users who can manage project thresholds (Admin / Project Manager) see this row. */
   adminOnly?: boolean
 }
 

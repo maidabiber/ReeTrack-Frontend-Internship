@@ -38,7 +38,8 @@ function formatDate(iso: string): string {
 
 /**
  * RT-37/RT-42 — a single project with billing details and tabbed Tasks / Cost /
- * Alerts content. Alerts (cost and time-estimate thresholds) are Admin-only.
+ * Alerts content. Alerts (cost and time-estimate thresholds) are for Admins
+ * and Project Managers (own projects).
  * Tasks can be added inline, toggled done, reassigned, renamed (modal) and
  * deleted; deleting a task with tracked time is blocked server-side (409) and
  * surfaced as a notice.
