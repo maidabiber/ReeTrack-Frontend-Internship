@@ -44,6 +44,8 @@ export type IconName =
   | 'sparkle'
   | 'bell'
   | 'menu'
+  | 'copy'
+  | 'check'
 
 // Feather-style line icons (24x24, stroke-based) lifted from the mockups.
 const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNode> = {
@@ -272,6 +274,13 @@ const STROKE_ICONS: Record<Exclude<IconName, 'play' | 'stop' | 'more'>, ReactNod
       <line x1="4" y1="17" x2="20" y2="17" />
     </>
   ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
+  check: <polyline points="20 6 9 17 4 12" />,
 }
 
 // Solid (fill-based) icons.

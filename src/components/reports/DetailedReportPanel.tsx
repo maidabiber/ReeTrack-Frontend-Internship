@@ -32,19 +32,21 @@ function Th({ children, align = 'left' }: { children: string; align?: 'left' | '
 export function DetailedReportPanel({
   report,
   isLoading,
-  page,
-  pageSize,
+  page: pageProp,
+  pageSize: pageSizeProp,
   onPageChange,
   draftGroupBy,
   onToggleGroupBy,
+  readOnly = false,
 }: {
   report: DetailedReport | null
   isLoading: boolean
-  page: number
-  pageSize: number
-  onPageChange: (page: number) => void
-  draftGroupBy: ReportGroupBy[]
-  onToggleGroupBy: (value: ReportGroupBy) => void
+  page?: number
+  pageSize?: number
+  onPageChange?: (page: number) => void
+  draftGroupBy?: ReportGroupBy[]
+  onToggleGroupBy?: (value: ReportGroupBy) => void
+  readOnly?: boolean
 }) {
   if (isLoading && !report) {
     return (
@@ -62,8 +64,14 @@ export function DetailedReportPanel({
     )
   }
 
+  const page = pageProp ?? report.page ?? 1
+  const pageSize = pageSizeProp ?? report.pageSize ?? 50
+  const activeGroupBy = draftGroupBy ?? []
+  const showGroupBy = !readOnly && onToggleGroupBy != null
+  const showPagination = !readOnly && onPageChange != null
+
   const totalPages = Math.max(1, Math.ceil(report.totalCount / pageSize))
-  const groupsOnPage = report.groups.filter(
+  const groupsOnPage = (report.groups ?? []).filter(
     (group) =>
       group.endIndexExclusive > (page - 1) * pageSize &&
       group.startIndex < page * pageSize,
@@ -81,31 +89,33 @@ export function DetailedReportPanel({
         />
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-card">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-base font-bold text-navy">Group by</h2>
-          <p className="text-caption text-navy/45">Applies after you click Apply</p>
+      {showGroupBy ? (
+        <div className="rounded-2xl bg-white p-4 shadow-card">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-base font-bold text-navy">Group by</h2>
+            <p className="text-caption text-navy/45">Applies after you click Apply</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {GROUP_OPTIONS.map((option) => {
+              const active = activeGroupBy.includes(option.value)
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onToggleGroupBy!(option.value)}
+                  className={
+                    active
+                      ? 'rounded-full bg-navy px-3 py-1.5 text-caption font-medium text-white'
+                      : 'rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy/70 hover:bg-navy/10'
+                  }
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {GROUP_OPTIONS.map((option) => {
-            const active = draftGroupBy.includes(option.value)
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onToggleGroupBy(option.value)}
-                className={
-                  active
-                    ? 'rounded-full bg-navy px-3 py-1.5 text-caption font-medium text-white'
-                    : 'rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy/70 hover:bg-navy/10'
-                }
-              >
-                {option.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      ) : null}
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-card">
         <div className="overflow-x-auto">
@@ -125,7 +135,7 @@ export function DetailedReportPanel({
               </tr>
             </thead>
             <tbody>
-              {report.entries.length === 0 ? (
+              {(report.entries ?? []).length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-10 text-center text-navy/50">
                     No entries match these filters.
@@ -140,13 +150,13 @@ export function DetailedReportPanel({
                           label={group.label}
                           entryCount={group.entryCount}
                           totalSeconds={group.totalSeconds}
-                          rows={report.entries.filter((_, index) => {
+                          rows={(report.entries ?? []).filter((_, index) => {
                             const absolute = (page - 1) * pageSize + index
                             return absolute >= group.startIndex && absolute < group.endIndexExclusive
                           })}
                         />
                       ))
-                    : report.entries.map((entry) => (
+                    : (report.entries ?? []).map((entry) => (
                         <EntryRow key={entry.entryId} entry={entry} />
                       ))}
                 </>
@@ -155,34 +165,42 @@ export function DetailedReportPanel({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-canvas px-4 py-3">
-          <p className="text-caption text-navy/50">
-            {report.totalCount === 0
-              ? '0 entries'
-              : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, report.totalCount)} of ${report.totalCount}`}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page <= 1 || isLoading}
-              onClick={() => onPageChange(page - 1)}
-              className="rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="text-caption text-navy/55">
-              Page {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={page >= totalPages || isLoading}
-              onClick={() => onPageChange(page + 1)}
-              className="rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy disabled:opacity-40"
-            >
-              Next
-            </button>
+        {showPagination ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-canvas px-4 py-3">
+            <p className="text-caption text-navy/50">
+              {report.totalCount === 0
+                ? '0 entries'
+                : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, report.totalCount)} of ${report.totalCount}`}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || isLoading}
+                onClick={() => onPageChange!(page - 1)}
+                className="rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-caption text-navy/55">
+                Page {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages || isLoading}
+                onClick={() => onPageChange!(page + 1)}
+                className="rounded-full bg-surface-muted px-3 py-1.5 text-caption font-medium text-navy disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        ) : report.totalCount > 0 ? (
+          <div className="border-t border-canvas px-4 py-3">
+            <p className="text-caption text-navy/50">
+              {report.totalCount} {report.totalCount === 1 ? 'entry' : 'entries'}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {report.generatedByName ? (
@@ -236,8 +254,8 @@ function EntryRow({ entry }: { entry: DetailedEntry }) {
       <td className="px-4 py-2.5 text-navy/70">{entry.clientName ?? '—'}</td>
       <td className="px-4 py-2.5 text-navy">{entry.projectName ?? 'Unassigned'}</td>
       <td className="px-4 py-2.5 text-navy/70">{entry.taskName ?? '—'}</td>
-      <td className="max-w-[10rem] truncate px-4 py-2.5 text-navy/60" title={entry.tags.join(', ')}>
-        {entry.tags.length > 0 ? entry.tags.join(', ') : '—'}
+      <td className="max-w-[10rem] truncate px-4 py-2.5 text-navy/60" title={(entry.tags ?? []).join(', ')}>
+        {(entry.tags ?? []).length > 0 ? (entry.tags ?? []).join(', ') : '—'}
       </td>
       <td className="px-4 py-2.5 text-navy/70">{entry.isBillable ? 'Yes' : 'No'}</td>
       <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-navy">

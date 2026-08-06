@@ -6,6 +6,7 @@ import { ExportMenu } from '../components/reports/ExportMenu'
 import { ProfitabilityReportPanel } from '../components/reports/ProfitabilityReportPanel'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { SavedFilterSets } from '../components/reports/SavedFilterSets'
+import { ShareDialog } from '../components/reports/ShareDialog'
 import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { SegmentedTabs } from '../components/directory/DirectoryControls'
@@ -16,6 +17,7 @@ import { useReportWorkspace } from '../hooks/useReportWorkspace'
 import { Permissions } from '../lib/permissions'
 import { toggleGroupBy } from '../lib/reportQuery'
 import { formatPeriodLabel } from '../lib/reportView'
+import { Icon } from '../components/ui/Icon'
 import type { ReportType } from '../types/reportQuery'
 
 const REPORT_TABS: ReadonlyArray<{ value: ReportType; label: string }> = [
@@ -63,6 +65,7 @@ function ReportsWorkspace() {
 
   const [exportError, setExportError] = useState<string | null>(null)
   const [exporting, setExporting] = useState<ReportExportFormat | null>(null)
+  const [showShare, setShowShare] = useState(false)
 
   const periodReport =
     activeTab === 'detailed'
@@ -105,7 +108,18 @@ function ReportsWorkspace() {
           ) : null}
         </div>
         {canExport ? (
-          <ExportMenu exporting={exporting} onExport={handleExport} disabled={isLoading} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowShare(true)}
+              disabled={isLoading}
+              className="inline-flex items-center gap-2 rounded-xl border border-navy/15 px-4 py-2.5 text-body font-medium text-navy transition hover:bg-navy/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Icon name="share" className="h-4 w-4" />
+              Share
+            </button>
+            <ExportMenu exporting={exporting} onExport={handleExport} disabled={isLoading} />
+          </div>
         ) : null}
       </div>
 
@@ -168,6 +182,14 @@ function ReportsWorkspace() {
       ) : (
         <ProfitabilityReportPanel report={profitability} isLoading={isLoading} />
       )}
+
+      {showShare ? (
+        <ShareDialog
+          reportType={activeTab}
+          query={appliedQuery}
+          onClose={() => setShowShare(false)}
+        />
+      ) : null}
     </div>
   )
 }

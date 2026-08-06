@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react'
 import { Icon } from '../ui/Icon'
 
 export function AccessDenied({
   title = "You don't have access",
   description = 'This area is not available for your workspace role.',
+  children,
 }: {
   title?: string
   description?: string
+  children?: ReactNode
 }) {
   return (
     <div className="flex min-h-full flex-1 items-center justify-center px-10 py-8">
@@ -15,6 +18,7 @@ export function AccessDenied({
         </span>
         <h1 className="mt-4 font-display text-lg font-bold text-navy">{title}</h1>
         <p className="mt-1.5 text-body leading-[1.5] text-navy/60">{description}</p>
+        {children ? <div className="mt-6">{children}</div> : null}
       </div>
     </div>
   )

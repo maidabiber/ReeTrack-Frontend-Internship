@@ -22,6 +22,7 @@ import {
   ReportsPage,
   CustomReportsPage,
   CustomReportBuilderPage,
+  SharedReportPage,
   SignInPage,
   TagsPage,
   TimesheetReviewPage,
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
         <SignInPage />
       </PublicAuthPage>
     ),
+  },
+  {
+    path: '/shared/:token',
+    element: <SharedReportPage />,
   },
   {
     path: '/',
