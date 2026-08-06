@@ -97,7 +97,7 @@ export function NotificationBell() {
           {unread.length === 0 ? (
             <p className="px-3 py-4 font-sans text-sm text-navy/45">You&apos;re all caught up.</p>
           ) : (
-            <ul className="max-h-80 overflow-y-auto">
+            <ul className="max-h-[min(20rem,60dvh)] overflow-y-auto">
               {unread.map((notification) => (
                 <li key={notification.id} className="border-b border-navy/5 last:border-b-0">
                   <div className="flex flex-col gap-1 px-3 py-2.5">

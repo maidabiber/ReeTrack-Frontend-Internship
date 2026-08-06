@@ -50,12 +50,10 @@ export function AppLayout() {
           menuExpanded={drawerOpen}
           onOpenMenu={() => setDrawer({ path: location.pathname, open: true })}
         />
-        {/* Desktop notification bell — mobile hosts it in MobileTopBar */}
-        <div className="pointer-events-none absolute top-0 right-0 z-30 hidden p-4 sm:p-5 lg:block">
-          <div className="pointer-events-auto">
-            <NotificationBell />
-          </div>
-        </div>
+        {/* Desktop top bar — mobile hosts the bell in MobileTopBar */}
+        <header className="sticky top-0 z-40 hidden h-14 shrink-0 items-center justify-end border-b border-navy/[0.06] bg-canvas/95 px-4 backdrop-blur-md lg:flex lg:px-10">
+          <NotificationBell />
+        </header>
         <Suspense
           fallback={
             <div
