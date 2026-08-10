@@ -9,6 +9,7 @@ import { SummaryReportPanel } from '../components/reports/SummaryReportPanel'
 import { DetailedReportPanel } from '../components/reports/DetailedReportPanel'
 import { WorkloadReportPanel } from '../components/reports/WorkloadReportPanel'
 import { ProfitabilityReportPanel } from '../components/reports/ProfitabilityReportPanel'
+import { CustomReportPanel, type CustomReportPanelProps } from '../components/reports/CustomReportPanel'
 import { GoogleIcon } from '../components/ui/GoogleIcon'
 import { useAuth } from '../hooks/useAuth'
 import type {
@@ -25,7 +26,7 @@ interface SharedReportResponse {
   detailed: DetailedReport | null
   workload: WorkloadReport | null
   profitability: ProfitabilityReport | null
-  custom: unknown
+  custom: CustomReportPanelProps | null
 }
 
 function isRevokedShareMessage(message: string): boolean {
@@ -177,6 +178,8 @@ export default function SharedReportPage() {
           <WorkloadReportPanel report={data.workload} isLoading={false} />
         ) : reportType === 'profitability' && data.profitability ? (
           <ProfitabilityReportPanel report={data.profitability} isLoading={false} />
+        ) : reportType === 'custom' && data.custom ? (
+          <CustomReportPanel {...data.custom} />
         ) : (
           <p className="text-body text-navy/50">Report data is not available.</p>
         )}

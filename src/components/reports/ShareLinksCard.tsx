@@ -10,6 +10,7 @@ const REPORT_TYPE_LABELS: Record<ReportType, string> = {
   detailed: 'Detailed',
   workload: 'Workload',
   profitability: 'Profitability',
+  custom: 'Custom',
 }
 
 function formatDateShort(iso: string): string {

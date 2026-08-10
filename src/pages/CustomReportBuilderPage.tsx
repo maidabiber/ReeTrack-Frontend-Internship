@@ -17,6 +17,7 @@ import {
 } from '../components/reports/builder/BlockCanvas'
 import { BlockPalette } from '../components/reports/builder/BlockPalette'
 import { ExportMenu } from '../components/reports/ExportMenu'
+import { ShareDialog } from '../components/reports/ShareDialog'
 import { ReportFilterBar } from '../components/reports/ReportFilterBar'
 import { BlockRenderer } from '../components/reports/render/BlockRenderer'
 import { Icon } from '../components/ui/Icon'
@@ -108,6 +109,7 @@ function ReportBuilder({
   const [notice, showNotice] = useTransientNotice()
   const [exporting, setExporting] = useState<ReportExportFormat | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [showShare, setShowShare] = useState(false)
 
   useEffect(() => {
     if (!definitionId) return
@@ -300,7 +302,18 @@ function ReportBuilder({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {report ? (
-              <ExportMenu exporting={exporting} onExport={handleExport} disabled={isLoading} />
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowShare(true)}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-navy/15 px-4 py-2.5 text-body font-medium text-navy transition hover:bg-navy/[0.04] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Icon name="share" className="h-4 w-4" />
+                  Share
+                </button>
+                <ExportMenu exporting={exporting} onExport={handleExport} disabled={isLoading} />
+              </>
             ) : null}
             {definition?.canEdit !== false ? (
               <button
@@ -341,6 +354,15 @@ function ReportBuilder({
               <BlockRenderer key={block.id} block={block} comparisonMode={report.comparison?.mode} />
             ))}
           </div>
+        ) : null}
+
+        {showShare && definition ? (
+          <ShareDialog
+            reportType="custom"
+            query={null}
+            specJson={JSON.stringify(appliedSpec)}
+            onClose={() => setShowShare(false)}
+          />
         ) : null}
       </div>
     )
@@ -588,6 +610,15 @@ function ReportBuilder({
             </button>
           </div>
         </Modal>
+      ) : null}
+
+      {showShare && definition ? (
+        <ShareDialog
+          reportType="custom"
+          query={null}
+          specJson={JSON.stringify(appliedSpec)}
+          onClose={() => setShowShare(false)}
+        />
       ) : null}
     </div>
   )

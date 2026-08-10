@@ -8,7 +8,7 @@ export type ReportGroupBy =
   | 'day'
   | 'week'
 
-export type ReportType = 'summary' | 'detailed' | 'workload' | 'profitability'
+export type ReportType = 'summary' | 'detailed' | 'workload' | 'profitability' | 'custom'
 
 export interface ReportQuery {
   userIds: string[]

@@ -13,11 +13,12 @@ type AccessLevel = 'public' | 'private'
 
 interface ShareDialogProps {
   reportType: ReportType
-  query: ReportQuery
+  query: ReportQuery | null
+  specJson?: string
   onClose: () => void
 }
 
-export function ShareDialog({ reportType, query, onClose }: ShareDialogProps) {
+export function ShareDialog({ reportType, query, specJson, onClose }: ShareDialogProps) {
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('public')
   const [selectedRecipients, setSelectedRecipients] = useState<Teammate[]>([])
   const [teammates, setTeammates] = useState<Teammate[]>([])
@@ -65,6 +66,7 @@ export function ShareDialog({ reportType, query, onClose }: ShareDialogProps) {
         query,
         accessLevel,
         selectedRecipients.map((t) => t.id),
+        specJson,
       )
       setNewLink(link)
     } catch (err) {

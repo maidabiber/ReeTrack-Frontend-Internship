@@ -29,7 +29,8 @@ export interface ShareLink {
 
 interface CreateShareLinkRequest {
   reportType: number
-  queryJson: string
+  queryJson?: string
+  specJson?: string
   accessLevel: number
   recipientUserIds?: string[]
 }
@@ -39,6 +40,7 @@ const REPORT_TYPE_MAP: Record<ReportType, number> = {
   detailed: 1,
   workload: 2,
   profitability: 3,
+  custom: 4,
 }
 
 const REPORT_TYPE_FROM_API: Record<string, ReportType> = {
@@ -46,10 +48,12 @@ const REPORT_TYPE_FROM_API: Record<string, ReportType> = {
   detailed: 'detailed',
   workload: 'workload',
   profitability: 'profitability',
+  custom: 'custom',
   Summary: 'summary',
   Detailed: 'detailed',
   Workload: 'workload',
   Profitability: 'profitability',
+  Custom: 'custom',
 }
 
 const ACCESS_LEVEL_MAP: Record<AccessLevel, number> = {
@@ -109,13 +113,15 @@ function toShareLink(response: ShareLinkResponse): ShareLink {
 
 export async function generateLink(
   reportType: ReportType,
-  query: ReportQuery,
+  query: ReportQuery | null,
   accessLevel: AccessLevel,
   recipientUserIds?: string[],
+  specJson?: string,
 ): Promise<ShareLink> {
   const body: CreateShareLinkRequest = {
     reportType: REPORT_TYPE_MAP[reportType],
-    queryJson: JSON.stringify(query),
+    queryJson: query ? JSON.stringify(query) : undefined,
+    specJson: specJson ?? undefined,
     accessLevel: ACCESS_LEVEL_MAP[accessLevel],
     ...(recipientUserIds && recipientUserIds.length > 0
       ? { recipientUserIds }

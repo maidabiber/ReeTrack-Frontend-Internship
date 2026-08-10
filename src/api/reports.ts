@@ -635,6 +635,11 @@ const EXPORT_FALLBACK_NAME: Record<ReportType, Record<ReportExportFormat, string
     xlsx: 'reetrack-profitability.xlsx',
     pdf: 'reetrack-profitability.pdf',
   },
+  custom: {
+    csv: 'reetrack-custom.csv',
+    xlsx: 'reetrack-custom.xlsx',
+    pdf: 'reetrack-custom.pdf',
+  },
 }
 
 /** Downloads a report export as CSV / Excel / PDF with the same applied filters. */
