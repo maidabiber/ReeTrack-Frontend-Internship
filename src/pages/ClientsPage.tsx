@@ -420,16 +420,14 @@ function ClientRow({
           colorClassName={STATUS_COLOR[client.isActive ? 'active' : 'archived']}
         />
 
-        <RowMenu open={menuOpen} onToggle={onToggleMenu}>
-          {canManage && <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />}
-          {canManage && (
+        {canManage && (
+          <RowMenu open={menuOpen} onToggle={onToggleMenu}>
+            <RowMenuItem icon="settings" label="Edit" onClick={onEdit} />
             <RowMenuItem
               icon="check-badge"
               label={client.isActive ? 'Archive' : 'Restore'}
               onClick={onToggleArchived}
             />
-          )}
-          {canManage && (
             <RowMenuItem
               icon="ban"
               label="Delete"
@@ -438,8 +436,8 @@ function ClientRow({
               title={canDelete ? undefined : 'This client has projects. Archive it instead.'}
               onClick={onDelete}
             />
-          )}
-        </RowMenu>
+          </RowMenu>
+        )}
       </div>
 
       {expanded && <ClientProjects clientId={client.id} />}
