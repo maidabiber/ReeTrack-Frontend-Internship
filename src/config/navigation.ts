@@ -61,7 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Admin',
+    title: 'Administration',
     items: [
       {
         label: 'Members',

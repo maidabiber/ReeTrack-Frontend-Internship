@@ -168,10 +168,10 @@ function CustomReportsLibrary() {
         </div>
       ) : null}
 
-      <div className="mt-5 overflow-hidden rounded-2xl bg-white shadow-card">
+      <div className="mt-5 rounded-2xl bg-white shadow-card">
         {isLoading ? (
           <div>
-            <div className={`${GRID} border-b border-navy/5 bg-surface-muted/40`}>
+            <div className={`${GRID} overflow-hidden rounded-t-2xl border-b border-navy/5 bg-surface-muted/40`}>
               <HeaderCell icon="reports" label="Name" />
               <HeaderCell icon="folder-open" label="Description" />
               <HeaderCell icon="calendar" label="Updated" />
@@ -210,7 +210,7 @@ function CustomReportsLibrary() {
           </div>
         ) : (
           <div>
-            <div className={`${GRID} border-b border-navy/5 bg-surface-muted/40`}>
+            <div className={`${GRID} overflow-hidden rounded-t-2xl border-b border-navy/5 bg-surface-muted/40`}>
               <HeaderCell icon="reports" label="Name" />
               <HeaderCell icon="folder-open" label="Description" />
               <HeaderCell icon="calendar" label="Updated" />
