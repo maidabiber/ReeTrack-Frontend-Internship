@@ -46,6 +46,7 @@ const PAGES: Record<string, React.ReactElement> = {
   '/invoices': <InvoicesPage />,
   '/reports/custom': <CustomReportsPage />,
   '/timesheet-review': <TimesheetReviewPage />,
+
   '/assistant': <AssistantPage />,
 }
 

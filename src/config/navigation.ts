@@ -67,7 +67,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Members',
         path: '/members',
         icon: 'members',
-        anyPermission: [Permissions.MembersManage, Permissions.BillableRatesManage],
+        anyPermission: [Permissions.MembersView, Permissions.MembersManage, Permissions.BillableRatesManage],
       },
       {
         label: 'Timesheets',

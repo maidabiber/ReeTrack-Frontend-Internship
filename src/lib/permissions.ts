@@ -1,15 +1,16 @@
 /** Mirrors backend ReeTrack.Application.Common.Constants.Permissions. */
 export const Permissions = {
-  ReportsView: 'insights.reports.view',
-  TimesheetReview: 'admin.timesheets.review',
-  MembersManage: 'admin.members.manage',
-  InvitationsManage: 'admin.invitations.manage',
-  AuditLogsView: 'admin.audit_logs.view',
-  BillableRatesManage: 'admin.billable_rates.manage',
-  RateMultipliersManage: 'admin.rate_multipliers.manage',
-  HolidaysManage: 'admin.holidays.manage',
-  ProjectsManage: 'manage.projects.manage',
-  InvoicesManage: 'manage.invoices.manage',
+  ReportsView: 'reports.view',
+  TimesheetReview: 'timesheets.review',
+  MembersView: 'members.view',
+  MembersManage: 'members.manage',
+  InvitationsManage: 'invitations.manage',
+  AuditLogsView: 'audit_logs.view',
+  BillableRatesManage: 'billable_rates.manage',
+  RateMultipliersManage: 'rate_multipliers.manage',
+  HolidaysManage: 'holidays.manage',
+  ProjectsManage: 'projects.manage',
+  InvoicesManage: 'invoices.manage',
 } as const
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions]

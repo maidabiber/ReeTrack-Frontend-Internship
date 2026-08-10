@@ -632,29 +632,32 @@ function MemberRow({
           </span>
         </div>
       </div>
+      {(canManageMembers || canEditRates) && (
       <RowMenu open={menuOpen} onToggle={onToggleMenu}>
         {hasPendingInvite && <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />}
-        <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />
-        <RowMenuItem
-          icon="settings"
-          label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
-          onClick={() =>
-            onSetRole(
-              WORKSPACE_ROLES.filter((targetRole) => targetRole !== member.role)[0] ?? 'Member',
-            )
-          }
-        />
-        {hasPendingInvite ? (
-          <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
-        ) : (
-          <RowMenuItem
-            icon="ban"
-            label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
-            danger
-            onClick={onToggleActive}
-          />
-        )}
+        {canEditRates && <RowMenuItem icon="billable" label="Edit rate" onClick={onEditRate} />}
+        {canManageMembers &&
+          WORKSPACE_ROLES.filter((targetRole) => targetRole !== member.role).map((targetRole) => (
+            <RowMenuItem
+              key={targetRole}
+              icon="settings"
+              label={member.role === 'Admin' ? 'Make member' : 'Make admin'}
+              onClick={() => onSetRole(targetRole)}
+            />
+          ))}
+        {canManageMembers &&
+          (hasPendingInvite ? (
+            <RowMenuItem icon="ban" label="Revoke invite" danger onClick={onRevoke} />
+          ) : (
+            <RowMenuItem
+              icon="ban"
+              label={member.status === 'Disabled' ? 'Reactivate' : 'Deactivate'}
+              danger
+              onClick={onToggleActive}
+            />
+          ))}
       </RowMenu>
+      )}
     </div>
 
     <div
@@ -684,6 +687,7 @@ function MemberRow({
         {rateLabel}
       </span>
 
+      {(canManageMembers || canEditRates) && (
       <RowMenu open={menuOpen} onToggle={onToggleMenu}>
         {canManageMembers && hasPendingInvite && (
           <RowMenuItem icon="resend" label="Resend invite" onClick={onResend} />
@@ -710,6 +714,7 @@ function MemberRow({
             />
           ))}
       </RowMenu>
+      )}
     </div>
     </>
   )
