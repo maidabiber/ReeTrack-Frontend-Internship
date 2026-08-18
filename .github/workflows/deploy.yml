@@ -38,7 +38,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64
-          push: true
+          push: false
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
